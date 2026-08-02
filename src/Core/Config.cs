@@ -197,6 +197,14 @@ namespace OnTheBlade.Core
         [DataMember] public int BaseRosterCap = 4;               // +2 per roster upgrade
         [DataMember] public int EnforcerHireCost = 12000;
         [DataMember] public int EnforcerDailyWage = 350;         // charged at 00:00 game time
+
+        /// <summary>
+        /// How much of an enforcer's skill counts toward waving a rival off turf
+        /// in their region. Deterrence chance is skill/100 x this, so a good
+        /// enforcer stops roughly half the attempts on ground they cover — enough
+        /// to be worth the wage, not enough to make holding turf automatic.
+        /// </summary>
+        [DataMember] public float MuscleTurfDeterrence = 0.6f;
         [DataMember] public float StashStaminaBonus = 1.5f;      // off-duty recovery, any stash owned
         [DataMember] public float StashHeatDecayBonus = 2.0f;    // in that stash's region
         [DataMember] public float LaunderedHeatDecayBonus = 1.5f;

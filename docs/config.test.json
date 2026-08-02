@@ -101,6 +101,7 @@
   "BaseRosterCap": 8,
   "EnforcerHireCost": 1000,
   "EnforcerDailyWage": 60000,
+  "MuscleTurfDeterrence": 0.6,
   "StashStaminaBonus": 1.5,
   "StashHeatDecayBonus": 2.0,
   "LaunderedHeatDecayBonus": 1.5,

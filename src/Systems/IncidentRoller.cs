@@ -74,6 +74,32 @@ namespace OnTheBlade.Systems
         }
 
         /// <summary>
+        /// An enforcer standing on the ground a crew is eyeing can wave them off
+        /// before it becomes a turf battle.
+        ///
+        /// This is what muscle is actually for. Covering the occasional bad client
+        /// was convenience; keeping a corner is the reason to pay a wage. It is
+        /// deliberately a roll rather than a guarantee — turf you never have to
+        /// defend is turf that stopped being interesting.
+        /// </summary>
+        private bool DeterredByMuscle(ZoneDef zone, RivalCrew rival)
+        {
+            var enforcer = GameState.Current.EnforcerFor(zone.Id);
+            if (enforcer == null) return false;
+
+            float chance = (enforcer.Skill / 100f) * Config.Current.MuscleTurfDeterrence;
+            if (_rng.NextDouble() >= chance) return false;
+
+            enforcer.Handled++;
+
+            Notify.Show(
+                $"~g~{enforcer.Name} turned {rival.Name} away from {zone.Display}.~s~ " +
+                "That's what the wage is for.");
+
+            return true;
+        }
+
+        /// <summary>
         /// Gives an enforcer covering this zone a shot at resolving it off-screen.
         /// Returns true if the roll was consumed either way — a failed attempt
         /// still falls through to a real incident, it just costs the player the
@@ -122,6 +148,10 @@ namespace OnTheBlade.Systems
                 if (_rng.NextDouble() >= rival.Aggression * cfg.RivalContestChance) continue;
 
                 var target = held[_rng.Next(held.Count)];
+
+                // Muscle on that ground gets a say before it becomes a fight.
+                if (DeterredByMuscle(target, rival)) continue;
+
                 if (_missions.TryStart(new TurfBattleIncident(target.Id, rival.Id, false, _spawner)))
                     return true;
             }

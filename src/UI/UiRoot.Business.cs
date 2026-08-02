@@ -314,9 +314,12 @@ namespace OnTheBlade.UI
             {
                 var region = Regions.Get(enforcer.RegionId);
 
+                int deter = (int)Math.Round(enforcer.Skill * Config.Current.MuscleTurfDeterrence);
+
                 var item = new NativeItem(enforcer.Name,
-                    $"Covers {region?.Display ?? enforcer.RegionId}. " +
-                    $"Skill {enforcer.Skill:0}. Handled {enforcer.Handled}. " +
+                    $"Covers {region?.Display ?? enforcer.RegionId}. Skill {enforcer.Skill:0} — " +
+                    $"turns away about {deter}% of moves on your corners here, and handles " +
+                    $"client trouble. Dealt with {enforcer.Handled}. " +
                     $"${enforcer.DailyWage}/day. Activate to let them go.")
                 {
                     AltTitle = $"{enforcer.Skill:0}"
@@ -349,7 +352,8 @@ namespace OnTheBlade.UI
                     taken
                         ? "Already covered."
                         : $"${cfg.EnforcerHireCost:N0} up front, then ${cfg.EnforcerDailyWage}/day. " +
-                          "Covers routine client trouble only — never stings, walk-offs or turf.")
+                          "Turns rivals away from your corners here, and handles routine " +
+                          "client trouble. Never covers stings or walk-offs.")
                 {
                     AltTitle = taken ? "~g~Covered" : $"${cfg.EnforcerHireCost:N0}",
                     Enabled = !taken
