@@ -6,3 +6,7 @@ obj/
 
 # Build references are downloaded, not vendored — see lib/README.md
 lib/*.dll
+
+# Release archives are built, not versioned — the post copy is kept
+dist/*.zip
+dist/OnTheBlade-v*/
