@@ -36,16 +36,23 @@ namespace OnTheBlade.Core
     {
         public static readonly List<ZoneDef> All = new List<ZoneDef>
         {
+            // Corrected from spawn diagnostics: the original coordinate sat 7.6m
+            // to 12.1m off any pavement. The game's own sidewalk hits clustered
+            // around here and lay along ~125 degrees, which is why the heading
+            // was already right.
             new ZoneDef
             {
                 Id = "vespucci", Display = "Vespucci Beach",
-                Anchor = new Vector3(-1194f, -1394f, 4.6f), Heading = 125f,
+                Anchor = new Vector3(-1198.5f, -1400.5f, 4.0f), Heading = 125f,
                 MinTier = 1, Demand = 1.0f, HeatGain = 0.015f, Slots = 4
             },
+            // Corrected likewise. Three of four sidewalk hits came back at
+            // Z 24.4 against a guessed 21.1 — the anchor was about three metres
+            // below the pavement, which is why the snap kept jumping upward.
             new ZoneDef
             {
                 Id = "strawberry", Display = "Strawberry",
-                Anchor = new Vector3(87f, -1959f, 21.1f), Heading = 320f,
+                Anchor = new Vector3(85.0f, -1960.6f, 24.4f), Heading = 320f,
                 MinTier = 1, Demand = 1.1f, HeatGain = 0.030f, Slots = 3
             },
             new ZoneDef
