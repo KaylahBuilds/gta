@@ -210,6 +210,16 @@
       <li><b>Milestones.</b> Ten goals from your first signing to breaking every crew.</li>
       <li><b>Vehicles.</b> One per region: +10% demand and 25% less stamina drain.</li>
       <li>
+        <b>Muscle keeps rivals off your corners.</b> An enforcer covering a region turns away
+        27% to 45% of moves on turf there, depending on how good they are.
+        <span class="why">Handling the occasional bad client was convenience. Keeping a corner is the reason to pay somebody a daily wage — and the hire screen previously promised the opposite.</span>
+      </li>
+      <li>
+        <b>The recruit menu says why nobody qualifies.</b> "Forty people nearby, none of them a
+        match" rather than a bare "nobody".
+        <span class="why">On a crowded street the old readout gave the player nothing to act on. There is also a switch for signing women another script is managing, off by default.</span>
+      </li>
+      <li>
         <b>Diagnostics menu.</b> Jump to any zone anchor and log a corrected one straight to
         the log file.
         <span class="why">Built to fix the guessed coordinates below, and left in because it will be needed again.</span>
@@ -219,9 +229,9 @@
     <h3 class="changed">Changed</h3>
     <ul class="entries">
       <li>
-        <b>Recruiting is far less sparse.</b> The eligible pool went from 7 uncommon models to
-        31 common ones, and search radius from 20m to 35m — 70m on gang turf and around Vinewood.
-        <span class="why">Standing in Strawberry with a 45m sweep found nobody, because the original list was almost all rare scenario peds.</span>
+        <b>Recruiting is far less sparse.</b> The eligible pool went from 7 models to 86, and
+        search radius from 20m to 35m — 70m on gang turf and around Vinewood.
+        <span class="why">Widened twice. Seven found nobody anywhere; thirty-one still failed on many streets, because ambient female models are region-locked — soucent only spawns in South Central, vinewood in Vinewood, ktown in Koreatown — so only a handful of any short list is plausible where you happen to be standing.</span>
       </li>
       <li>
         <b>Objectives name the place and the person.</b> "Defend Sandy Shores" rather than
@@ -241,6 +251,17 @@
 
     <h3 class="fixed">Fixed</h3>
     <ul class="entries">
+      <li>
+        <b>A takeover could not be won even after clearing the street.</b> You could kill every
+        rival, stand alone on the corner, and still be told it went bad when the timer ran out.
+        <span class="why">Winning required every spawned enforcer to register as dead. One who fled, fell through the map or was downed without dying blocked it permanently. Winning now means nobody hostile is still holding the ground — and a failure writes the state of every enforcer to the log so the next one explains itself.</span>
+      </li>
+      <li>
+        <b>Rival enforcers spawned at unverified coordinates.</b> Crew already stood on a
+        pavement-corrected anchor; turf battles still used the raw hand-written one, so a fight
+        could start with people on a roof or in the sea.
+        <span class="why">Incidents now resolve through the same corrected anchor, and every antagonist is placed by the game on ground a ped can actually stand on. That fixes all six corners at once rather than the three anyone had checked.</span>
+      </li>
       <li>
         <b>Config, saves and logs were written to the wrong folder.</b> They landed in
         <code>scripts\scripts\</code>, so a config placed correctly was never read and the
