@@ -255,6 +255,27 @@ namespace OnTheBlade.Systems.Incidents
             return ped;
         }
 
+        /// <summary>
+        /// Whether this antagonist is still contesting the ground.
+        ///
+        /// Not the same question as "is it dead". A ped that fled, fell through
+        /// the map, spawned somewhere unreachable or is down but not technically
+        /// dead is no longer fighting for the corner — and testing IsDead alone
+        /// meant one of those could block a win forever while the player stood on
+        /// an empty street waiting to be told they had lost.
+        /// </summary>
+        protected static bool StillContesting(Ped ped, Vector3 ground, float radius)
+        {
+            if (ped == null || !ped.Exists()) return false;
+            if (ped.IsDead || !ped.IsAlive) return false;
+
+            // Ragdolled, downed or otherwise out of the fight.
+            if (ped.Health <= 5) return false;
+
+            // Ran off. Whatever they are doing, they are not holding this corner.
+            return ped.Position.DistanceTo(ground) <= radius;
+        }
+
         protected static void ReleasePed(ref Ped ped)
         {
             if (ped != null && ped.Exists())

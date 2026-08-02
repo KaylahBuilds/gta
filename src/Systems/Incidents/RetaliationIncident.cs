@@ -19,6 +19,7 @@ namespace OnTheBlade.Systems.Incidents
     {
         private const float SpawnRange = 120f;
         private const int DurationMs = 120000;
+        private const float HoldRadius = 90f;
 
         private readonly Vector3 _anchor;
         private readonly string _rivalId;
@@ -71,7 +72,7 @@ namespace OnTheBlade.Systems.Incidents
                 return;
             }
 
-            if (_crew.All(p => p == null || !p.Exists() || p.IsDead))
+            if (!_crew.Any(p => StillContesting(p, _anchor, HoldRadius)))
                 Succeed(worker, $"{rival.Name} got the message. {worker?.Name} saw you handle it.");
         }
 

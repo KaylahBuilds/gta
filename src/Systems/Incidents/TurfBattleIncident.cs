@@ -21,6 +21,9 @@ namespace OnTheBlade.Systems.Incidents
         private const int AttackDurationMs = 240000;
         private const int DefendDurationMs = 180000;
 
+        /// <summary>How far from the corner an enforcer still counts as holding it.</summary>
+        private const float HoldRadius = 90f;
+
         private readonly string _zoneId;
         private readonly string _rivalId;
         private readonly bool _attacking;
@@ -89,7 +92,7 @@ namespace OnTheBlade.Systems.Incidents
                 return;
             }
 
-            bool cleared = _enforcers.All(p => p == null || !p.Exists() || p.IsDead);
+            bool cleared = !_enforcers.Any(p => StillContesting(p, zone.Anchor, HoldRadius));
             if (cleared)
             {
                 Succeed(null, _attacking
@@ -154,6 +157,8 @@ namespace OnTheBlade.Systems.Incidents
             var rival = Rival;
             var state = GameState.Current;
 
+            LogWhyItFailed();
+
             if (_attacking)
             {
                 // Nothing lost but the attempt — they dig in a little.
@@ -170,6 +175,33 @@ namespace OnTheBlade.Systems.Incidents
             }
 
             rival?.Clamp();
+        }
+
+        /// <summary>
+        /// A turf battle that fails while the street looks empty is the worst kind
+        /// of bug to report, because the player has no way to see why. This writes
+        /// the state of every enforcer at the moment it went wrong.
+        /// </summary>
+        private void LogWhyItFailed()
+        {
+            var zone = Zone;
+            if (zone == null) return;
+
+            var lines = new List<string>();
+            foreach (Ped p in _enforcers)
+            {
+                if (p == null) { lines.Add("null"); continue; }
+                if (!p.Exists()) { lines.Add("gone"); continue; }
+
+                lines.Add($"hp={p.Health} dead={p.IsDead} " +
+                          $"dist={p.Position.DistanceTo(zone.Anchor):0}m " +
+                          $"contesting={StillContesting(p, zone.Anchor, HoldRadius)}");
+            }
+
+            Persistence.SaveManager.Log(
+                $"TURF-FAIL zone={zone.Id} attacking={_attacking} spawned={_spawned} " +
+                $"count={_enforcers.Count} playerDist={PlayerDistance():0}m :: " +
+                (lines.Count == 0 ? "no enforcers ever spawned" : string.Join(" | ", lines)));
         }
 
         public override void Cleanup()
