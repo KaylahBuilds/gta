@@ -16,6 +16,17 @@ namespace OnTheBlade.Runtime
     public class SpawnManager
     {
         private readonly Dictionary<int, WorkerRuntime> _live = new Dictionary<int, WorkerRuntime>();
+
+        /// <summary>
+        /// Zone id -> its anchor snapped to the nearest pavement, resolved once.
+        ///
+        /// Snapping is done here rather than per worker because
+        /// GetNextPositionOnSidewalk returns the nearest *node*, so four posts
+        /// 2.6m apart all resolve to the same node and the crew stands in a heap.
+        /// Snap the zone once, then spread from the snapped point.
+        /// </summary>
+        private readonly Dictionary<string, Vector3> _snappedAnchors = new Dictionary<string, Vector3>();
+
         private RelationshipGroup _crew;
         private bool _crewReady;
         private int _nextScan;
@@ -31,6 +42,40 @@ namespace OnTheBlade.Runtime
                 EnsureCrewGroup();
                 return _crew;
             }
+        }
+
+        /// <summary>
+        /// The zone's anchor moved onto the nearest pavement, cached. Falls back
+        /// to the raw anchor if the game finds nothing walkable nearby — a bad
+        /// coordinate should place someone awkwardly, not nowhere.
+        /// </summary>
+        private Vector3 SnappedAnchor(ZoneDef zone)
+        {
+            Vector3 cached;
+            if (_snappedAnchors.TryGetValue(zone.Id, out cached)) return cached;
+
+            Vector3 onFoot = World.GetNextPositionOnSidewalk(zone.Anchor);
+            Vector3 result = onFoot == Vector3.Zero ? zone.Anchor : onFoot;
+
+            _snappedAnchors[zone.Id] = result;
+
+            if (Config.Current.LogSpawnDiagnostics)
+            {
+                Persistence.SaveManager.Log(
+                    $"ANCHOR-SNAP {zone.Id} raw=({zone.Anchor.X:0.0},{zone.Anchor.Y:0.0},{zone.Anchor.Z:0.0}) " +
+                    $"snapped=({result.X:0.0},{result.Y:0.0},{result.Z:0.0}) " +
+                    $"moved={zone.Anchor.DistanceTo(result):0.0}m");
+            }
+
+            return result;
+        }
+
+        /// <summary>Where this worker stands, spread from the zone's snapped anchor.</summary>
+        public Vector3 PostFor(WorkerData worker, ZoneDef zone)
+        {
+            return Zones.PostPosition(
+                SnappedAnchor(zone), zone.Heading, zone.Slots,
+                GameState.Current.SlotIndexOf(worker));
         }
 
         public bool TryGetRuntime(int workerId, out WorkerRuntime runtime)
@@ -68,7 +113,7 @@ namespace OnTheBlade.Runtime
                     continue;
                 }
 
-                Vector3 post = Zones.PostPosition(zone, GameState.Current.SlotIndexOf(worker));
+                Vector3 post = PostFor(worker, zone);
                 float distance = player.DistanceTo(post);
 
                 if (distance <= spawnR)
@@ -97,7 +142,7 @@ namespace OnTheBlade.Runtime
             var zone = Zones.Get(worker.ZoneId);
             if (zone == null) return null;
 
-            return Zones.PostPosition(zone, GameState.Current.SlotIndexOf(worker));
+            return PostFor(worker, zone);
         }
 
         private void EnsureCrewGroup()

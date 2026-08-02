@@ -39,22 +39,17 @@ namespace OnTheBlade.Runtime
             model.Request(0);
             if (!model.IsLoaded) return null;
 
-            Vector3 ground = World.GetNextPositionOnSidewalk(position);
-
+            // No sidewalk snap here on purpose. SpawnManager snaps the zone anchor
+            // once and spreads the posts from it; snapping again per worker sends
+            // every one of them back to the same nearest node.
             if (Config.Current.LogSpawnDiagnostics)
             {
-                // A large snap distance means the zone anchor is nowhere near a
-                // pavement — the objective signal that a guessed coordinate is bad.
-                string snapped = ground == Vector3.Zero
-                    ? "none"
-                    : $"({ground.X:0.0},{ground.Y:0.0},{ground.Z:0.0}) dist={position.DistanceTo(ground):0.0}m";
-
                 Persistence.SaveManager.Log(
                     $"SPAWN {data.Name} zone={data.ZoneId} " +
-                    $"post=({position.X:0.0},{position.Y:0.0},{position.Z:0.0}) sidewalk={snapped}");
+                    $"at=({position.X:0.0},{position.Y:0.0},{position.Z:0.0})");
             }
 
-            Ped ped = World.CreatePed(model, ground == Vector3.Zero ? position : ground, heading);
+            Ped ped = World.CreatePed(model, position, heading);
             model.MarkAsNoLongerNeeded();
 
             if (ped == null || !ped.Exists()) return null;

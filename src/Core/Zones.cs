@@ -90,17 +90,30 @@ namespace OnTheBlade.Core
         /// </summary>
         public static Vector3 PostPosition(ZoneDef zone, int slotIndex)
         {
-            if (zone.Slots <= 1) return zone.Anchor;
+            return PostPosition(zone.Anchor, zone.Heading, zone.Slots, slotIndex);
+        }
+
+        /// <summary>
+        /// Spread around an explicit anchor.
+        ///
+        /// The overload exists because the anchor must be snapped to a pavement
+        /// <em>once, for the zone</em> — not per worker. Snapping each post
+        /// individually collapses every one of them onto the same sidewalk node
+        /// and the whole crew stands inside each other.
+        /// </summary>
+        public static Vector3 PostPosition(Vector3 anchor, float heading, int slots, int slotIndex)
+        {
+            if (slots <= 1) return anchor;
 
             const float spacing = 2.6f;
-            float offset = (slotIndex - (zone.Slots - 1) / 2f) * spacing;
+            float offset = (slotIndex - (slots - 1) / 2f) * spacing;
 
             // Offset along the zone's right-hand vector so workers line the kerb
             // instead of clustering on one point.
-            double rad = zone.Heading * System.Math.PI / 180.0;
+            double rad = heading * System.Math.PI / 180.0;
             var right = new Vector3((float)System.Math.Cos(rad), (float)System.Math.Sin(rad), 0f);
 
-            return zone.Anchor + right * offset;
+            return anchor + right * offset;
         }
     }
 }
