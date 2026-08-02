@@ -41,9 +41,13 @@ namespace OnTheBlade.Systems.Incidents
 
         public override string Title => _attacking ? "Taking the corner" : "Turf under attack";
 
+        // Named, because the subtitle is often the only thing the player reads —
+        // the blip is easy to lose among other mods' notifications, and "defend
+        // your corner" does not tell you which one or whether it is worth the
+        // drive.
         protected override string Objective => _attacking
-            ? "Clear their crew off the corner"
-            : "Defend your corner";
+            ? $"Take {Zone?.Display} off {Rival?.Name}"
+            : $"Defend {Zone?.Display}";
 
         protected override float ResolveDistance => 60f;
         protected override BlipSprite Sprite => BlipSprite.Deathmatch;

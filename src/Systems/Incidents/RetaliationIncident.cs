@@ -35,7 +35,8 @@ namespace OnTheBlade.Systems.Incidents
         private RivalCrew Rival => GameState.Current.GetRival(_rivalId);
 
         public override string Title => "They came for her";
-        protected override string Objective => "Put her old crew down";
+        protected override string Objective =>
+            $"See off {Rival?.Name} before they take {Worker?.Name} back";
         protected override float ResolveDistance => 60f;
         protected override BlipSprite Sprite => BlipSprite.Deathmatch;
         protected override BlipColor Colour => BlipColor.Red;

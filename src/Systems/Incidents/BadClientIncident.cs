@@ -23,7 +23,7 @@ namespace OnTheBlade.Systems.Incidents
             : base(workerId, spawner, DurationMs) { }
 
         public override string Title => "Client trouble";
-        protected override string Objective => "Get to your crew member and handle the client";
+        protected override string Objective => $"Get to {Worker?.Name} and handle the client";
         protected override BlipSprite Sprite => BlipSprite.Deathmatch;
 
         protected override void OnStart(WorkerData worker)

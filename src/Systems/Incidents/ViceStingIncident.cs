@@ -23,7 +23,7 @@ namespace OnTheBlade.Systems.Incidents
             : base(workerId, spawner, DurationMs) { }
 
         public override string Title => "Vice sting";
-        protected override string Objective => "Pull your crew member off the post before the bust";
+        protected override string Objective => $"Get {Worker?.Name} off the post before the bust";
         protected override float ResolveDistance => 18f;
         protected override BlipSprite Sprite => BlipSprite.PoliceStation;
         protected override BlipColor Colour => BlipColor.Blue;

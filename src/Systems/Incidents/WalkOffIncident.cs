@@ -21,7 +21,7 @@ namespace OnTheBlade.Systems.Incidents
             : base(workerId, spawner, DurationMs) { }
 
         public override string Title => "Walking off";
-        protected override string Objective => "Reach them and settle it";
+        protected override string Objective => $"Reach {Worker?.Name} and settle it";
         protected override float ResolveDistance => 8f;
         protected override BlipSprite Sprite => BlipSprite.Friend;
         protected override BlipColor Colour => BlipColor.Yellow;
