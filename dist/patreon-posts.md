@@ -74,7 +74,7 @@ Beyond the build itself, members get a say in what gets made next:
   assume they will.
 - **See it early.** New systems land here before anywhere else.
 
-**Fair warning: this is v0.1.0.** The systems are in and working, but balance and
+**Fair warning: this is v0.2.0.** The systems are in and working, but balance and
 placement are still being tuned against real play. Expect rough edges — and
 expect them to move, quickly, based on what you tell me.
 
@@ -90,7 +90,7 @@ Tell me what you want built.
 
 **Title**
 
-> On The Blade v0.1.0 — download
+> On The Blade v0.2.0 — download
 
 **Body**
 
@@ -126,7 +126,7 @@ run.
 - **Insert** — reload scripts. Safe; it releases every ped the mod owns and saves
   first
 
-**Known rough edges in v0.1.0**
+**Known rough edges in v0.2.0**
 
 - A couple of corner positions still put workers slightly off the kerb. Being
   fixed.
@@ -144,7 +144,7 @@ Tell me what breaks and what you'd want next — both go straight onto the list.
 | | Post 1 | Post 2 |
 | --- | --- | --- |
 | Audience | **Public** | **Paid members only** (or specific tiers) |
-| Attachment | none | `OnTheBlade-v0.1.0.zip` |
+| Attachment | none | `OnTheBlade-v0.2.0.zip` |
 | Purpose | reach and discovery | the thing membership buys |
 
 **Attach the zip, not loose DLLs.** Three separate files invites someone to grab

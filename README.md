@@ -11,7 +11,7 @@ content.
 > **Single player only.** Loading script mods into GTA Online will get the account
 > banned. Do not run this with the game connected to Online.
 
-**[Install guide](INSTALL.md)** · **[Website](docs/index.html)** — `docs/` holds a
+**[Install guide](INSTALL.md)** · **[Website](docs/index.html)** · **[Changelog](docs/changelog.html)** — `docs/` holds a
 self-contained static page covering install, controls, the full config reference
 and troubleshooting. Point GitHub Pages at the `/docs` folder to publish it.
 
