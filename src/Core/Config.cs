@@ -172,6 +172,19 @@ namespace OnTheBlade.Core
         /// <summary>0-255, and low on purpose. Only applies to the shaded ground.</summary>
         [DataMember] public int ZoneBlipAlpha = 45;
 
+        // Territory is marked in pale colours so it sits behind the map rather
+        // than on top of it. The game exposes a fixed palette, not arbitrary RGB,
+        // so "Pink" and "GreyLight" are the lightest options available — there is
+        // no paler pink to pick. Any GTA.BlipColor name works; unknown values
+        // fall back to the default.
+        [DataMember] public string ZoneColourMine = "Green2";
+        [DataMember] public string ZoneColourRival = "Pink";
+        [DataMember] public string ZoneColourNeutral = "GreyLight";
+        [DataMember] public string ZoneColourRaided = "Yellow2";
+
+        /// <summary>Zone pins sit below crew blips in the visual hierarchy.</summary>
+        [DataMember] public float ZoneBlipScale = 0.6f;
+
         [DataMember] public int ZoneBlipRefreshMs = 3000;
 
         // --- Blip colours -------------------------------------------------
@@ -241,6 +254,18 @@ namespace OnTheBlade.Core
         [IgnoreDataMember]
         public BlipColor ProspectBlipColour => ParseBlipColour(ProspectBlipColourName);
 
+        [IgnoreDataMember]
+        public BlipColor ZoneMine => ParseBlipColour(ZoneColourMine, BlipColor.Green2);
+
+        [IgnoreDataMember]
+        public BlipColor ZoneRival => ParseBlipColour(ZoneColourRival, BlipColor.Pink);
+
+        [IgnoreDataMember]
+        public BlipColor ZoneNeutral => ParseBlipColour(ZoneColourNeutral, BlipColor.GreyLight);
+
+        [IgnoreDataMember]
+        public BlipColor ZoneRaided => ParseBlipColour(ZoneColourRaided, BlipColor.Yellow2);
+
         private static Keys ParseKey(string name, Keys fallback)
         {
             Keys parsed;
@@ -255,10 +280,10 @@ namespace OnTheBlade.Core
                 RecruitModels = DefaultRecruitModels();
         }
 
-        private static BlipColor ParseBlipColour(string name)
+        private static BlipColor ParseBlipColour(string name, BlipColor fallback = BlipColor.Pink)
         {
             BlipColor parsed;
-            return Enum.TryParse(name, true, out parsed) ? parsed : BlipColor.Pink;
+            return Enum.TryParse(name, true, out parsed) ? parsed : fallback;
         }
 
         public int BaseRateFor(int tier)

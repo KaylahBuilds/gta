@@ -74,27 +74,29 @@ namespace OnTheBlade.Runtime
             BlipSprite sprite;
             string status;
 
+            var cfg = Config.Current;
+
             if (raided)
             {
-                colour = BlipColor.Yellow;
+                colour = cfg.ZoneRaided;
                 sprite = BlipSprite.PoliceArea;
                 status = $"raided, {state.LockoutDaysLeft(zone.Id)}d";
             }
             else if (mine)
             {
-                colour = BlipColor.Green;
+                colour = cfg.ZoneMine;
                 sprite = BlipSprite.DollarSignCircled;
                 status = $"yours, {state.WorkersIn(zone.Id).Count()}/{zone.Slots} posted";
             }
             else if (contested)
             {
-                colour = BlipColor.Red;
-                sprite = BlipSprite.BigCircle;
+                colour = cfg.ZoneRival;
+                sprite = BlipSprite.BigCircleOutline;
                 status = state.OwnerName(zone.Id);
             }
             else
             {
-                colour = BlipColor.Grey;
+                colour = cfg.ZoneNeutral;
                 sprite = BlipSprite.BigCircleOutline;
                 status = "neutral";
             }
@@ -119,7 +121,7 @@ namespace OnTheBlade.Runtime
 
             pin.Sprite = sprite;
             pin.Color = colour;
-            pin.Scale = 0.8f;
+            pin.Scale = Config.Current.ZoneBlipScale;
             pin.IsShortRange = false;   // territory should be visible from anywhere
             pin.Name = $"{zone.Display} — {status}";
             _pin[zone.Id] = pin;

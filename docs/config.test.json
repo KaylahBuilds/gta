@@ -116,6 +116,11 @@
   "ShowZoneBlips": true,
   "ShowZoneAreaCircles": false,
   "ZoneBlipAlpha": 45,
+  "ZoneColourMine": "Green2",
+  "ZoneColourRival": "Pink",
+  "ZoneColourNeutral": "GreyLight",
+  "ZoneColourRaided": "Yellow2",
+  "ZoneBlipScale": 0.6,
   "ZoneBlipRefreshMs": 3000,
 
   "AutoSaveIntervalMs": 30000
