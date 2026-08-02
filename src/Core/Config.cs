@@ -249,6 +249,22 @@ namespace OnTheBlade.Core
         [DataMember] public float StashHeatDecayBonus = 2.0f;    // in that stash's region
         [DataMember] public float LaunderedHeatDecayBonus = 1.5f;
 
+        // --- Upgrade effects -------------------------------------------------
+        /// <summary>Extra seconds on every incident with the burner network.</summary>
+        [DataMember] public int BurnerExtraSeconds = 30;
+
+        /// <summary>Share of the weekly deposit the laundromat washes.</summary>
+        [DataMember] public float LaundromatWashShare = 0.40f;
+
+        /// <summary>
+        /// Heat removed from each corner you hold when a washed deposit lands.
+        /// This is what "heat stops following the money home" actually does.
+        /// </summary>
+        [DataMember] public float LaundromatHeatWash = 0.20f;
+
+        /// <summary>Follower multiplier for Camera-ready workers once the ring light is bought.</summary>
+        [DataMember] public float RingLightCameraReadyBonus = 1.5f;
+
         // --- Saturation ---------------------------------------------------
         // Per-worker yield on a zone is divided by 1 + (others * falloff).
         // Without this, stacking everyone on the highest-demand zone is strictly

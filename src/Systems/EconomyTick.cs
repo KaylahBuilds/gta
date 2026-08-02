@@ -156,7 +156,7 @@ namespace OnTheBlade.Systems
             {
                 float decay = cfg.HeatDecayPerHour;
                 if (state.ZoneHasStash(zone.Id)) decay *= cfg.StashHeatDecayBonus;
-                if (state.HasUpgrade(UpgradeCatalog.Laundry)) decay *= cfg.LaunderedHeatDecayBonus;
+                if (state.HasUpgrade(UpgradeCatalog.Laundromat)) decay *= cfg.LaunderedHeatDecayBonus;
 
                 state.AddHeat(zone.Id, -decay);
             }
@@ -224,6 +224,21 @@ namespace OnTheBlade.Systems
             state.LifetimeSubscriptionTake += deposited;
 
             Notify.Show($"~g~+${deposited:N0}~s~  {Subscriptions.Brand} deposits cleared.", true);
+
+            if (!state.HasUpgrade(UpgradeCatalog.Laundromat)) return;
+
+            // Washing the money is what keeps it from leading anywhere. Only the
+            // corners you hold benefit — you cannot launder heat off someone
+            // else's ground.
+            var cfg = Config.Current;
+            int washed = (int)Math.Round(deposited * cfg.LaundromatWashShare);
+
+            foreach (var zone in Zones.All.Where(z => state.PlayerOwns(z.Id)))
+                state.AddHeat(zone.Id, -cfg.LaundromatHeatWash);
+
+            Notify.Show(
+                $"~g~${washed:N0} washed.~s~ Your corners cooled off " +
+                $"{cfg.LaundromatHeatWash * 100:0} points.");
         }
 
         /// <summary>

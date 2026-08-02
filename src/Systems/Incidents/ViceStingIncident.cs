@@ -60,20 +60,32 @@ namespace OnTheBlade.Systems.Incidents
 
         protected override void OnFail(WorkerData worker)
         {
+            var state = GameState.Current;
             string zoneId = worker.ZoneId;
+            bool bailFund = state.HasUpgrade(UpgradeCatalog.BailFund);
 
             worker.Loyalty -= 15f;
-            worker.ZoneId = null;
-            GameState.Current.AddHeat(zoneId, 0.25f);
+            state.AddHeat(zoneId, 0.25f);
 
-            int owed = GameState.Current.HasUpgrade(UpgradeCatalog.Retainer)
-                ? BailCost / 2
-                : BailCost;
+            // A bail fund buys her out the same night, so she keeps her post
+            // instead of the corner standing empty until you reassign her.
+            if (!bailFund) worker.ZoneId = null;
 
-            // Routed through Charge so a bail you cannot afford becomes debt
-            // rather than quietly costing nothing.
-            Notify.Show($"~r~{worker.Name} got picked up.~s~ The corner is hot.");
-            EconomyTick.Charge(owed, "Bail");
+            if (bailFund)
+            {
+                Notify.Show(
+                    $"~o~{worker.Name} got picked up.~s~ The fund covered it — she's back " +
+                    "on the corner tonight.");
+            }
+            else
+            {
+                int owed = state.HasUpgrade(UpgradeCatalog.Retainer) ? BailCost / 2 : BailCost;
+
+                // Routed through Charge so a bail you cannot afford becomes debt
+                // rather than quietly costing nothing.
+                Notify.Show($"~r~{worker.Name} got picked up.~s~ The corner is hot.");
+                EconomyTick.Charge(owed, "Bail");
+            }
 
             Spawner.Despawn(WorkerId);
         }

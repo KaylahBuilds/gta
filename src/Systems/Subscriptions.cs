@@ -48,11 +48,18 @@ namespace OnTheBlade.Systems
             {
                 // Scaled by stamina as well as loyalty: someone recovering from
                 // being run into the ground is not producing anything either.
-                worker.Followers += cfg.FollowerGainPerHourOffDuty
-                                    * (worker.Stamina / 100f)
-                                    * (worker.Loyalty / 100f)
-                                    * TierAppeal(worker.Tier)
-                                    * Traits.FollowerMultiplier(worker.TraitSet);
+                float gain = cfg.FollowerGainPerHourOffDuty
+                             * (worker.Stamina / 100f)
+                             * (worker.Loyalty / 100f)
+                             * TierAppeal(worker.Tier)
+                             * Traits.FollowerMultiplier(worker.TraitSet);
+
+                // The ring light is equipment, so it only helps the people who
+                // were going to use it.
+                if ((worker.TraitSet & WorkerTrait.CameraReady) != 0)
+                    gain *= cfg.RingLightCameraReadyBonus;
+
+                worker.Followers += gain;
             }
 
             worker.Clamp();

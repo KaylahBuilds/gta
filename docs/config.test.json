@@ -142,7 +142,12 @@
     "BaseRosterCap":  8,
     "EnforcerHireCost":  1000,
     "EnforcerDailyWage":  500,
-    "MuscleTurfDeterrence":  0.6,
+    "BurnerExtraSeconds": 30,
+  "LaundromatWashShare": 0.4,
+  "LaundromatHeatWash": 0.2,
+  "RingLightCameraReadyBonus": 1.5,
+
+  "MuscleTurfDeterrence":  0.6,
     "StashStaminaBonus":  1.5,
     "StashHeatDecayBonus":  2.0,
     "LaunderedHeatDecayBonus":  1.5,

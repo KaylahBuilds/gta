@@ -24,16 +24,31 @@ namespace OnTheBlade.Core
         public const string RosterA = "roster_a";
         public const string RosterB = "roster_b";
         public const string Retainer = "retainer";
-        public const string Laundry = "laundry";
+
+        /// <summary>Id kept as "laundry" so existing saves keep the upgrade they bought.</summary>
+        public const string Laundromat = "laundry";
+
         public const string Creator = "creator";
+        public const string Burner = "burner";
+        public const string BailFund = "bail_fund";
 
         public static readonly List<UpgradeDef> All = new List<UpgradeDef>
         {
             new UpgradeDef
             {
-                Id = Creator, Name = "Ring light and a laptop", Cost = 8000,
-                Description = "Opens the second revenue stream. Followers build " +
-                              "while the crew are off the street and deposits land weekly."
+                Id = Creator, Name = "Ring light", Cost = 8000,
+                Description = "Opens the second revenue stream. Followers build while the crew " +
+                              "are off the street, and Camera-ready workers build 1.5x faster."
+            },
+            new UpgradeDef
+            {
+                Id = Burner, Name = "Burner network", Cost = 8500,
+                Description = "Incidents blip 30 seconds earlier. You get across the map or you don't."
+            },
+            new UpgradeDef
+            {
+                Id = BailFund, Name = "Bail fund", Cost = 6000,
+                Description = "Anyone picked up comes back the same night instead of costing you two."
             },
             new UpgradeDef
             {
@@ -52,8 +67,9 @@ namespace OnTheBlade.Core
             },
             new UpgradeDef
             {
-                Id = Laundry, Name = "Laundered take", Cost = 30000,
-                Description = "Heat bleeds off half again as fast everywhere."
+                Id = Laundromat, Name = "Laundromat", Cost = 22000,
+                Description = "Washes 40% of the weekly deposit. Heat bleeds off half again as " +
+                              "fast everywhere, and payday cools the corners you hold."
             }
         };
 

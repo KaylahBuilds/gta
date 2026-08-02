@@ -99,7 +99,13 @@ namespace OnTheBlade.Systems.Incidents
             }
 
             if (worker != null) worker.State = WorkerState.InTrouble;
+
+            // The burner network is a head start: word reaches you sooner, so the
+            // clock you are racing is longer.
             _remainingMs = _durationMs;
+            if (GameState.Current.HasUpgrade(UpgradeCatalog.Burner))
+                _remainingMs += Config.Current.BurnerExtraSeconds * 1000;
+
             _lastTickAt = Game.GameTime;
 
             Vector3? target = TargetPosition;
