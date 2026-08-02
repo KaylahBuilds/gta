@@ -68,13 +68,93 @@ namespace OnTheBlade.Systems
         /// </summary>
         public static bool IsEligible(Ped ped, HashSet<int> ownHandles)
         {
-            if (ped == null || !ped.Exists()) return false;
-            if (ped.IsPlayer || !ped.IsAlive || !ped.IsHuman) return false;
-            if (!CandidateHashes().Contains(ped.Model.Hash)) return false;
-            if (ped.IsInVehicle()) return false;
-            if (ped.IsPersistent) return false;
-            if (ownHandles != null && ownHandles.Contains(ped.Handle)) return false;
-            return true;
+            return Classify(ped, ownHandles) == Verdict.Eligible;
+        }
+
+        public enum Verdict
+        {
+            Eligible,
+            NotAPerson,
+            WrongModel,
+            InVehicle,
+            OwnedByAnotherScript,
+            AlreadyMine
+        }
+
+        /// <summary>
+        /// Why a given ped is or isn't a prospect. Split out from
+        /// <see cref="IsEligible"/> so the menu can report what it rejected —
+        /// "nobody nearby" on a busy street is unactionable, "forty of them are
+        /// the wrong model" is not.
+        /// </summary>
+        public static Verdict Classify(Ped ped, HashSet<int> ownHandles)
+        {
+            if (ped == null || !ped.Exists()) return Verdict.NotAPerson;
+            if (ped.IsPlayer || !ped.IsAlive || !ped.IsHuman) return Verdict.NotAPerson;
+
+            if (!CandidateHashes().Contains(ped.Model.Hash)) return Verdict.WrongModel;
+            if (ped.IsInVehicle()) return Verdict.InVehicle;
+
+            if (ped.IsPersistent && !Config.Current.AllowPedsOwnedByOtherScripts)
+                return Verdict.OwnedByAnotherScript;
+
+            if (ownHandles != null && ownHandles.Contains(ped.Handle)) return Verdict.AlreadyMine;
+
+            return Verdict.Eligible;
+        }
+
+        public class ProspectScan
+        {
+            public int PeopleNearby;
+            public int Eligible;
+            public int WrongModel;
+            public int InVehicle;
+            public int OwnedByAnotherScript;
+            public int AlreadyMine;
+
+            /// <summary>The reason worth telling the player about, or null if there are prospects.</summary>
+            public string Explain()
+            {
+                if (Eligible > 0) return null;
+                if (PeopleNearby == 0) return "Nobody about at all — try a busier street.";
+
+                if (WrongModel >= PeopleNearby * 0.8)
+                    return $"{WrongModel} people nearby, none of them a match. Try a different district.";
+                if (OwnedByAnotherScript > 0)
+                    return $"{OwnedByAnotherScript} are held by another mod — see AllowPedsOwnedByOtherScripts.";
+                if (InVehicle > 0)
+                    return $"{InVehicle} in vehicles. They have to be on foot.";
+
+                return $"{PeopleNearby} nearby, none eligible.";
+            }
+        }
+
+        /// <summary>Counts every nearby ped by verdict, for the menu readout.</summary>
+        public static ProspectScan Scan(SpawnManager spawner)
+        {
+            var result = new ProspectScan();
+
+            var player = Game.Player.Character;
+            if (player == null || !player.Exists()) return result;
+
+            float radius = RecruitAreas.SearchRadius(RecruitAreas.At(player.Position));
+            var own = OwnHandles(spawner);
+
+            foreach (var ped in World.GetNearbyPeds(player, radius))
+            {
+                switch (Classify(ped, own))
+                {
+                    case Verdict.NotAPerson: continue;
+                    case Verdict.WrongModel: result.WrongModel++; break;
+                    case Verdict.InVehicle: result.InVehicle++; break;
+                    case Verdict.OwnedByAnotherScript: result.OwnedByAnotherScript++; break;
+                    case Verdict.AlreadyMine: result.AlreadyMine++; break;
+                    case Verdict.Eligible: result.Eligible++; break;
+                }
+                result.PeopleNearby++;
+            }
+
+            return result;
         }
 
         private static HashSet<int> OwnHandles(SpawnManager spawner)

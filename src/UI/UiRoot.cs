@@ -152,23 +152,27 @@ namespace OnTheBlade.UI
             if (_recruit == null) return;
 
             var area = _spotter.CurrentArea;
-            int nearby = Recruiter.CountProspects(_spawner);
             bool hotspot = RecruitAreas.IsHotspot(area);
+            var scan = Recruiter.Scan(_spawner);
 
             // The raw zone code is printed on purpose: the hotspot lists in
             // RecruitAreas are unverified, and this is how you check one in-game.
             string code = RecruitAreas.ZoneCode(Game.Player.Character.Position);
 
-            _recruit.AltTitle = nearby > 0
-                ? (hotspot ? $"~g~{nearby} nearby" : $"{nearby} nearby")
+            _recruit.AltTitle = scan.Eligible > 0
+                ? (hotspot ? $"~g~{scan.Eligible} nearby" : $"{scan.Eligible} nearby")
                 : "~r~nobody";
+
+            // When there is nobody, say which filter rejected them. "Nobody
+            // nearby" on a crowded street tells the player nothing they can act on.
+            string why = scan.Explain();
 
             _recruit.Description =
                 $"{RecruitAreas.Describe(area)} [{code}] — searching " +
                 $"{RecruitAreas.SearchRadius(area):0}m. " +
-                (hotspot
+                (why ?? (hotspot
                     ? "Prospects are blipped while you are here."
-                    : "Gang turf and Vinewood turn up more people.");
+                    : "Gang turf and Vinewood turn up more people."));
         }
 
         // ------------------------------------------------------------------

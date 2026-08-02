@@ -87,26 +87,55 @@ namespace OnTheBlade.Core
         [DataMember] public string[] RecruitModels = DefaultRecruitModels();
 
         /// <summary>
-        /// Widened from seven models after in-game testing: standing on gang turf
-        /// in Strawberry with a 45m sweep found nobody, because the original list
-        /// was almost all rare scenario peds. These are common ambient female
-        /// models, so a busy street reliably has candidates.
+        /// Widened twice after play. Seven models found nobody at all; thirty-one
+        /// still failed on many streets because ambient female models are heavily
+        /// region-locked — soucent spawns in South Central, vinewood in Vinewood,
+        /// ktown in Koreatown — so only a handful of any short list is plausible
+        /// wherever you happen to be standing.
+        ///
+        /// This covers the ambient female population across every district plus
+        /// the service and nightlife models. A name the game does not recognise
+        /// simply never matches, so breadth costs nothing.
         /// </summary>
         public static string[] DefaultRecruitModels() => new[]
         {
-            // Street
+            // Street and nightlife
             "s_f_y_hooker_01", "s_f_y_hooker_02", "s_f_y_hooker_03",
-            // Common ambient
+            "s_f_y_stripper_01", "s_f_y_stripper_02", "s_f_y_stripperlite",
+            "s_f_y_bartender_01", "s_f_y_baywatch_01", "s_f_y_movprem_01",
+            "s_f_y_shop_low", "s_f_y_shop_mid", "s_f_y_shop_high",
+            "s_f_m_shop_high", "s_f_y_factory_01", "s_f_y_sweatshop_01",
+            "s_f_m_sweatshop_01", "s_f_y_migrant_01", "s_f_m_fembarber",
+            "s_f_m_maid_01",
+
+            // Young adult, by district
             "a_f_y_hipster_01", "a_f_y_hipster_02", "a_f_y_hipster_03", "a_f_y_hipster_04",
             "a_f_y_business_01", "a_f_y_business_02", "a_f_y_business_03", "a_f_y_business_04",
-            "a_f_y_tourist_01", "a_f_y_tourist_02",
-            "a_f_y_beachvesp_01", "a_f_y_beachvesp_02",
-            "a_f_y_soucent_01", "a_f_y_soucent_02", "a_f_y_soucent_03",
-            "a_f_m_soucent_01", "a_f_m_soucent_02",
+            "a_f_y_bevhills_01", "a_f_y_bevhills_02", "a_f_y_bevhills_03", "a_f_y_bevhills_04",
             "a_f_y_vinewood_01", "a_f_y_vinewood_02", "a_f_y_vinewood_03", "a_f_y_vinewood_04",
+            "a_f_y_soucent_01", "a_f_y_soucent_02", "a_f_y_soucent_03",
+            "a_f_y_eastsa_01", "a_f_y_eastsa_02", "a_f_y_eastsa_03",
+            "a_f_y_ktown_01", "a_f_y_ktown_02",
+            "a_f_y_beachvesp_01", "a_f_y_beachvesp_02",
+            "a_f_y_tourist_01", "a_f_y_tourist_02",
             "a_f_y_fitness_01", "a_f_y_fitness_02",
-            "a_f_y_ktown_01", "a_f_y_ktown_02", "a_f_m_ktown_01",
-            "a_f_m_downtown_01", "a_f_y_genhot_01"
+            "a_f_y_genhot_01", "a_f_y_yoga_01", "a_f_y_runner_01", "a_f_y_hiker_01",
+            "a_f_y_golfer_01", "a_f_y_skater_01", "a_f_y_indian_01", "a_f_y_juggalo_01",
+            "a_f_y_epsilon_01", "a_f_y_scdressy_01", "a_f_y_topless_01",
+            "a_f_y_bodybuild_01", "a_f_y_rurmeth_01",
+
+            // Middle-aged, by district
+            "a_f_m_bevhills_01", "a_f_m_bevhills_02",
+            "a_f_m_business_02", "a_f_m_downtown_01",
+            "a_f_m_eastsa_01", "a_f_m_eastsa_02",
+            "a_f_m_soucent_01", "a_f_m_soucent_02", "a_f_m_soucentmc_01",
+            "a_f_m_ktown_01", "a_f_m_tourist_01", "a_f_m_salton_01",
+            "a_f_m_fatcult_01", "a_f_m_fatwhite_01", "a_f_m_prolhost_01",
+            "a_f_m_skidrow_01", "a_f_m_tramp_01",
+
+            // Unique ambient
+            "u_f_y_comjane", "u_f_y_hotposh_01", "u_f_y_jewelass_01",
+            "u_f_y_mistress", "u_f_y_poppymich", "u_f_y_princess", "u_f_y_spyactress"
         };
 
         // Both raised after testing: 20m found nothing on a real street, and a
@@ -115,6 +144,17 @@ namespace OnTheBlade.Core
 
         /// <summary>Wider sweep on gang turf and around Vinewood.</summary>
         [DataMember] public float RecruitRadiusHotspot = 70f;
+
+        /// <summary>
+        /// Allow signing women another script is already managing.
+        ///
+        /// Off by default because recruiting deletes the source ped, and deleting
+        /// a ped that another mod still holds a handle to can break that mod. On
+        /// an install running gang scripts this is the filter most likely to be
+        /// hiding candidates — the recruit menu reports how many it rejected, so
+        /// turn it on only if that count is doing real damage.
+        /// </summary>
+        [DataMember] public bool AllowPedsOwnedByOtherScripts;
 
         /// <summary>Blip nearby prospects while standing in a hotspot.</summary>
         [DataMember] public bool ShowProspectBlips = true;
