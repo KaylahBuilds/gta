@@ -1,0 +1,778 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>On The Blade — a GTA V management mod</title>
+<meta name="description" content="A roster and territory management game mode for GTA V single player. One build for Legacy and Enhanced.">
+<style>
+  :root {
+    --bg: #0d0f12;
+    --bg-raised: #14181d;
+    --bg-sunken: #090b0d;
+    --line: #232a32;
+    --text: #e6e9ed;
+    --text-dim: #98a2ae;
+    --text-faint: #6b7683;
+    --accent: #6fcf7f;
+    --accent-dim: #3f7a49;
+    --warn: #e0913f;
+    --danger: #e05c5c;
+    --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --radius: 8px;
+    --maxw: 860px;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #fbfbfa;
+      --bg-raised: #ffffff;
+      --bg-sunken: #f2f2f0;
+      --line: #e0e0dc;
+      --text: #1a1d21;
+      --text-dim: #545c66;
+      --text-faint: #858d97;
+      --accent: #2f7d3d;
+      --accent-dim: #8fc79a;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+
+  /* ---- header ---- */
+  header {
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, var(--bg-raised), var(--bg));
+    padding: 72px 0 56px;
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 14px;
+  }
+  h1 {
+    margin: 0 0 16px;
+    font-size: clamp(2.2rem, 6vw, 3.4rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    font-weight: 700;
+  }
+  .tagline {
+    margin: 0 0 28px;
+    font-size: clamp(1.05rem, 2.4vw, 1.25rem);
+    color: var(--text-dim);
+    max-width: 60ch;
+  }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; }
+  .badge {
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 5px 11px;
+    border: 1px solid var(--line);
+    border-radius: 100px;
+    color: var(--text-dim);
+    background: var(--bg-sunken);
+    white-space: nowrap;
+  }
+  .badge.ok { color: var(--accent); border-color: var(--accent-dim); }
+
+  /* ---- nav ---- */
+  nav {
+    position: sticky; top: 0; z-index: 10;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  nav ul {
+    display: flex; gap: 4px; list-style: none;
+    margin: 0 auto; padding: 0 16px;
+    max-width: var(--maxw);
+    overflow-x: auto;
+  }
+  nav a {
+    display: block; padding: 13px 12px;
+    color: var(--text-dim); text-decoration: none;
+    font-size: 14px; white-space: nowrap;
+    border-bottom: 2px solid transparent;
+  }
+  nav a:hover { color: var(--text); border-bottom-color: var(--accent-dim); }
+
+  /* ---- sections ---- */
+  section { padding: 56px 0; border-bottom: 1px solid var(--line); }
+  section:last-of-type { border-bottom: none; }
+  h2 {
+    margin: 0 0 8px;
+    font-size: 1.5rem;
+    letter-spacing: -0.01em;
+  }
+  h2 + .lede { margin: 0 0 28px; color: var(--text-dim); max-width: 62ch; }
+  h3 {
+    margin: 32px 0 10px;
+    font-size: 1.05rem;
+    letter-spacing: -0.005em;
+  }
+  p { max-width: 68ch; }
+  a { color: var(--accent); text-decoration-color: var(--accent-dim); text-underline-offset: 3px; }
+
+  /* ---- callouts ---- */
+  .callout {
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--text-faint);
+    border-radius: var(--radius);
+    background: var(--bg-raised);
+    padding: 16px 18px;
+    margin: 24px 0;
+  }
+  .callout p { margin: 0; }
+  .callout p + p { margin-top: 10px; }
+  .callout.danger { border-left-color: var(--danger); }
+  .callout.warn { border-left-color: var(--warn); }
+  .callout strong { color: var(--text); }
+  .callout .label {
+    display: block;
+    font-family: var(--mono); font-size: 11px;
+    letter-spacing: .12em; text-transform: uppercase;
+    margin-bottom: 6px; color: var(--text-faint);
+  }
+  .callout.danger .label { color: var(--danger); }
+  .callout.warn .label { color: var(--warn); }
+
+  /* ---- steps ---- */
+  ol.steps { counter-reset: step; list-style: none; padding: 0; margin: 24px 0 0; }
+  ol.steps > li {
+    counter-increment: step;
+    position: relative;
+    padding: 0 0 28px 44px;
+    border-left: 1px solid var(--line);
+    margin-left: 13px;
+  }
+  ol.steps > li:last-child { border-left-color: transparent; padding-bottom: 0; }
+  ol.steps > li::before {
+    content: counter(step);
+    position: absolute; left: -14px; top: -2px;
+    width: 27px; height: 27px;
+    display: grid; place-items: center;
+    background: var(--bg-sunken);
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    font-family: var(--mono); font-size: 12px;
+    color: var(--accent);
+  }
+  ol.steps h3 { margin: 0 0 6px; font-size: 1rem; }
+  ol.steps p { margin: 0 0 10px; color: var(--text-dim); }
+
+  /* ---- code ---- */
+  code {
+    font-family: var(--mono);
+    font-size: .87em;
+    background: var(--bg-sunken);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 1px 5px;
+    /* Long unbreakable identifiers must wrap rather than push the page wide.
+       No effect inside <pre>, which uses white-space: pre and scrolls instead. */
+    overflow-wrap: anywhere;
+  }
+  pre {
+    background: var(--bg-sunken);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    overflow-x: auto;
+    margin: 0 0 16px;
+  }
+  pre code { background: none; border: none; padding: 0; font-size: .85rem; }
+  .path { color: var(--text-faint); }
+
+  /* ---- tables ---- */
+  .scroller { overflow-x: auto; margin: 20px 0; border: 1px solid var(--line); border-radius: var(--radius); }
+  table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th {
+    background: var(--bg-sunken);
+    font-family: var(--mono); font-size: 11px;
+    letter-spacing: .1em; text-transform: uppercase;
+    color: var(--text-faint); font-weight: 500;
+  }
+  tr:last-child td { border-bottom: none; }
+  td code { white-space: nowrap; }
+  .num { font-family: var(--mono); color: var(--text-dim); white-space: nowrap; }
+
+  /* ---- cards ---- */
+  .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin: 24px 0 0; }
+  .card {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--bg-raised);
+    padding: 18px;
+  }
+  .card h3 { margin: 0 0 6px; font-size: .95rem; }
+  .card p { margin: 0; font-size: .9rem; color: var(--text-dim); }
+
+  ul.tight { padding-left: 20px; }
+  ul.tight li { margin-bottom: 7px; color: var(--text-dim); }
+  ul.tight li strong { color: var(--text); font-weight: 600; }
+
+  footer {
+    padding: 40px 0 64px;
+    color: var(--text-faint);
+    font-size: .85rem;
+    border-top: 1px solid var(--line);
+  }
+  footer p { margin: 0 0 8px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <p class="eyebrow">GTA V · Single player</p>
+    <h1>On The Blade</h1>
+    <p class="tagline">
+      A roster and territory management game mode. You don't play a minigame —
+      you run a business, and drive out when it generates a problem.
+    </p>
+    <div class="badges">
+      <span class="badge ok">Legacy + Enhanced</span>
+      <span class="badge">v0.1.0</span>
+      <span class="badge">ScriptHookVDotNet Enhanced</span>
+      <span class="badge">.NET Framework 4.8</span>
+    </div>
+  </div>
+</header>
+
+<nav>
+  <ul>
+    <li><a href="#what">What it is</a></li>
+    <li><a href="#systems">Systems</a></li>
+    <li><a href="#install">Install</a></li>
+    <li><a href="#controls">Controls</a></li>
+    <li><a href="#config">Config</a></li>
+    <li><a href="#trouble">Troubleshooting</a></li>
+    <li><a href="#build">Build</a></li>
+  </ul>
+</nav>
+
+<div class="wrap">
+
+<section id="what">
+  <h2>What it is</h2>
+  <p class="lede">Saints Row business mechanics and a Mafia III racket board, running live in the open world.</p>
+
+  <p>
+    Recruit crew, post them to zones, collect an hourly take, and handle the
+    problems the operation generates. The action isn't scripted missions — it's
+    you responding to what your own business throws up. Everything stays at the
+    abstraction level the base game uses: money, timers, heat, fade-to-black.
+  </p>
+
+  <div class="callout danger">
+    <span class="label">Read this first</span>
+    <p>
+      <strong>Single player only.</strong> Loading script mods into GTA Online
+      will get the account banned. Launch story mode, and on Enhanced make sure
+      BattlEye is not running.
+    </p>
+  </div>
+
+  <div class="callout">
+    <span class="label">Content</span>
+    <p>
+      Adult themes, handled the way the base game handles them — abstracted, no
+      explicit content. All characters are adults. The systems are management and
+      turf mechanics, not depictions.
+    </p>
+  </div>
+</section>
+
+<section id="systems">
+  <h2>Systems</h2>
+  <p class="lede">Five layers, each feeding the next.</p>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Two revenue streams</h3>
+      <p>An hourly street take that generates heat and risk, and a safe weekly subscription deposit. They compete for the same worker-hours.</p>
+    </div>
+    <div class="card">
+      <h3>Incidents</h3>
+      <p>Bad clients, vice stings and walk-offs. One at a time, then a cooldown — two emergencies at once isn't a choice.</p>
+    </div>
+    <div class="card">
+      <h3>Territory</h3>
+      <p>Six zones, four rival crews. Work a neutral corner to claim it; take a held one by force.</p>
+    </div>
+    <div class="card">
+      <h3>Business</h3>
+      <p>Roster upgrades, a legal retainer, laundering, stash houses with fast travel, and hired muscle on wages.</p>
+    </div>
+  </div>
+
+  <h3>The two streams</h3>
+  <p>
+    <strong>Street take</strong> resolves every in-game hour. It scales on tier,
+    zone demand, loyalty, heat and stamina, with a night bonus and a bonus on turf
+    you hold. It also generates heat and invites incidents.
+  </p>
+  <p>
+    <strong>Subscription deposits</strong> land every seven game days, unlocked by
+    the <em>Ring light and a laptop</em> upgrade. Each worker carries a follower
+    count that builds only while they are <em>off</em> the street and decays while
+    they are on it. The deposit cannot fail, generates no heat and never triggers
+    an incident.
+  </p>
+  <p>
+    So the two streams compete for the same worker-hours. The roster stops being a
+    throughput problem and becomes an allocation one: who earns now and hot, who
+    earns later and safe.
+  </p>
+
+  <h3>The tension</h3>
+  <p>
+    Stamina drains on shift and recovers off duty. Exhausted crew bleed loyalty,
+    and loyalty scales payout — so working the roster into the ground is
+    mathematically self-defeating. Subscriptions reinforce that rather than
+    bypassing it: a worker parked off duty to build an audience is also resting,
+    and a rested worker builds faster.
+  </p>
+  <p>Tuned by simulating 12 game weeks for a tier-2 worker at 70 loyalty:</p>
+
+  <div class="scroller">
+    <table>
+      <thead>
+        <tr><th>Strategy</th><th>Street / wk</th><th>Subs / wk</th><th>Total / wk</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Street whenever rested</td><td class="num">$16,937</td><td class="num">$1,784</td><td class="num">$18,721</td></tr>
+        <tr><td>Never on the street</td><td class="num">$0</td><td class="num">$7,970</td><td class="num">$7,970</td></tr>
+        <tr><td>Night shift, rest by day</td><td class="num">$14,737</td><td class="num">$5,611</td><td class="num"><strong>$20,348</strong></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>
+    The mixed strategy wins. Street pays more per hour; subscriptions pay less but
+    carry no risk at all.
+  </p>
+
+  <h3>Recruiting</h3>
+  <p>
+    Eligibility is a curated list of ped models, matched by hash. Keeping the pool
+    deliberate is what makes hotspots matter — eligible peds are uncommon enough
+    that where you look is a real decision. The list is
+    <code>RecruitModels</code> in <code>config.json</code>, so it can be widened
+    without a rebuild. Two kinds of area make searching easier:
+  </p>
+
+  <div class="scroller">
+    <table>
+      <thead>
+        <tr><th>Area</th><th>Search radius</th><th>Tier 1</th><th>Tier 2</th><th>Tier 3</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Gang turf</td><td class="num">70m</td><td class="num">70%</td><td class="num">25%</td><td class="num">5%</td></tr>
+        <tr><td>Vinewood</td><td class="num">70m</td><td class="num">25%</td><td class="num">45%</td><td class="num">30%</td></tr>
+        <tr><td>Anywhere else</td><td class="num">35m</td><td class="num">60%</td><td class="num">30%</td><td class="num">10%</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>
+    Gang turf turns up volume at the lower tiers; Vinewood turns up fewer people
+    but a better class of them. Standing in either also <strong>blips nearby
+    prospects</strong> — the mod cannot make the game spawn more people, so
+    instead it points at the ones already there. Ordinary areas get no blips,
+    which is what keeps a hotspot feeling like one.
+  </p>
+
+  <h3>Taking someone else's earner</h3>
+  <p>
+    Some prospects already work for somebody — 45% on gang turf, 30% around
+    Vinewood, 12% anywhere else. Signing one is the cheapest way to get an
+    experienced earner and the fastest way to start a war.
+  </p>
+
+  <div class="scroller">
+    <table>
+      <thead><tr><th>Consequence</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>She comes in a tier higher</td><td>She already knows the job</td></tr>
+        <tr><td>Loyalty −15</td><td>She has been through something and doesn't trust you yet</td></tr>
+        <tr><td>Her crew: aggression +0.15, strength +5</td><td>They pull people in</td></tr>
+        <tr><td>Every other crew: aggression +0.04</td><td>Word travels — a pimp who poaches is everyone's problem</td></tr>
+        <tr><td>55% chance they arrive within the minute</td><td>Anchored where the deal was struck, not at her post</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>
+    Clear them and her crew backs off, and she saw you show up. Fail and they take
+    her back permanently. Rival aggression feeds the turf-contest roll, so poaching
+    is the lever that turns the map hostile: with none, a contest lands roughly
+    every 9 real minutes; after ten, about every 5.6. It cannot spiral, because
+    aggression clamps at 1.
+  </p>
+  <p>
+    Once every rival is broken there is nobody left to poach from, so late-game
+    recruiting quietly becomes safe. That falls out of the design rather than
+    being special-cased.
+  </p>
+
+  <div class="callout warn">
+    <span class="label">Needs verifying in-game</span>
+    <p>
+      Hotspots are matched on the game's zone codes rather than coordinates, and
+      the code lists are unverified. The recruit menu prints the code you are
+      standing in so you can check and correct them. An unrecognised code falls
+      through to "anywhere else" rather than breaking anything.
+    </p>
+  </div>
+
+  <h3>Territory rules</h3>
+  <div class="scroller">
+    <table>
+      <thead>
+        <tr><th>Zone state</th><th>Post crew?</th><th>Payout</th><th>Rival pressure</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Neutral</td><td>Yes — doing so claims it</td><td class="num">base</td><td>None</td></tr>
+        <tr><td>Yours</td><td>Yes</td><td class="num">×1.15</td><td>Contested while staffed</td></tr>
+        <tr><td>Rival-held</td><td>No — take it first</td><td class="num">—</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>
+    Rivals only attack turf you hold <em>and have staffed</em>. Being attacked
+    over an empty corner you happen to own reads as noise rather than pressure.
+  </p>
+</section>
+
+<section id="install">
+  <h2>Install</h2>
+  <p class="lede">Same steps for Legacy and Enhanced — one build covers both.</p>
+
+  <h3>Requirements</h3>
+  <ul class="tight">
+    <li><strong>GTA V</strong> — Legacy or Enhanced, story mode</li>
+    <li><strong>Script Hook V</strong> by Alexander Blade, matching your edition</li>
+    <li><strong>ScriptHookVDotNet Enhanced</strong> (SHVDNE) v1.1.0.6 or newer</li>
+    <li><strong>.NET Framework 4.8</strong> or newer</li>
+    <li><strong>Visual C++ Redistributable 2019 x64</strong></li>
+  </ul>
+
+  <div class="callout warn">
+    <span class="label">Why SHVDNE, not stock SHVDN</span>
+    <p>
+      SHVDNE is a drop-in replacement for ScriptHookVDotNet that runs the same
+      binaries on both editions. Stock SHVDN will not load this on Enhanced.
+      Install SHVDNE even if you are on Legacy.
+    </p>
+  </div>
+
+  <ol class="steps">
+    <li>
+      <h3>Install Script Hook V</h3>
+      <p>Get the build for your edition and copy its files into the game root — the folder with <code>GTA5.exe</code> or <code>GTA5_Enhanced.exe</code>.</p>
+    </li>
+    <li>
+      <h3>Install ScriptHookVDotNet Enhanced</h3>
+      <p>Download the release zip and copy <code>ScriptHookVDotNet.asi</code>, <code>ScriptHookVDotNet2.dll</code> and <code>ScriptHookVDotNet3.dll</code> into the same game root.</p>
+      <p>If a <code>scripts</code> folder doesn't exist yet, create one there now.</p>
+    </li>
+    <li>
+      <h3>Drop in the mod</h3>
+      <p>Copy all three DLLs into <code>scripts/</code>:</p>
+      <pre><code><span class="path">&lt;game root&gt;/scripts/</span>
+  OnTheBlade.dll
+  LemonUI.SHVDN3.dll
+  iFruitAddon2.dll</code></pre>
+      <p>All three are required. <code>iFruitAddon2.dll</code> only powers the phone contact — if it's missing the mod still loads and logs why, but you lose the in-game phone entry.</p>
+    </li>
+    <li>
+      <h3>Launch story mode</h3>
+      <p>On Enhanced, start the game without BattlEye. Load a single-player save and wait for the world to finish streaming.</p>
+    </li>
+    <li>
+      <h3>Press F5</h3>
+      <p>You should see an "On The Blade loaded" notification on startup and the operations menu on <code>F5</code>. If not, check <a href="#trouble">Troubleshooting</a>.</p>
+    </li>
+  </ol>
+
+  <h3>Where it keeps its files</h3>
+  <p>On first run the mod creates a folder next to the scripts:</p>
+  <pre><code><span class="path">&lt;game root&gt;/scripts/OnTheBlade/</span>
+  config.json        balance and keybinds
+  save.json          roster, territory, upgrades
+  OnTheBlade.log   startup and error log</code></pre>
+  <p>
+    Paths resolve off the game root, so Legacy and Enhanced installs keep
+    completely independent saves and configs with no extra setup. Copy
+    <code>save.json</code> between them if you'd rather share progress.
+  </p>
+
+  <h3>Uninstalling</h3>
+  <p>
+    Delete <code>OnTheBlade.dll</code> from <code>scripts/</code>. Leave the
+    other two DLLs if other mods use them. The <code>OnTheBlade/</code> data
+    folder can go too, or stay if you might come back to the save.
+  </p>
+</section>
+
+<section id="controls">
+  <h2>Controls</h2>
+  <div class="scroller">
+    <table>
+      <thead><tr><th>Key</th><th>Action</th></tr></thead>
+      <tbody>
+        <tr><td><code>F5</code></td><td>Operations menu — roster, territory, upgrades, property, muscle</td></tr>
+        <tr><td><code>F1</code></td><td>Phone menu — status report, recall everyone, fast travel</td></tr>
+        <tr><td>Phone contact</td><td>"On The Blade" in the in-game phone opens the same phone menu</td></tr>
+        <tr><td><code>Insert</code></td><td>SHVDN script reload. Safe — releases every owned ped and saves first</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Both keys are rebindable in <code>config.json</code> via <code>MenuKeyName</code> and <code>PhoneKeyName</code>.</p>
+</section>
+
+<section id="config">
+  <h2>Config</h2>
+  <p class="lede">Everything is tunable without a rebuild. Edit <code>config.json</code> and press <code>Insert</code> to reload.</p>
+
+  <h3>Keys and interface</h3>
+  <div class="scroller">
+    <table>
+      <thead><tr><th>Setting</th><th>Default</th><th>Effect</th></tr></thead>
+      <tbody>
+        <tr><td><code>MenuKeyName</code></td><td class="num">F5</td><td>Operations menu key</td></tr>
+        <tr><td><code>PhoneKeyName</code></td><td class="num">F1</td><td>Phone menu key</td></tr>
+        <tr><td><code>EnablePhoneContact</code></td><td class="num">true</td><td>Registers the in-game phone contact. Off skips loading iFruitAddon2 entirely</td></tr>
+        <tr><td><code>AutoSaveIntervalMs</code></td><td class="num">120000</td><td>Autosave period</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Streaming</h3>
+  <div class="scroller">
+    <table>
+      <thead><tr><th>Setting</th><th>Default</th><th>Effect</th></tr></thead>
+      <tbody>
+        <tr><td><code>SpawnRadius</code></td><td class="num">150</td><td>Distance at which a crew ped is created</td></tr>
+        <tr><td><code>DespawnRadius</code></td><td class="num">220</td><td>Distance at which it is deleted. Keep the gap wide or walking the boundary thrashes</td></tr>
+        <tr><td><code>StreamScanIntervalMs</code></td><td class="num">750</td><td>How often streaming is evaluated</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Economy</h3>
+  <div class="scroller">
+    <table>
+      <thead><tr><th>Setting</th><th>Default</th><th>Effect</th></tr></thead>
+      <tbody>
+        <tr><td><code>TierBaseRate1/2/3</code></td><td class="num">120 / 260 / 550</td><td>Base hourly payout by crew tier</td></tr>
+        <tr><td><code>NightDemandBonus</code></td><td class="num">1.6</td><td>Multiplier between 20:00 and 05:00</td></tr>
+        <tr><td><code>OwnedZoneBonus</code></td><td class="num">1.15</td><td>Multiplier on turf you hold</td></tr>
+        <tr><td><code>StaminaDrainPerHour</code></td><td class="num">9</td><td>Drain while on shift</td></tr>
+        <tr><td><code>StaminaRecoverPerHour</code></td><td class="num">14</td><td>Recovery while off duty</td></tr>
+        <tr><td><code>LoyaltyDrainWhenExhausted</code></td><td class="num">4</td><td>Loyalty lost per hour below 10 stamina</td></tr>
+        <tr><td><code>HeatDecayPerHour</code></td><td class="num">0.03</td><td>Base heat bleed-off, all zones</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Recruiting</h3>
+  <div class="scroller">
+    <table>
+      <thead><tr><th>Setting</th><th>Default</th><th>Effect</th></tr></thead>
+      <tbody>
+        <tr><td><code>RecruitModels</code></td><td class="num">31 models</td><td>The eligibility list. Widen it here rather than in code</td></tr>
+        <tr><td><code>RecruitRadius</code></td><td class="num">35</td><td>Search radius in an ordinary area</td></tr>
+        <tr><td><code>RecruitRadiusHotspot</code></td><td class="num">70</td><td>Search radius on gang turf and around Vinewood</td></tr>
+        <tr><td><code>ShowProspectBlips</code></td><td class="num">true</td><td>Blip nearby prospects while standing in a hotspot</td></tr>
+        <tr><td><code>MaxProspectBlips</code></td><td class="num">8</td><td>Cap on simultaneous prospect blips</td></tr>
+        <tr><td><code>ProspectBlipRefreshMs</code></td><td class="num">1500</td><td>How often the blip set is rebuilt</td></tr>
+        <tr><td><code>WorkerBlipColourName</code></td><td class="num">Pink</td><td>Map colour for crew on post. Any <code>GTA.BlipColor</code> name</td></tr>
+        <tr><td><code>ProspectBlipColourName</code></td><td class="num">Pink</td><td>Map colour for prospects. Unrecognised names fall back to Pink</td></tr>
+        <tr><td><code>ClaimChanceGang</code></td><td class="num">0.45</td><td>Odds a prospect on gang turf already works for somebody</td></tr>
+        <tr><td><code>ClaimChanceVinewood</code></td><td class="num">0.30</td><td>Same, around Vinewood</td></tr>
+        <tr><td><code>ClaimChanceOrdinary</code></td><td class="num">0.12</td><td>Same, anywhere else</td></tr>
+        <tr><td><code>RetaliationChance</code></td><td class="num">0.55</td><td>Odds a claim brings her crew straight to you</td></tr>
+        <tr><td><code>PoachAggressionHit</code></td><td class="num">0.15</td><td>Aggression added to the crew you took her from</td></tr>
+        <tr><td><code>PoachAggressionSpread</code></td><td class="num">0.04</td><td>Aggression added to every other crew</td></tr>
+        <tr><td><code>PoachLoyaltyPenalty</code></td><td class="num">15</td><td>Loyalty she arrives short of</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Subscriptions</h3>
+  <div class="scroller">
+    <table>
+      <thead><tr><th>Setting</th><th>Default</th><th>Effect</th></tr></thead>
+      <tbody>
+        <tr><td><code>SubscriptionBrand</code></td><td class="num">JustFans</td><td>In-fiction platform name, shown in menus and the deposit notification</td></tr>
+        <tr><td><code>SubscriptionPayoutDays</code></td><td class="num">7</td><td>Game days between deposits. Seven is about 5.5 real hours at default timescale — lower it if you want a faster loop</td></tr>
+        <tr><td><code>FollowerGainPerHourOffDuty</code></td><td class="num">60</td><td>Before stamina, loyalty and tier scaling</td></tr>
+        <tr><td><code>FollowerDecayPerHourWorking</code></td><td class="num">8</td><td>Lost per hour on the street — nobody is posting</td></tr>
+        <tr><td><code>RevenuePerFollowerWeekly</code></td><td class="num">0.5</td><td>Deposit = followers × this × (loyalty/100)</td></tr>
+        <tr><td><code>MaxFollowers</code></td><td class="num">25000</td><td>Ceiling per worker</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Incidents and rivals</h3>
+  <div class="scroller">
+    <table>
+      <thead><tr><th>Setting</th><th>Default</th><th>Effect</th></tr></thead>
+      <tbody>
+        <tr><td><code>BadClientChance</code></td><td class="num">0.08</td><td>Per worker per hour</td></tr>
+        <tr><td><code>WalkOffChance</code></td><td class="num">0.35</td><td>Per worker per hour, below 25 loyalty</td></tr>
+        <tr><td><code>ViceStingHeatFactor</code></td><td class="num">0.25</td><td>Sting chance = zone heat × this</td></tr>
+        <tr><td><code>RivalContestChance</code></td><td class="num">0.12</td><td>× crew aggression, per hour</td></tr>
+        <tr><td><code>IncidentCooldownMs</code></td><td class="num">90000</td><td>Quiet period after one resolves</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Saturation, raids, debt</h3>
+  <div class="scroller">
+    <table>
+      <thead><tr><th>Setting</th><th>Default</th><th>Effect</th></tr></thead>
+      <tbody>
+        <tr><td><code>ZoneSaturationFalloff</code></td><td class="num">0.35</td><td>Per-worker yield divided by 1 + others × this. Stops stacking one corner being optimal</td></tr>
+        <tr><td><code>RaidHeatThreshold</code></td><td class="num">0.95</td><td>Heat at which a staffed zone gets turned over</td></tr>
+        <tr><td><code>RaidLockoutDays</code></td><td class="num">3</td><td>Game days the corner stays shut</td></tr>
+        <tr><td><code>RaidHeatAfter</code></td><td class="num">0.5</td><td>Heat left behind after a raid</td></tr>
+        <tr><td><code>RaidFine</code></td><td class="num">5000</td><td>Charged on a raid — becomes debt if unaffordable</td></tr>
+        <tr><td><code>BribeCostPerHeat</code></td><td class="num">9000</td><td>Cost to clear one full point of heat</td></tr>
+        <tr><td><code>BribeHeatCleared</code></td><td class="num">0.5</td><td>Heat removed per bribe</td></tr>
+        <tr><td><code>DebtInterestPerDay</code></td><td class="num">0.08</td><td>Compounded at midnight</td></tr>
+        <tr><td><code>DebtCollapseThreshold</code></td><td class="num">150000</td><td>Debt at which the operation folds</td></tr>
+        <tr><td><code>VehicleCost</code></td><td class="num">28000</td><td>Per region</td></tr>
+        <tr><td><code>VehicleDemandBonus</code></td><td class="num">1.10</td><td>Payout multiplier in that region</td></tr>
+        <tr><td><code>VehicleStaminaRelief</code></td><td class="num">0.75</td><td>Stamina drain multiplier in that region</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Business</h3>
+  <div class="scroller">
+    <table>
+      <thead><tr><th>Setting</th><th>Default</th><th>Effect</th></tr></thead>
+      <tbody>
+        <tr><td><code>BaseRosterCap</code></td><td class="num">4</td><td>Starting roster size, +2 per roster upgrade</td></tr>
+        <tr><td><code>EnforcerHireCost</code></td><td class="num">12000</td><td>Up-front cost per enforcer</td></tr>
+        <tr><td><code>EnforcerDailyWage</code></td><td class="num">350</td><td>Charged at 00:00. Miss it and they all walk</td></tr>
+        <tr><td><code>StashHeatDecayBonus</code></td><td class="num">2.0</td><td>Heat decay multiplier in a stash's region</td></tr>
+        <tr><td><code>StashStaminaBonus</code></td><td class="num">1.5</td><td>Off-duty recovery multiplier, any stash owned</td></tr>
+        <tr><td><code>LaunderedHeatDecayBonus</code></td><td class="num">1.5</td><td>Heat decay multiplier from the laundering upgrade</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="trouble">
+  <h2>Troubleshooting</h2>
+  <p class="lede">Start with <code>scripts/OnTheBlade/OnTheBlade.log</code> — it records the game file version at startup, which is the first thing worth knowing.</p>
+
+  <h3>Nothing happens when I press F5</h3>
+  <ul class="tight">
+    <li>Check <code>ScriptHookVDotNet.log</code> in the game root. If <code>OnTheBlade.dll</code> isn't listed, it isn't being loaded at all.</li>
+    <li>Confirm all three DLLs are in <code>scripts/</code>, not the game root.</li>
+    <li>Confirm you installed <strong>SHVDNE</strong>, not stock ScriptHookVDotNet.</li>
+    <li>Make sure you did not also copy <code>ScriptHookVDotNet3.dll</code> into <code>scripts/</code> — a second copy there breaks loading.</li>
+  </ul>
+
+  <h3>It stopped working after a game update</h3>
+  <p>
+    SHVDNE pins memory offsets per game build and ships point releases to chase
+    patches. Check for a newer SHVDNE before assuming the mod is at fault — that
+    is the usual cause, especially on Enhanced.
+  </p>
+
+  <h3>The phone contact is missing</h3>
+  <p>
+    The log will say why. A missing or incompatible <code>iFruitAddon2.dll</code>
+    disables just that feature rather than the whole mod. You need 3.0.2 or
+    newer — that's the release where one file covers both editions. The
+    <code>F1</code> menu works regardless.
+  </p>
+
+  <h3>Crew are standing in odd places</h3>
+  <p>
+    Zone anchors and stash positions are approximate in this build and still need
+    verifying in-game. They live in <code>Zones.cs</code> and <code>Regions.cs</code>.
+  </p>
+
+  <h3>Someone is stuck "in trouble"</h3>
+  <p>
+    Press <code>Insert</code> to reload. That aborts any active incident, releases
+    its peds and clears the stuck state before saving.
+  </p>
+</section>
+
+<section id="build">
+  <h2>Build from source</h2>
+  <p class="lede">Windows and the .NET SDK. Visual Studio is not required.</p>
+
+  <p>
+    The project pulls <code>Microsoft.NETFramework.ReferenceAssemblies</code>, so
+    the SDK alone can target <code>net48</code>. Put three reference DLLs in
+    <code>lib/</code> first — the build fails with a pointer to
+    <code>lib/README.md</code> if any is missing.
+  </p>
+
+  <div class="scroller">
+    <table>
+      <thead><tr><th>File</th><th>Source</th><th>Verified with</th></tr></thead>
+      <tbody>
+        <tr><td><code>ScriptHookVDotNet3.dll</code></td><td>SHVDNE release zip</td><td class="num">v1.1.0.6</td></tr>
+        <tr><td><code>LemonUI.SHVDN3.dll</code></td><td><code>LemonUI.zip</code> → <code>SHVDN3/</code></td><td class="num">v2.2</td></tr>
+        <tr><td><code>iFruitAddon2.dll</code></td><td>iFruitAddon2 release or NuGet</td><td class="num">3.1.1</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <pre><code>dotnet build OnTheBlade.csproj -c Release</code></pre>
+
+  <p>
+    Builds clean with 0 errors and 0 warnings on .NET SDK 8.0.423.
+    <code>bin/Release</code> should contain exactly <code>OnTheBlade.dll</code>,
+    <code>LemonUI.SHVDN3.dll</code> and <code>iFruitAddon2.dll</code> —
+    <code>ScriptHookVDotNet3.dll</code> is reference-only and must not be copied.
+  </p>
+
+  <h3>Why one build covers both editions</h3>
+  <p>
+    SHVDNE supports Legacy and Enhanced from the same binaries, and a script
+    written for Legacy runs as-is on Enhanced. The documented exception is
+    scripts using their own memory patterns. This mod uses none — everything goes
+    through the SHVDN API and game natives, so there are no edition-specific code
+    paths to maintain.
+  </p>
+</section>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    <p>On The Blade v0.1.0 — a single-player GTA V mod.</p>
+    <p>Not affiliated with or endorsed by Rockstar Games or Take-Two Interactive.</p>
+  </div>
+</footer>
+
+</body>
+</html>

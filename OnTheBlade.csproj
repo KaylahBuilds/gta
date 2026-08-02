@@ -1,0 +1,71 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>OnTheBlade</AssemblyName>
+    <RootNamespace>OnTheBlade</RootNamespace>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+
+  <!--
+    References come from lib/ rather than NuGet, deliberately.
+
+    The NuGet ScriptHookVDotNet3 package targets Legacy only. Building against
+    the DLL shipped with ScriptHookVDotNet Enhanced (SHVDNE) produces one
+    assembly that loads on BOTH GTA V Legacy and Enhanced, because SHVDNE is a
+    drop-in replacement for SHVDN on Legacy and keeps an identical public API.
+
+    See lib/README.md for which files to drop in.
+  -->
+  <ItemGroup>
+    <!-- net48 reference assemblies, so the SDK can build without Visual Studio -->
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Provided by the game install at runtime; must NOT be copied to scripts/ -->
+    <Reference Include="ScriptHookVDotNet3">
+      <HintPath>lib\ScriptHookVDotNet3.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+
+    <!-- Ships alongside OnTheBlade.dll in scripts/ -->
+    <Reference Include="LemonUI.SHVDN3">
+      <HintPath>lib\LemonUI.SHVDN3.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+
+    <!--
+      Optional at runtime. PhoneBridge confines every reference to it and loads
+      it lazily inside a try/catch, so a missing or broken iFruitAddon2.dll
+      disables the phone contact rather than the mod.
+    -->
+    <Reference Include="iFruitAddon2">
+      <HintPath>lib\iFruitAddon2.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Windows.Forms" />
+  </ItemGroup>
+
+  <Target Name="CheckLibs" BeforeTargets="ResolveAssemblyReferences">
+    <Error Condition="!Exists('lib\ScriptHookVDotNet3.dll')"
+           Text="lib/ScriptHookVDotNet3.dll is missing. See lib/README.md — download it from the ScriptHookVDotNet Enhanced release." />
+    <Error Condition="!Exists('lib\LemonUI.SHVDN3.dll')"
+           Text="lib/LemonUI.SHVDN3.dll is missing. See lib/README.md — it is the SHVDN3 folder of LemonUI.zip." />
+    <Error Condition="!Exists('lib\iFruitAddon2.dll')"
+           Text="lib/iFruitAddon2.dll is missing. See lib/README.md — needs 3.0.2+ for Enhanced support." />
+  </Target>
+
+</Project>

@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>On The Blade — run the block in GTA V</title>
+<meta name="description" content="A roster and territory management mod for GTA V single player. Recruit a crew, hold corners, and answer for it when the night goes wrong. Legacy and Enhanced.">
+<style>
+  /* ------------------------------------------------------------------
+     Night-street identity: wet asphalt ground, storefront neon accent.
+     Pink is not decorative — it is the colour the mod blips your crew.
+     ------------------------------------------------------------------ */
+  :root {
+    --asphalt:    #08070c;
+    --asphalt-2:  #13111c;
+    --asphalt-3:  #1c1927;
+    --hairline:   #2b2739;
+    --chalk:      #f3eef4;
+    --chalk-dim:  #a49fb1;
+    --chalk-faint:#6f6a7e;
+    --neon:       #ff2e88;
+    --neon-soft:  #ff2e8833;
+    --ice:        #3be0f0;
+    --sodium:     #ffb25c;
+
+    --display: Impact, "Haettenschweiler", "Franklin Gothic Heavy", "Arial Narrow Bold", sans-serif;
+    --body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
+
+    --measure: 66ch;
+    --col: 880px;
+  }
+
+  /* Daylight variant: the same identity printed on paper rather than lit. */
+  @media (prefers-color-scheme: light) {
+    :root {
+      --asphalt:    #faf7fa;
+      --asphalt-2:  #ffffff;
+      --asphalt-3:  #f1ecf2;
+      --hairline:   #e0d8e4;
+      --chalk:      #16111d;
+      --chalk-dim:  #574f63;
+      --chalk-faint:#8b8397;
+      --neon:       #c4106a;
+      --neon-soft:  #c4106a1a;
+      --ice:        #0a7e96;
+      --sodium:     #a35c00;
+    }
+  }
+  :root[data-theme="light"] {
+    --asphalt:#faf7fa; --asphalt-2:#ffffff; --asphalt-3:#f1ecf2; --hairline:#e0d8e4;
+    --chalk:#16111d; --chalk-dim:#574f63; --chalk-faint:#8b8397;
+    --neon:#c4106a; --neon-soft:#c4106a1a; --ice:#0a7e96; --sodium:#a35c00;
+  }
+  :root[data-theme="dark"] {
+    --asphalt:#08070c; --asphalt-2:#13111c; --asphalt-3:#1c1927; --hairline:#2b2739;
+    --chalk:#f3eef4; --chalk-dim:#a49fb1; --chalk-faint:#6f6a7e;
+    --neon:#ff2e88; --neon-soft:#ff2e8833; --ice:#3be0f0; --sodium:#ffb25c;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--asphalt);
+    color: var(--chalk);
+    font-family: var(--body);
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .col { width: min(var(--col), 100% - 44px); margin-inline: auto; }
+  p { max-width: var(--measure); }
+
+  a { color: var(--neon); text-underline-offset: 3px; }
+  a:focus-visible, button:focus-visible {
+    outline: 2px solid var(--ice); outline-offset: 3px; border-radius: 2px;
+  }
+
+  /* ---------------- hero ---------------- */
+  .hero {
+    position: relative;
+    padding: clamp(64px, 12vw, 132px) 0 clamp(48px, 7vw, 84px);
+    overflow: hidden;
+    border-bottom: 1px solid var(--hairline);
+  }
+  /* the glow off a storefront onto wet road */
+  .hero::before {
+    content: "";
+    position: absolute; inset: -40% 0 0 -20%;
+    width: 90%; height: 150%;
+    background: radial-gradient(closest-side, var(--neon-soft), transparent 70%);
+    pointer-events: none;
+  }
+  .hero > * { position: relative; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11.5px; letter-spacing: .22em; text-transform: uppercase;
+    color: var(--neon); margin: 0 0 18px;
+  }
+
+  .wordmark {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: clamp(3.4rem, 13vw, 8.2rem);
+    line-height: .84;
+    letter-spacing: .012em;
+    text-transform: uppercase;
+    margin: 0 0 22px;
+    color: var(--chalk);
+    text-wrap: balance;
+  }
+  .wordmark .lit {
+    color: var(--neon);
+    text-shadow: 0 0 18px var(--neon-soft), 0 0 46px var(--neon-soft);
+  }
+  @media (prefers-color-scheme: light) { .wordmark .lit { text-shadow: none; } }
+  :root[data-theme="light"] .wordmark .lit { text-shadow: none; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    :root[data-theme="dark"] .wordmark .lit,
+    .wordmark .lit { animation: strike 1.5s steps(1, end) 1; }
+    @keyframes strike {
+      0%, 14%, 26% { opacity: .28; }
+      8%, 20%, 100% { opacity: 1; }
+    }
+  }
+
+  .tagline {
+    font-size: clamp(1.1rem, 2.4vw, 1.4rem);
+    color: var(--chalk-dim);
+    max-width: 52ch;
+    margin: 0 0 30px;
+    text-wrap: balance;
+  }
+
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 34px; }
+  .badge {
+    font-family: var(--mono); font-size: 11.5px; letter-spacing: .05em;
+    padding: 6px 12px; border: 1px solid var(--hairline); border-radius: 999px;
+    color: var(--chalk-dim); background: var(--asphalt-2); white-space: nowrap;
+  }
+  .badge.live { color: var(--neon); border-color: var(--neon); }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 9px;
+    font: inherit; font-weight: 650; text-decoration: none;
+    padding: 13px 22px; border-radius: 3px; border: 1px solid transparent;
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .btn-primary { background: var(--neon); color: #14000a; box-shadow: 0 0 0 var(--neon-soft); }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 26px var(--neon-soft); }
+  :root[data-theme="light"] .btn-primary,
+  .btn-primary { color: #ffffff; }
+  @media (prefers-color-scheme: dark) { .btn-primary { color: #14000a; } }
+  :root[data-theme="dark"] .btn-primary { color: #14000a; }
+
+  .btn-ghost { border-color: var(--hairline); color: var(--chalk); background: var(--asphalt-2); }
+  .btn-ghost:hover { border-color: var(--neon); }
+  @media (prefers-reduced-motion: reduce) { .btn { transition: none; } .btn:hover { transform: none; } }
+
+  /* ---------------- sections ---------------- */
+  section { padding: clamp(52px, 8vw, 88px) 0; border-bottom: 1px solid var(--hairline); }
+  section:last-of-type { border-bottom: none; }
+
+  .kicker {
+    font-family: var(--display); font-weight: 400;
+    font-size: 13px; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--neon); margin: 0 0 10px;
+  }
+  h2 {
+    font-size: clamp(1.6rem, 3.6vw, 2.3rem); line-height: 1.12;
+    letter-spacing: -.015em; margin: 0 0 18px; text-wrap: balance;
+  }
+  h3 { font-size: 1.06rem; margin: 0 0 7px; letter-spacing: -.005em; }
+
+  .lead { font-size: 1.14rem; color: var(--chalk-dim); }
+
+  /* ---------------- systems ---------------- */
+  .systems { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); margin-top: 30px; }
+  .sys {
+    background: var(--asphalt-2); border: 1px solid var(--hairline);
+    border-top: 2px solid var(--neon); border-radius: 3px; padding: 20px;
+  }
+  .sys p { margin: 0; font-size: .94rem; color: var(--chalk-dim); }
+
+  /* ---------------- the loop ---------------- */
+  .loop { list-style: none; padding: 0; margin: 30px 0 0; display: grid; gap: 2px; }
+  .loop li {
+    display: grid; grid-template-columns: 84px 1fr; gap: 18px; align-items: baseline;
+    padding: 15px 18px; background: var(--asphalt-2); border-left: 2px solid var(--hairline);
+  }
+  .loop li:hover { border-left-color: var(--neon); }
+  .loop .t {
+    font-family: var(--mono); font-size: .82rem; color: var(--neon);
+    letter-spacing: .04em; font-variant-numeric: tabular-nums;
+  }
+  .loop .w { color: var(--chalk-dim); font-size: .96rem; }
+  .loop .w b { color: var(--chalk); font-weight: 650; }
+  @media (max-width: 560px) {
+    .loop li { grid-template-columns: 1fr; gap: 4px; }
+  }
+
+  /* ---------------- download band ---------------- */
+  .band {
+    background: var(--asphalt-3);
+    border-block: 1px solid var(--neon);
+    padding: clamp(48px, 7vw, 76px) 0;
+  }
+  .gate { display: grid; gap: 26px; grid-template-columns: 1.25fr 1fr; align-items: start; }
+  @media (max-width: 720px) { .gate { grid-template-columns: 1fr; } }
+  .tierbox {
+    background: var(--asphalt-2); border: 1px solid var(--hairline);
+    border-radius: 3px; padding: 20px;
+  }
+  .tierbox h3 { color: var(--neon); }
+  .tierbox ul { margin: 0; padding-left: 18px; }
+  .tierbox li { color: var(--chalk-dim); font-size: .93rem; margin-bottom: 6px; }
+
+  /* ---------------- install ---------------- */
+  ol.steps { counter-reset: s; list-style: none; padding: 0; margin: 30px 0 0; }
+  ol.steps > li {
+    counter-increment: s; position: relative;
+    padding: 0 0 26px 46px; margin-left: 12px;
+    border-left: 1px solid var(--hairline);
+  }
+  ol.steps > li:last-child { border-left-color: transparent; padding-bottom: 0; }
+  ol.steps > li::before {
+    content: counter(s);
+    position: absolute; left: -13px; top: -3px;
+    width: 26px; height: 26px; display: grid; place-items: center;
+    background: var(--asphalt); border: 1px solid var(--neon); border-radius: 50%;
+    font-family: var(--mono); font-size: 11.5px; color: var(--neon);
+  }
+  ol.steps p { margin: 0 0 8px; color: var(--chalk-dim); font-size: .96rem; }
+
+  code {
+    font-family: var(--mono); font-size: .86em;
+    background: var(--asphalt-3); border: 1px solid var(--hairline);
+    border-radius: 3px; padding: 1px 6px; overflow-wrap: anywhere;
+  }
+  pre {
+    background: var(--asphalt-3); border: 1px solid var(--hairline);
+    border-radius: 3px; padding: 14px 16px; overflow-x: auto; margin: 0 0 14px;
+  }
+  pre code { background: none; border: none; padding: 0; font-size: .84rem; }
+  .dim { color: var(--chalk-faint); }
+
+  /* ---------------- misc ---------------- */
+  .scroller { overflow-x: auto; border: 1px solid var(--hairline); border-radius: 3px; margin: 22px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: .93rem; }
+  th, td { text-align: left; padding: 11px 15px; border-bottom: 1px solid var(--hairline); vertical-align: top; }
+  th {
+    background: var(--asphalt-3); font-family: var(--mono); font-size: 10.5px;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--chalk-faint); font-weight: 500;
+  }
+  tr:last-child td { border-bottom: none; }
+  td code { white-space: nowrap; }
+
+  .note {
+    border: 1px solid var(--hairline); border-left: 2px solid var(--sodium);
+    background: var(--asphalt-2); border-radius: 3px; padding: 16px 18px; margin: 24px 0;
+  }
+  .note p { margin: 0; font-size: .94rem; color: var(--chalk-dim); }
+  .note .lbl {
+    display: block; font-family: var(--mono); font-size: 10.5px;
+    letter-spacing: .14em; text-transform: uppercase; color: var(--sodium); margin-bottom: 6px;
+  }
+  .note.hot { border-left-color: var(--neon); }
+  .note.hot .lbl { color: var(--neon); }
+
+  ul.plain { padding-left: 19px; }
+  ul.plain li { color: var(--chalk-dim); margin-bottom: 7px; }
+  ul.plain b { color: var(--chalk); font-weight: 650; }
+
+  footer { padding: 46px 0 72px; color: var(--chalk-faint); font-size: .87rem; }
+  footer p { margin: 0 0 8px; max-width: var(--measure); }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="col">
+    <p class="eyebrow">GTA V · Story mode · Legacy &amp; Enhanced</p>
+    <h1 class="wordmark">On <span class="lit">The Blade</span></h1>
+    <p class="tagline">
+      You don't play a minigame. You run a business — and answer for it when the
+      night goes wrong.
+    </p>
+    <div class="badges">
+      <span class="badge live">v0.1.0 — early build</span>
+      <span class="badge">Single player only</span>
+      <span class="badge">One build, both editions</span>
+      <span class="badge">Adults only</span>
+    </div>
+    <div class="actions">
+      <a class="btn btn-primary" href="https://www.patreon.com/gtaontheblade">Get it on Patreon</a>
+      <a class="btn btn-ghost" href="manual.html">Read the manual</a>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="col">
+    <p class="kicker">What it is</p>
+    <h2>A management sim wearing a crime game's clothes</h2>
+    <p class="lead">
+      Recruit a crew off the street. Post them to corners. Collect every hour, and
+      drive out when the operation generates a problem — because it will.
+    </p>
+    <p>
+      Everything stays at the abstraction the base game uses: money, timers, heat,
+      fade to black. The interesting part was never the corner. It's deciding who
+      works it, when, and what you do the night a rival decides it's theirs.
+    </p>
+
+    <div class="systems">
+      <div class="sys">
+        <h3>Two ways to earn</h3>
+        <p>An hourly street take that draws heat, and a safe weekly deposit that only builds while a worker is <em>off</em> the street. They compete for the same hours.</p>
+      </div>
+      <div class="sys">
+        <h3>Six corners, four crews</h3>
+        <p>Work a neutral corner to claim it. Take a held one by force. Rivals come back for turf you hold — and only turf you've actually staffed.</p>
+      </div>
+      <div class="sys">
+        <h3>A roster with shapes</h3>
+        <p>Hustlers earn on the street. Camera-ready ones build an audience. Fragile ones break when you push them. Loyal ones never walk.</p>
+      </div>
+      <div class="sys">
+        <h3>Heat that bites</h3>
+        <p>Let a corner run hot and vice turn it over — everyone off the street, the block shut for days. Bribe it down, launder it away, or pay for it.</p>
+      </div>
+      <div class="sys">
+        <h3>Somebody else's earner</h3>
+        <p>Half the people worth signing already work for someone. Take one and she comes in experienced, distrustful, and with her old crew right behind her.</p>
+      </div>
+      <div class="sys">
+        <h3>A way to lose</h3>
+        <p>Wages, bail and fines you can't cover become debt, and debt compounds. Let it run and the people you owe come collecting.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="col">
+    <p class="kicker">A night on the block</p>
+    <h2>How it actually plays</h2>
+
+    <ol class="loop">
+      <li><span class="t">20:00</span><span class="w">Night rate kicks in. Three of your crew are out on <b>Del Perro</b>; two are resting and building followers instead.</span></li>
+      <li><span class="t">21:00</span><span class="w">First take of the night lands. Heat on Del Perro ticks up — that's four hours before it's a problem.</span></li>
+      <li><span class="t">21:40</span><span class="w">A client turns on <b>Marisol</b>. Red blip. You've got ninety seconds and you're across the map.</span></li>
+      <li><span class="t">22:15</span><span class="w">You bribe the corner cool rather than pull anyone off it. Expensive, but the night's not over.</span></li>
+      <li><span class="t">23:30</span><span class="w">The <b>Lost MC</b> move on a corner you took off them last week. They brought five.</span></li>
+      <li><span class="t">00:00</span><span class="w">Wages clear. The weekly deposit lands. You're up — and every crew on the map is angrier than they were yesterday.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="band">
+  <div class="col">
+    <p class="kicker">Download</p>
+    <h2>Available to patrons</h2>
+
+    <div class="gate">
+      <div>
+        <p>
+          The build is posted on Patreon as a patrons-only download. Join at any
+          paid tier, grab the file from the latest post, and follow the install
+          below.
+        </p>
+        <p>
+          Patreon handles the membership check itself — there's no key to enter
+          and nothing to activate. If you can see the post, you can download it.
+        </p>
+        <div class="actions" style="margin-top:22px">
+          <a class="btn btn-primary" href="https://www.patreon.com/gtaontheblade">Join and download</a>
+          <a class="btn btn-ghost" href="https://github.com/KaylahBuilds/gta">Source on GitHub</a>
+        </div>
+      </div>
+
+      <div class="tierbox">
+        <h3>What you get</h3>
+        <ul>
+          <li><code>OnTheBlade.dll</code> plus the two libraries it needs</li>
+          <li>Every balance value in a plain <code>config.json</code> — no rebuild to retune</li>
+          <li>Builds for both Legacy and Enhanced from one file</li>
+          <li>Updates as the build moves</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="note hot">
+      <span class="lbl">Early build</span>
+      <p>
+        v0.1.0 is playable but young. Systems are in and working; balance and
+        placement are still being tuned against real play. Expect rough edges and
+        expect them to move.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="col">
+    <p class="kicker">Before you start</p>
+    <h2>What you need</h2>
+    <ul class="plain">
+      <li><b>GTA V</b> — Legacy or Enhanced, story mode</li>
+      <li><b>Script Hook V</b> for your edition</li>
+      <li><b>ScriptHookVDotNet Enhanced</b> 1.1.0.6 or newer — install this even on Legacy; the standard build won't load the mod on Enhanced</li>
+      <li><b>.NET Framework 4.8</b> and the <b>Visual C++ 2019 x64</b> redistributable</li>
+    </ul>
+
+    <div class="note">
+      <span class="lbl">Read this first</span>
+      <p>
+        <b>Story mode only.</b> Loading script mods into GTA Online will get your
+        account banned. On Enhanced, launch without BattlEye.
+      </p>
+    </div>
+
+    <p class="kicker" style="margin-top:44px">Install</p>
+    <ol class="steps">
+      <li>
+        <h3>Base tools into the game folder</h3>
+        <p>Script Hook V and SHVDNE go in the folder with <code>GTA5.exe</code>. Make a <code>scripts</code> folder there if you don't have one.</p>
+      </li>
+      <li>
+        <h3>Three files into scripts</h3>
+        <pre><code><span class="dim">&lt;game root&gt;/scripts/</span>
+  OnTheBlade.dll
+  LemonUI.SHVDN3.dll
+  iFruitAddon2.dll</code></pre>
+        <p>Don't put <code>ScriptHookVDotNet3.dll</code> in there — a second copy breaks script loading. It belongs in the game root only.</p>
+      </li>
+      <li>
+        <h3>Load story mode and press F5</h3>
+        <p>You should get an <em>On The Blade loaded</em> notification. If a key clashes with another mod, both are rebindable in <code>config.json</code>.</p>
+      </li>
+    </ol>
+
+    <div class="scroller">
+      <table>
+        <thead><tr><th>Key</th><th>Does</th></tr></thead>
+        <tbody>
+          <tr><td><code>F5</code></td><td>Operations — roster, territory, upgrades, property, muscle</td></tr>
+          <tr><td><code>F1</code></td><td>Phone — status, recall everyone, fast travel</td></tr>
+          <tr><td><code>Insert</code></td><td>Reload scripts. Safe: releases every ped the mod owns and saves first</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="col">
+    <p class="kicker">Fine print</p>
+    <h2>Content and conduct</h2>
+    <p>
+      Adult themes, handled the way the base game handles them — abstracted, no
+      explicit content. Every character is an adult. What's modelled is
+      management and turf: money, hours, heat, territory.
+    </p>
+    <p>
+      Single player only. Not affiliated with, endorsed by, or connected to
+      Rockstar Games or Take-Two Interactive.
+    </p>
+  </div>
+</section>
+
+<footer>
+  <div class="col">
+    <p>On The Blade v0.1.0 — a single-player GTA V mod by KaylahBuilds.</p>
+    <p><a href="manual.html">Full manual</a> · <a href="https://github.com/KaylahBuilds/gta">GitHub</a> · <a href="https://www.patreon.com/gtaontheblade">Patreon</a></p>
+  </div>
+</footer>
+
+</body>
+</html>

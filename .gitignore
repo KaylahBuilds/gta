@@ -1,0 +1,8 @@
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+# Build references are downloaded, not vendored — see lib/README.md
+lib/*.dll
