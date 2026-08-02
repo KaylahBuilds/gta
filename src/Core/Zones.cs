@@ -27,8 +27,11 @@ namespace OnTheBlade.Core
         /// <summary>How many workers can be posted here at once.</summary>
         public int Slots = 3;
 
-        /// <summary>Map radius drawn for this corner, in metres.</summary>
-        public float Radius = 55f;
+        /// <summary>
+        /// Map radius drawn for this corner, in metres. A corner is a street, not
+        /// a district — 55m rendered as a blob the size of a neighbourhood.
+        /// </summary>
+        public float Radius = 35f;
     }
 
     /// <summary>

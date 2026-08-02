@@ -99,8 +99,10 @@ namespace OnTheBlade.Runtime
                 status = "neutral";
             }
 
-            // Ground is only shaded for turf somebody actually holds.
-            if (mine || contested || raided)
+            // Ground is only shaded when asked for, and only for turf somebody
+            // actually holds. The pin carries the same information without
+            // covering the map.
+            if (Config.Current.ShowZoneAreaCircles && (mine || contested || raided))
             {
                 Blip area = World.CreateBlip(zone.Anchor, zone.Radius);
                 if (area != null && area.Exists())

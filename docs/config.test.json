@@ -114,7 +114,8 @@
   "DemandEventChance": 0.5,
 
   "ShowZoneBlips": true,
-  "ZoneBlipAlpha": 80,
+  "ShowZoneAreaCircles": false,
+  "ZoneBlipAlpha": 45,
   "ZoneBlipRefreshMs": 3000,
 
   "AutoSaveIntervalMs": 30000

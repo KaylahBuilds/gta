@@ -159,8 +159,18 @@ namespace OnTheBlade.Core
         /// <summary>Draw territory on the map: green yours, red rival, grey neutral, yellow raided.</summary>
         [DataMember] public bool ShowZoneBlips = true;
 
-        /// <summary>0-255. The shaded ground, not the pin.</summary>
-        [DataMember] public int ZoneBlipAlpha = 80;
+        /// <summary>
+        /// Shade the ground as well as pinning it.
+        ///
+        /// Off by default: a filled radius sits *under* every other blip but
+        /// *over* the map itself, so on an install already carrying two or three
+        /// turf overlays it hides roads and landmarks rather than adding
+        /// information. The pins alone answer "where is my territory".
+        /// </summary>
+        [DataMember] public bool ShowZoneAreaCircles;
+
+        /// <summary>0-255, and low on purpose. Only applies to the shaded ground.</summary>
+        [DataMember] public int ZoneBlipAlpha = 45;
 
         [DataMember] public int ZoneBlipRefreshMs = 3000;
 
