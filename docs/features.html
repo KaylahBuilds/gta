@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  html, body { margin:0; padding:0; background:#0b0910; color:#f2efe9; font-family:Archivo, system-ui, sans-serif; -webkit-font-smoothing:antialiased; scroll-behavior:smooth; }
+  a { color:#ff3d8b; text-decoration:none; }
+  a:hover { color:#ff9ec4; }
+  @keyframes blip { 0%,100% { opacity:1; } 50% { opacity:.3; } }
+</style>
+</helmet>
+
+<div style="max-width:100%; overflow-x:hidden;">
+  <div style="position:sticky; top:0; z-index:30; display:flex; align-items:center; gap:18px; flex-wrap:wrap; padding:14px clamp(16px,4vw,56px); background:rgba(11,9,16,.88); backdrop-filter:blur(12px); border-bottom:1px solid rgba(255,255,255,.1);">
+    <a href="index.html" style="font-family:'Instrument Serif', serif; font-style:italic; font-size:26px; line-height:1; color:#f2efe9; margin-right:auto;">On The Blade</a>
+    <div style="display:flex; align-items:center; gap:clamp(10px,2vw,22px); font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.1em;">
+      <a href="features.html" style="color:#ff3d8b;">FEATURES</a>
+      <a href="install.html" style="color:#a6a09a;">INSTALL</a>
+      <a href="changelog.html" style="color:#a6a09a;">CHANGELOG</a>
+      <a href="faq.html" style="color:#a6a09a;">FAQ</a>
+      <a href="manual.html" style="color:#a6a09a;">MANUAL</a>
+      <a href="https://www.patreon.com/gtaontheblade" style="padding:9px 14px; background:#ff3d8b; color:#12080d; font-weight:600;">GET IT</a>
+    </div>
+  </div>
+
+  <div style="padding:clamp(40px,7vw,84px) clamp(16px,4vw,56px) clamp(24px,4vw,40px); border-bottom:1px solid rgba(255,255,255,.1);">
+    <div style="max-width:1080px; margin:0 auto; display:flex; flex-direction:column; gap:16px;">
+      <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.2em; color:#ff3d8b;">FEATURES · v0.2.0</div>
+      <h1 style="margin:0; font-size:clamp(34px,7vw,64px); font-weight:800; letter-spacing:-.03em; line-height:1;">Every system, and what it costs you</h1>
+      <p style="margin:0; font-size:18px; line-height:1.55; color:#a6a09a; max-width:660px; text-wrap:pretty;">Five layers, each feeding the next. Real numbers from the shipping config — all of them tunable without a rebuild.</p>
+    </div>
+  </div>
+
+  <div style="max-width:1080px; margin:0 auto; padding:clamp(20px,3vw,32px) clamp(16px,4vw,56px) 0; display:flex; flex-wrap:wrap; gap:8px; font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.08em;">
+    <a href="#streams" style="padding:8px 12px; border:1px solid rgba(255,255,255,.16); color:#c9c3bc;">REVENUE</a>
+    <a href="#roster" style="padding:8px 12px; border:1px solid rgba(255,255,255,.16); color:#c9c3bc;">ROSTER</a>
+    <a href="#turf" style="padding:8px 12px; border:1px solid rgba(255,255,255,.16); color:#c9c3bc;">TURF &amp; HEAT</a>
+    <a href="#board" style="padding:8px 12px; border:1px solid rgba(255,255,255,.16); color:#c9c3bc;">THE BOARD</a>
+    <a href="#incidents" style="padding:8px 12px; border:1px solid rgba(255,255,255,.16); color:#c9c3bc;">INCIDENTS</a>
+    <a href="#upgrades" style="padding:8px 12px; border:1px solid rgba(255,255,255,.16); color:#c9c3bc;">UPGRADES</a>
+    <a href="#property" style="padding:8px 12px; border:1px solid rgba(255,255,255,.16); color:#c9c3bc;">PROPERTY</a>
+    <a href="#muscle" style="padding:8px 12px; border:1px solid rgba(255,255,255,.16); color:#c9c3bc;">MUSCLE</a>
+    <a href="#debt" style="padding:8px 12px; border:1px solid rgba(255,255,255,.16); color:#c9c3bc;">DEBT</a>
+  </div>
+
+  <div style="max-width:1080px; margin:0 auto; padding:clamp(32px,5vw,56px) clamp(16px,4vw,56px) clamp(56px,8vw,104px); display:flex; flex-direction:column; gap:clamp(48px,7vw,88px);">
+
+    <div id="streams" style="display:flex; flex-direction:column; gap:20px; scroll-margin-top:80px;">
+      <div style="display:flex; flex-direction:column; gap:12px; max-width:720px;">
+        <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.18em; color:#8fd08a;">01 · REVENUE</div>
+        <h2 style="margin:0; font-size:clamp(26px,4.2vw,38px); font-weight:800; letter-spacing:-.02em;">Two streams, one set of hours</h2>
+        <p style="margin:0; font-size:17px; line-height:1.6; color:#a6a09a; text-wrap:pretty;">Nobody can do both at once. That single constraint is the whole game.</p>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:1px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.1);">
+        <div style="background:#0d0b13; padding:clamp(20px,3vw,28px); display:flex; flex-direction:column; gap:14px;">
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.16em; color:#ff3d8b;">STREET TAKE</div>
+          <div style="font-size:21px; font-weight:700;">Resolves every in-game hour</div>
+          <div style="font-size:16px; line-height:1.55; color:#a6a09a; text-wrap:pretty;">Scales on tier, zone demand, loyalty, heat and stamina. It also generates heat and invites incidents.</div>
+          <div style="display:flex; flex-direction:column; gap:1px; background:rgba(255,255,255,.1); margin-top:2px;">
+            <div style="background:#0d0b13; padding:11px 0; display:flex; justify-content:space-between; gap:12px;"><div style="font-size:14px; color:#8d8781;">Tier 1 / 2 / 3 base</div><div style="font-family:'IBM Plex Mono', monospace; font-size:14px; color:#f2efe9;">120 / 260 / 550</div></div>
+            <div style="background:#0d0b13; padding:11px 0; display:flex; justify-content:space-between; gap:12px;"><div style="font-size:14px; color:#8d8781;">Night bonus, 20:00–05:00</div><div style="font-family:'IBM Plex Mono', monospace; font-size:14px; color:#8fd08a;">×1.6</div></div>
+            <div style="background:#0d0b13; padding:11px 0; display:flex; justify-content:space-between; gap:12px;"><div style="font-size:14px; color:#8d8781;">On turf you hold</div><div style="font-family:'IBM Plex Mono', monospace; font-size:14px; color:#8fd08a;">×1.15</div></div>
+            <div style="background:#0d0b13; padding:11px 0; display:flex; justify-content:space-between; gap:12px;"><div style="font-size:14px; color:#8d8781;">Second body on a corner</div><div style="font-family:'IBM Plex Mono', monospace; font-size:14px; color:#d9694f;">÷1.35</div></div>
+          </div>
+        </div>
+        <div style="background:#0d0b13; padding:clamp(20px,3vw,28px); display:flex; flex-direction:column; gap:14px;">
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.16em; color:#6f9fd8;">SUBSCRIPTIONS</div>
+          <div style="font-size:21px; font-weight:700;">Lands every seven game days</div>
+          <div style="font-size:16px; line-height:1.55; color:#a6a09a; text-wrap:pretty;">Followers build only while a worker is off the street and decay while she's on it. The deposit cannot fail, generates no heat, and never triggers an incident.</div>
+          <div style="display:flex; flex-direction:column; gap:1px; background:rgba(255,255,255,.1); margin-top:2px;">
+            <div style="background:#0d0b13; padding:11px 0; display:flex; justify-content:space-between; gap:12px;"><div style="font-size:14px; color:#8d8781;">Followers gained, off duty</div><div style="font-family:'IBM Plex Mono', monospace; font-size:14px; color:#8fd08a;">+60/h</div></div>
+            <div style="background:#0d0b13; padding:11px 0; display:flex; justify-content:space-between; gap:12px;"><div style="font-size:14px; color:#8d8781;">Lost while working</div><div style="font-family:'IBM Plex Mono', monospace; font-size:14px; color:#d9694f;">−8/h</div></div>
+            <div style="background:#0d0b13; padding:11px 0; display:flex; justify-content:space-between; gap:12px;"><div style="font-size:14px; color:#8d8781;">Weekly deposit</div><div style="font-family:'IBM Plex Mono', monospace; font-size:14px; color:#f2efe9;">followers × 0.5 × loyalty%</div></div>
+            <div style="background:#0d0b13; padding:11px 0; display:flex; justify-content:space-between; gap:12px;"><div style="font-size:14px; color:#8d8781;">Ceiling per worker</div><div style="font-family:'IBM Plex Mono', monospace; font-size:14px; color:#f2efe9;">25,000</div></div>
+          </div>
+          <div style="font-size:14px; line-height:1.5; color:#8d8781; text-wrap:pretty;">Unlocked by the <em style="color:#c9c3bc; font-style:normal;">Ring light and a laptop</em> upgrade.</div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:16px; padding:clamp(20px,3vw,28px); border:1px solid rgba(255,61,139,.4); background:rgba(255,61,139,.05);">
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.16em; color:#ff3d8b;">SIMULATED · 12 GAME WEEKS · TIER-2 AT 70 LOYALTY</div>
+          <div style="font-size:20px; font-weight:700;">Which way do you play her?</div>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+          <div onClick="{{ pickA }}" style="position:relative; padding:11px 16px; border:1px solid rgba(255,255,255,.25); font-size:14px; font-weight:600; cursor:pointer;" style-hover="border-color:#ff3d8b">Street whenever rested
+            <sc-if value="{{ stratA }}"><div style="position:absolute; inset:-1px; border:1px solid #ff3d8b; background:rgba(255,61,139,.16); box-shadow:0 0 16px rgba(255,61,139,.35); pointer-events:none;"></div></sc-if>
+          </div>
+          <div onClick="{{ pickB }}" style="position:relative; padding:11px 16px; border:1px solid rgba(255,255,255,.25); font-size:14px; font-weight:600; cursor:pointer;" style-hover="border-color:#ff3d8b">Never on the street
+            <sc-if value="{{ stratB }}"><div style="position:absolute; inset:-1px; border:1px solid #ff3d8b; background:rgba(255,61,139,.16); box-shadow:0 0 16px rgba(255,61,139,.35); pointer-events:none;"></div></sc-if>
+          </div>
+          <div onClick="{{ pickC }}" style="position:relative; padding:11px 16px; border:1px solid rgba(255,255,255,.25); font-size:14px; font-weight:600; cursor:pointer;" style-hover="border-color:#ff3d8b">Night shift, rest by day
+            <sc-if value="{{ stratC }}" hint-placeholder-val="{{ true }}"><div style="position:absolute; inset:-1px; border:1px solid #ff3d8b; background:rgba(255,61,139,.16); box-shadow:0 0 16px rgba(255,61,139,.35); pointer-events:none;"></div></sc-if>
+          </div>
+        </div>
+
+        <sc-if value="{{ stratA }}">
+          <div style="display:flex; flex-direction:column; gap:14px;">
+            <div style="display:flex; flex-direction:column; gap:7px;">
+              <div style="display:flex; justify-content:space-between; font-family:'IBM Plex Mono', monospace; font-size:12px; color:#8d8781;"><span>STREET</span><span style="color:#f2efe9;">$16,937</span></div>
+              <div style="height:8px; background:rgba(255,255,255,.1);"><div style="width:83%; height:100%; background:#ff3d8b;"></div></div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:7px;">
+              <div style="display:flex; justify-content:space-between; font-family:'IBM Plex Mono', monospace; font-size:12px; color:#8d8781;"><span>SUBSCRIPTIONS</span><span style="color:#f2efe9;">$1,784</span></div>
+              <div style="height:8px; background:rgba(255,255,255,.1);"><div style="width:9%; height:100%; background:#6f9fd8;"></div></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:baseline; padding-top:12px; border-top:1px solid rgba(255,255,255,.14);"><div style="font-size:16px; font-weight:600;">Total per week</div><div style="font-family:'IBM Plex Mono', monospace; font-size:26px; color:#c9c3bc;">$18,721</div></div>
+            <div style="font-size:15px; line-height:1.5; color:#a6a09a; text-wrap:pretty;">Maximum hours on the street, maximum heat, and her followers rot the whole time.</div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ stratB }}">
+          <div style="display:flex; flex-direction:column; gap:14px;">
+            <div style="display:flex; flex-direction:column; gap:7px;">
+              <div style="display:flex; justify-content:space-between; font-family:'IBM Plex Mono', monospace; font-size:12px; color:#8d8781;"><span>STREET</span><span style="color:#6f6a65;">$0</span></div>
+              <div style="height:8px; background:rgba(255,255,255,.1);"><div style="width:0%; height:100%; background:#ff3d8b;"></div></div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:7px;">
+              <div style="display:flex; justify-content:space-between; font-family:'IBM Plex Mono', monospace; font-size:12px; color:#8d8781;"><span>SUBSCRIPTIONS</span><span style="color:#f2efe9;">$7,970</span></div>
+              <div style="height:8px; background:rgba(255,255,255,.1);"><div style="width:39%; height:100%; background:#6f9fd8;"></div></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:baseline; padding-top:12px; border-top:1px solid rgba(255,255,255,.14);"><div style="font-size:16px; font-weight:600;">Total per week</div><div style="font-family:'IBM Plex Mono', monospace; font-size:26px; color:#c9c3bc;">$7,970</div></div>
+            <div style="font-size:15px; line-height:1.5; color:#a6a09a; text-wrap:pretty;">Zero heat, zero incidents, zero risk — and less than half the money. Safe is a real option, not a free one.</div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ stratC }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex; flex-direction:column; gap:14px;">
+            <div style="display:flex; flex-direction:column; gap:7px;">
+              <div style="display:flex; justify-content:space-between; font-family:'IBM Plex Mono', monospace; font-size:12px; color:#8d8781;"><span>STREET</span><span style="color:#f2efe9;">$14,737</span></div>
+              <div style="height:8px; background:rgba(255,255,255,.1);"><div style="width:72%; height:100%; background:#ff3d8b;"></div></div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:7px;">
+              <div style="display:flex; justify-content:space-between; font-family:'IBM Plex Mono', monospace; font-size:12px; color:#8d8781;"><span>SUBSCRIPTIONS</span><span style="color:#f2efe9;">$5,611</span></div>
+              <div style="height:8px; background:rgba(255,255,255,.1);"><div style="width:28%; height:100%; background:#6f9fd8;"></div></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:baseline; padding-top:12px; border-top:1px solid rgba(255,255,255,.14);"><div style="font-size:16px; font-weight:600;">Total per week</div><div style="font-family:'IBM Plex Mono', monospace; font-size:26px; color:#8fd08a; font-weight:600;">$20,348</div></div>
+            <div style="font-size:15px; line-height:1.5; color:#a6a09a; text-wrap:pretty;">The mixed strategy wins. Night rate on the hours that pay, audience on the hours that don't — and she's rested either way.</div>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+
+    <div id="roster" style="display:flex; flex-direction:column; gap:20px; scroll-margin-top:80px;">
+      <div style="display:flex; flex-direction:column; gap:12px; max-width:720px;">
+        <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.18em; color:#ff3d8b;">02 · ROSTER</div>
+        <h2 style="margin:0; font-size:clamp(26px,4.2vw,38px); font-weight:800; letter-spacing:-.02em;">People, not units</h2>
+        <p style="margin:0; font-size:17px; line-height:1.6; color:#a6a09a; text-wrap:pretty;">Stamina drains on shift and recovers off duty. Exhausted crew bleed loyalty, and loyalty scales payout — so working the roster into the ground is mathematically self-defeating.</p>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(330px,1fr)); gap:1px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.1);">
+        <div style="background:#0d0b13; padding:22px 20px; display:flex; flex-direction:column; gap:8px;"><div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#8fd08a; letter-spacing:.14em;">STAMINA</div><div style="font-size:17px; font-weight:700;">−9/h on shift, +14/h off</div><div style="font-size:15px; line-height:1.5; color:#a6a09a;">Below 10, she starts losing 4 loyalty an hour.</div></div>
+        <div style="background:#0d0b13; padding:22px 20px; display:flex; flex-direction:column; gap:8px;"><div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#e8a33d; letter-spacing:.14em;">LOYALTY</div><div style="font-size:17px; font-weight:700;">Scales every payout</div><div style="font-size:15px; line-height:1.5; color:#a6a09a;">Under 25 she has a 35% chance an hour of simply walking off.</div></div>
+        <div style="background:#0d0b13; padding:22px 20px; display:flex; flex-direction:column; gap:8px;"><div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#6f9fd8; letter-spacing:.14em;">TIERS</div><div style="font-size:17px; font-weight:700;">$120 / $260 / $550</div><div style="font-size:15px; line-height:1.5; color:#a6a09a;">Base hourly. Tier is set at signing and doesn't move.</div></div>
+        <div style="background:#0d0b13; padding:22px 20px; display:flex; flex-direction:column; gap:8px;"><div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#7b5cd6; letter-spacing:.14em;">ROSTER CAP</div><div style="font-size:17px; font-weight:700;">Four, then +2 an upgrade</div><div style="font-size:15px; line-height:1.5; color:#a6a09a;">The cap is the real early constraint, not money.</div></div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.14em; color:#6f6a65;">WHERE YOU LOOK CHANGES WHO YOU FIND</div>
+        <div style="overflow-x:auto; border:1px solid rgba(255,255,255,.12);">
+          <table style="width:100%; min-width:560px; border-collapse:collapse; font-size:15px;">
+            <tr style="background:#0d0b13;">
+              <th style="text-align:left; padding:12px 16px; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.12em; color:#6f6a65; font-weight:500;">AREA</th>
+              <th style="text-align:right; padding:12px 16px; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.12em; color:#6f6a65; font-weight:500;">RADIUS</th>
+              <th style="text-align:right; padding:12px 16px; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.12em; color:#6f6a65; font-weight:500;">TIER 3 ODDS</th>
+              <th style="text-align:right; padding:12px 16px; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.12em; color:#6f6a65; font-weight:500;">ALREADY TAKEN</th>
+            </tr>
+            <tr><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); color:#c9c3bc;">Gang turf</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); text-align:right; font-family:'IBM Plex Mono', monospace; color:#a6a09a;">70m</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); text-align:right; font-family:'IBM Plex Mono', monospace; color:#a6a09a;">5%</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); text-align:right; font-family:'IBM Plex Mono', monospace; color:#d9694f;">45%</td></tr>
+            <tr><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); color:#c9c3bc;">Vinewood</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); text-align:right; font-family:'IBM Plex Mono', monospace; color:#a6a09a;">70m</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); text-align:right; font-family:'IBM Plex Mono', monospace; color:#8fd08a;">30%</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); text-align:right; font-family:'IBM Plex Mono', monospace; color:#e8a33d;">30%</td></tr>
+            <tr><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); color:#c9c3bc;">Anywhere else</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); text-align:right; font-family:'IBM Plex Mono', monospace; color:#a6a09a;">35m</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); text-align:right; font-family:'IBM Plex Mono', monospace; color:#a6a09a;">10%</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); text-align:right; font-family:'IBM Plex Mono', monospace; color:#8fd08a;">12%</td></tr>
+          </table>
+        </div>
+        <div style="font-size:16px; line-height:1.55; color:#a6a09a; max-width:720px; text-wrap:pretty;">Sign someone who already works for a crew and she arrives a tier higher, 15 loyalty short, with her old people 55% likely to turn up inside the minute. <a href="manual.html#systems">Full poaching rules →</a></div>
+      </div>
+    </div>
+
+    <div id="turf" style="display:flex; flex-direction:column; gap:20px; scroll-margin-top:80px;">
+      <div style="display:flex; flex-direction:column; gap:12px; max-width:720px;">
+        <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.18em; color:#4fd0c4;">03 · TURF &amp; HEAT</div>
+        <h2 style="margin:0; font-size:clamp(26px,4.2vw,38px); font-weight:800; letter-spacing:-.02em;">Every hour worked is heat banked</h2>
+        <p style="margin:0; font-size:17px; line-height:1.6; color:#a6a09a; text-wrap:pretty;">Heat bleeds off at 0.03 an hour on its own. Work the corner faster than that and it only goes one way.</p>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:0; border:1px solid rgba(255,255,255,.12);">
+        <div style="padding:18px 20px; display:flex; flex-wrap:wrap; gap:8px 16px; align-items:baseline; background:#0d0b13; border-bottom:1px solid rgba(255,255,255,.1);"><div style="font-family:'IBM Plex Mono', monospace; font-size:14px; color:#8fd08a; min-width:78px;">0.00</div><div style="font-size:16px; color:#c9c3bc;">Cold. Nothing is looking at you.</div></div>
+        <div style="padding:18px 20px; display:flex; flex-wrap:wrap; gap:8px 16px; align-items:baseline; background:#0d0b13; border-bottom:1px solid rgba(255,255,255,.1);"><div style="font-family:'IBM Plex Mono', monospace; font-size:14px; color:#e8a33d; min-width:78px;">0.40+</div><div style="font-size:16px; color:#c9c3bc;">Vice sting chance is heat × 0.25 an hour. It's now a real number.</div></div>
+        <div style="padding:18px 20px; display:flex; flex-wrap:wrap; gap:8px 16px; align-items:baseline; background:#0d0b13; border-bottom:1px solid rgba(255,255,255,.1);"><div style="font-family:'IBM Plex Mono', monospace; font-size:14px; color:#d9694f; min-width:78px;">0.95</div><div style="font-size:16px; color:#c9c3bc;">Raid. $5,000 fine, everyone off the street, the corner shut for three game days.</div></div>
+        <div style="padding:18px 20px; display:flex; flex-wrap:wrap; gap:8px 16px; align-items:baseline; background:#0d0b13;"><div style="font-family:'IBM Plex Mono', monospace; font-size:14px; color:#ff3d8b; min-width:78px;">BRIBE</div><div style="font-size:16px; color:#c9c3bc;">$9,000 buys back half a point. Cheaper than the raid, most nights.</div></div>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px,1fr)); gap:1px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.1);">
+        <div style="background:#0d0b13; padding:22px 20px; display:flex; flex-direction:column; gap:8px;"><div style="font-size:17px; font-weight:700;">Claiming</div><div style="font-size:15px; line-height:1.5; color:#a6a09a;">Post someone on a neutral corner and it's yours. Rival-held ones have to be taken by force first.</div></div>
+        <div style="background:#0d0b13; padding:22px 20px; display:flex; flex-direction:column; gap:8px;"><div style="font-size:17px; font-weight:700;">Only staffed turf is contested</div><div style="font-size:15px; line-height:1.5; color:#a6a09a;">An empty corner you own is never attacked — being raided over one would read as noise, not pressure.</div></div>
+        <div style="background:#0d0b13; padding:22px 20px; display:flex; flex-direction:column; gap:8px;"><div style="font-size:17px; font-weight:700;">Don't stack a corner</div><div style="font-size:15px; line-height:1.5; color:#a6a09a;">Saturation divides each worker's yield by every other body on the same block. Spread out.</div></div>
+      </div>
+    </div>
+
+    <div id="board" style="display:flex; flex-direction:column; gap:clamp(20px,3vw,32px); scroll-margin-top:80px;">
+      <div style="display:flex; flex-direction:column; gap:12px; max-width:720px;">
+        <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.18em; color:#4fd0c4;">THE BOARD</div>
+        <h2 style="margin:0; font-size:clamp(26px,4.2vw,38px); font-weight:800; letter-spacing:-.02em;">Six corners, four crews</h2>
+        <p style="margin:0; font-size:17px; line-height:1.55; color:#a6a09a; text-wrap:pretty;">A snapshot mid-run. Tap a corner to see who holds it and what it's costing.</p>
+      </div>
+
+      <div style="position:relative; width:100%; aspect-ratio:4/3; max-height:560px; background:#08070c; border:1px solid rgba(255,255,255,.14); background-image:linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px); background-size:44px 44px;">
+        <div style="position:absolute; left:-10%; top:24%; width:130%; height:16%; background:rgba(255,255,255,.04); transform:rotate(-18deg);"></div>
+        <div style="position:absolute; left:4%; top:34%; width:26%; height:52%; background:rgba(79,208,196,.05); border:1px solid rgba(79,208,196,.12);"></div>
+        <div style="position:absolute; left:6%; bottom:14px; font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.16em; color:#4a4650;">WEST SIDE</div>
+        <div style="position:absolute; right:6%; top:14px; font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.16em; color:#4a4650;">NORTH · DESERT</div>
+        <div onClick="{{ z0 }}" style="position:absolute; left:15%; top:44%; transform:translate(-50%,-50%); display:flex; flex-direction:column; align-items:center; gap:7px; cursor:pointer; padding:10px; min-width:44px; min-height:44px; justify-content:center;">
+          <div style="position:relative; width:16px; height:16px;">
+            <div style="position:absolute; inset:0; border-radius:50%; background:#ff3d8b; box-shadow:0 0 16px #ff3d8b;"></div>
+            <sc-if value="{{ sel0 }}"><div style="position:absolute; inset:-9px; border:2px solid #fff; border-radius:50%;"></div></sc-if>
+          </div>
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.08em; white-space:nowrap; color:#f2efe9;">DEL PERRO</div>
+        </div>
+        <div onClick="{{ z1 }}" style="position:absolute; left:20%; top:67%; transform:translate(-50%,-50%); display:flex; flex-direction:column; align-items:center; gap:7px; cursor:pointer; padding:10px; min-width:44px; min-height:44px; justify-content:center;">
+          <div style="position:relative; width:16px; height:16px;">
+            <div style="position:absolute; inset:0; border-radius:50%; background:#4fd0c4; box-shadow:0 0 16px #4fd0c4;"></div>
+            <sc-if value="{{ sel1 }}"><div style="position:absolute; inset:-9px; border:2px solid #fff; border-radius:50%;"></div></sc-if>
+          </div>
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.08em; white-space:nowrap; color:#f2efe9;">VESPUCCI</div>
+        </div>
+        <div onClick="{{ z2 }}" style="position:absolute; left:43%; top:76%; transform:translate(-50%,-50%); display:flex; flex-direction:column; align-items:center; gap:7px; cursor:pointer; padding:10px; min-width:44px; min-height:44px; justify-content:center;">
+          <div style="position:relative; width:16px; height:16px;">
+            <div style="position:absolute; inset:0; border-radius:50%; background:#4fd0c4; box-shadow:0 0 16px #4fd0c4;"></div>
+            <sc-if value="{{ sel2 }}"><div style="position:absolute; inset:-9px; border:2px solid #fff; border-radius:50%;"></div></sc-if>
+          </div>
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.08em; white-space:nowrap; color:#f2efe9;">STRAWBERRY</div>
+        </div>
+        <div onClick="{{ z3 }}" style="position:absolute; left:60%; top:50%; transform:translate(-50%,-50%); display:flex; flex-direction:column; align-items:center; gap:7px; cursor:pointer; padding:10px; min-width:44px; min-height:44px; justify-content:center;">
+          <div style="position:relative; width:16px; height:16px;">
+            <div style="position:absolute; inset:0; border-radius:50%; background:#7d7885; box-shadow:0 0 16px rgba(125,120,133,.6);"></div>
+            <sc-if value="{{ sel3 }}"><div style="position:absolute; inset:-9px; border:2px solid #fff; border-radius:50%;"></div></sc-if>
+          </div>
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.08em; white-space:nowrap; color:#b9b2ab;">MIRROR PARK</div>
+        </div>
+        <div onClick="{{ z4 }}" style="position:absolute; left:54%; top:88%; transform:translate(-50%,-50%); display:flex; flex-direction:column; align-items:center; gap:7px; cursor:pointer; padding:10px; min-width:44px; min-height:44px; justify-content:center;">
+          <div style="position:relative; width:16px; height:16px;">
+            <div style="position:absolute; inset:0; border-radius:50%; background:#7b5cd6; box-shadow:0 0 16px #7b5cd6;"></div>
+            <sc-if value="{{ sel4 }}"><div style="position:absolute; inset:-9px; border:2px solid #fff; border-radius:50%;"></div></sc-if>
+          </div>
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.08em; white-space:nowrap; color:#b9b2ab;">ELYSIAN</div>
+        </div>
+        <div onClick="{{ z5 }}" style="position:absolute; left:82%; top:19%; transform:translate(-50%,-50%); display:flex; flex-direction:column; align-items:center; gap:7px; cursor:pointer; padding:10px; min-width:44px; min-height:44px; justify-content:center;">
+          <div style="position:relative; width:16px; height:16px;">
+            <div style="position:absolute; inset:0; border-radius:50%; background:#3b3742; box-shadow:0 0 16px rgba(0,0,0,0);"></div>
+            <sc-if value="{{ sel5 }}"><div style="position:absolute; inset:-9px; border:2px solid #fff; border-radius:50%;"></div></sc-if>
+          </div>
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.08em; white-space:nowrap; color:#8d8781;">SANDY SHORES</div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-wrap:wrap; gap:10px 22px; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.08em; color:#8d8781;">
+        <div style="display:flex; align-items:center; gap:8px;"><div style="width:10px; height:10px; border-radius:50%; background:#ff3d8b;"></div>YOURS · HOT</div>
+        <div style="display:flex; align-items:center; gap:8px;"><div style="width:10px; height:10px; border-radius:50%; background:#4fd0c4;"></div>YOURS · STAFFED</div>
+        <div style="display:flex; align-items:center; gap:8px;"><div style="width:10px; height:10px; border-radius:50%; background:#7d7885;"></div>YOURS · EMPTY</div>
+        <div style="display:flex; align-items:center; gap:8px;"><div style="width:10px; height:10px; border-radius:50%; background:#7b5cd6;"></div>RIVAL-HELD</div>
+        <div style="display:flex; align-items:center; gap:8px;"><div style="width:10px; height:10px; border-radius:50%; background:#3b3742;"></div>NEUTRAL</div>
+      </div>
+
+      <sc-if value="{{ sel0 }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex; flex-direction:column; gap:16px; padding:clamp(20px,3vw,28px); background:#0d0b13; border:1px solid rgba(255,255,255,.14);">
+          <div style="display:flex; flex-wrap:wrap; gap:10px 16px; align-items:baseline;">
+            <div style="font-size:clamp(22px,3.4vw,30px); font-weight:800; letter-spacing:-.02em;">Del Perro</div>
+            <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.12em; color:#d9694f;">YOURS · RUNNING HOT</div>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:1px; background:rgba(255,255,255,.1);">
+            <div style="background:#0d0b13; padding:14px 16px; display:flex; flex-direction:column; gap:6px;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.14em; color:#6f6a65;">POSTED</div><div style="font-family:'IBM Plex Mono', monospace; font-size:17px; color:#f2efe9;">3</div></div>
+            <div style="background:#0d0b13; padding:14px 16px; display:flex; flex-direction:column; gap:6px;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.14em; color:#6f6a65;">TAKE</div><div style="font-family:'IBM Plex Mono', monospace; font-size:17px; color:#8fd08a;">$1,840/h</div></div>
+            <div style="background:#0d0b13; padding:14px 16px; display:flex; flex-direction:column; gap:6px;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.14em; color:#6f6a65;">HEAT</div><div style="font-family:'IBM Plex Mono', monospace; font-size:17px; color:#d9694f;">0.74</div></div>
+            <div style="background:#0d0b13; padding:14px 16px; display:flex; flex-direction:column; gap:6px;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.14em; color:#6f6a65;">TO A RAID</div><div style="font-family:'IBM Plex Mono', monospace; font-size:17px; color:#d9694f;">4 hours</div></div>
+          </div>
+          <div style="font-size:16px; line-height:1.55; color:#a6a09a; text-wrap:pretty;">Your best corner and your biggest exposure. Bribe it down for $9,000 a point, or pull everyone off and let it cool for a night you can&rsquo;t afford to lose.</div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ sel1 }}">
+        <div style="display:flex; flex-direction:column; gap:16px; padding:clamp(20px,3vw,28px); background:#0d0b13; border:1px solid rgba(255,255,255,.14);">
+          <div style="display:flex; flex-wrap:wrap; gap:10px 16px; align-items:baseline;">
+            <div style="font-size:clamp(22px,3.4vw,30px); font-weight:800; letter-spacing:-.02em;">Vespucci</div>
+            <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.12em; color:#8fd08a;">YOURS · STAFFED</div>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:1px; background:rgba(255,255,255,.1);">
+            <div style="background:#0d0b13; padding:14px 16px; display:flex; flex-direction:column; gap:6px;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.14em; color:#6f6a65;">POSTED</div><div style="font-family:'IBM Plex Mono', monospace; font-size:17px; color:#f2efe9;">1</div></div>
+            <div style="background:#0d0b13; padding:14px 16px; display:flex; flex-direction:column; gap:6px;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.14em; color:#6f6a65;">TAKE</div><div style="font-family:'IBM Plex Mono', monospace; font-size:17px; color:#8fd08a;">$905/h</div></div>
+            <div style="background:#0d0b13; padding:14px 16px; display:flex; flex-direction:column; gap:6px;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.14em; color:#6f6a65;">HEAT</div><div style="font-family:'IBM Plex Mono', monospace; font-size:17px; color:#8fd08a;">0.22</div></div>
+            <div style="background:#0d0b13; padding:14px 16px; display:flex; flex-direction:column; gap:6px;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.14em; color:#6f6a65;">CONTESTED</div><div style="font-family:'IBM Plex Mono', monospace; font-size:17px; color:#a6a09a;">no</div></div>
+          </div>
+          <div style="font-size:16px; line-height:1.55; color:#a6a09a; text-wrap:pretty;">One tier-3 worker, low heat, quiet. Saturation falloff means the second body here earns less than the first &mdash; spread out instead.</div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ sel2 }}">
+        <div style="display:flex; flex-direction:column; gap:16px; padding:clamp(20px,3vw,28px); background:#0d0b13; border:1px solid rgba(255,255,255,.14);">
+          <div style="display:flex; flex-wrap:wrap; gap:10px 16px; align-items:baseline;">
+            <div style="font-size:clamp(22px,3.4vw,30px); font-weight:800; letter-spacing:-.02em;">Strawberry</div>
+            <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.12em; color:#8fd08a;">YOURS · STAFFED</div>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:1px; background:rgba(255,255,255,.1);">
+            <div style="background:#0d0b13; padding:14px 16px; display:flex; flex-direction:column; gap:6px;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.14em; color:#6f6a65;">POSTED</div><div style="font-family:'IBM Plex Mono', monospace; font-size:17px; color:#f2efe9;">1</div></div>
+            <div style="background:#0d0b13; padding:14px 16px; display:flex; flex-direction:column; gap:6px;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.14em; color:#6f6a65;">TAKE</div><div style="font-family:'IBM Plex Mono', monospace; font-size:17px; color:#8fd08a;">$390/h</div></div>
+            <div style="background:#0d0b13; padding:14px 16px; display:flex; flex-direction:column; gap:6px;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.14em; color:#6f6a65;">HEAT</div><div style="font-family:'IBM Plex Mono', monospace; font-size:17px; color:#e8a33d;">0.41</div></div>
+            <div style="background:#0d0b13; padding:14px 16px; display:flex; flex-direction:column; gap:6px;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.14em; color:#6f6a65;">CONTESTED</div><div style="font-family:'IBM Plex Mono', monospace; font-size:17px; color:#e8a33d;">watched</div></div>
+          </div>
+          <div style="font-size:16px; line-height:1.55; color:#a6a09a; text-wrap:pretty;">You took this off the Lost MC last week. They&rsquo;ve been circling since &mdash; rivals only come back for turf you hold and have staffed.</div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ sel3 }}">
+        <div style="display:flex; flex-direction:column; gap:16px; padding:clamp(20px,3vw,28px); background:#0d0b13; border:1px solid rgba(255,255,255,.14);">
+          <div style="display:flex; flex-wrap:wrap; gap:10px 16px; align-items:baseline;">
+            <div style="font-size:clamp(22px,3.4vw,30px); font-weight:800; letter-spacing:-.02em;">Mirror Park</div>
+            <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.12em; color:#7d7885;">YOURS · EMPTY</div>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:1px; background:rgba(255,255,255,.1);">
+            <div style="background:#0d0b13; padding:14px 16px; display:flex; flex-direction:column; gap:6px;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.14em; color:#6f6a65;">POSTED</div><div style="font-family:'IBM Plex Mono', monospace; font-size:17px; color:#6f6a65;">0</div></div>
+            <div style="background:#0d0b13; padding:14px 16px; display:flex; flex-direction:column; gap:6px;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.14em; color:#6f6a65;">TAKE</div><div style="font-family:'IBM Plex Mono', monospace; font-size:17px; color:#6f6a65;">$0/h</div></div>
+            <div style="background:#0d0b13; padding:14px 16px; display:flex; flex-direction:column; gap:6px;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.14em; color:#6f6a65;">HEAT</div><div style="font-family:'IBM Plex Mono', monospace; font-size:17px; color:#8fd08a;">0.06</div></div>
+            <div style="background:#0d0b13; padding:14px 16px; display:flex; flex-direction:column; gap:6px;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.14em; color:#6f6a65;">CONTESTED</div><div style="font-family:'IBM Plex Mono', monospace; font-size:17px; color:#a6a09a;">no</div></div>
+          </div>
+          <div style="font-size:16px; line-height:1.55; color:#a6a09a; text-wrap:pretty;">Held, unstaffed, earning nothing &mdash; and safe precisely because of it. An empty corner you own is never attacked.</div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ sel4 }}">
+        <div style="display:flex; flex-direction:column; gap:16px; padding:clamp(20px,3vw,28px); background:#0d0b13; border:1px solid rgba(255,255,255,.14);">
+          <div style="display:flex; flex-wrap:wrap; gap:10px 16px; align-items:baseline;">
+            <div style="font-size:clamp(22px,3.4vw,30px); font-weight:800; letter-spacing:-.02em;">Elysian</div>
+            <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.12em; color:#7b5cd6;">LOST MC</div>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:1px; background:rgba(255,255,255,.1);">
+            <div style="background:#0d0b13; padding:14px 16px; display:flex; flex-direction:column; gap:6px;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.14em; color:#6f6a65;">DEFENDERS</div><div style="font-family:'IBM Plex Mono', monospace; font-size:17px; color:#d9694f;">5</div></div>
+            <div style="background:#0d0b13; padding:14px 16px; display:flex; flex-direction:column; gap:6px;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.14em; color:#6f6a65;">TAKE</div><div style="font-family:'IBM Plex Mono', monospace; font-size:17px; color:#6f6a65;">&mdash;</div></div>
+            <div style="background:#0d0b13; padding:14px 16px; display:flex; flex-direction:column; gap:6px;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.14em; color:#6f6a65;">AGGRESSION</div><div style="font-family:'IBM Plex Mono', monospace; font-size:17px; color:#d9694f;">0.61</div></div>
+            <div style="background:#0d0b13; padding:14px 16px; display:flex; flex-direction:column; gap:6px;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.14em; color:#6f6a65;">CLAIM</div><div style="font-family:'IBM Plex Mono', monospace; font-size:17px; color:#ff3d8b;">by force</div></div>
+          </div>
+          <div style="font-size:16px; line-height:1.55; color:#a6a09a; text-wrap:pretty;">Rival-held, so you can&rsquo;t post anyone until you take it. Five bodies means muscle or a crew for the push &mdash; $7,500 for four, good until 06:00.</div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ sel5 }}">
+        <div style="display:flex; flex-direction:column; gap:16px; padding:clamp(20px,3vw,28px); background:#0d0b13; border:1px solid rgba(255,255,255,.14);">
+          <div style="display:flex; flex-wrap:wrap; gap:10px 16px; align-items:baseline;">
+            <div style="font-size:clamp(22px,3.4vw,30px); font-weight:800; letter-spacing:-.02em;">Sandy Shores</div>
+            <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.12em; color:#8d8781;">NEUTRAL</div>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:1px; background:rgba(255,255,255,.1);">
+            <div style="background:#0d0b13; padding:14px 16px; display:flex; flex-direction:column; gap:6px;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.14em; color:#6f6a65;">POSTED</div><div style="font-family:'IBM Plex Mono', monospace; font-size:17px; color:#6f6a65;">0</div></div>
+            <div style="background:#0d0b13; padding:14px 16px; display:flex; flex-direction:column; gap:6px;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.14em; color:#6f6a65;">TAKE</div><div style="font-family:'IBM Plex Mono', monospace; font-size:17px; color:#a6a09a;">base rate</div></div>
+            <div style="background:#0d0b13; padding:14px 16px; display:flex; flex-direction:column; gap:6px;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.14em; color:#6f6a65;">HEAT</div><div style="font-family:'IBM Plex Mono', monospace; font-size:17px; color:#8fd08a;">0.00</div></div>
+            <div style="background:#0d0b13; padding:14px 16px; display:flex; flex-direction:column; gap:6px;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.14em; color:#6f6a65;">CLAIM</div><div style="font-family:'IBM Plex Mono', monospace; font-size:17px; color:#8fd08a;">work it</div></div>
+          </div>
+          <div style="font-size:16px; line-height:1.55; color:#a6a09a; text-wrap:pretty;">Nobody&rsquo;s. Post someone for two nights and it&rsquo;s yours, no fight &mdash; but it&rsquo;s a long drive when a client turns out here.</div>
+        </div>
+      </sc-if>
+    </div>
+
+    <div id="incidents" style="display:flex; flex-direction:column; gap:20px; scroll-margin-top:80px;">
+      <div style="display:flex; flex-direction:column; gap:12px; max-width:720px;">
+        <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.18em; color:#d9694f;">04 · INCIDENTS</div>
+        <h2 style="margin:0; font-size:clamp(26px,4.2vw,38px); font-weight:800; letter-spacing:-.02em;">One at a time, then quiet</h2>
+        <p style="margin:0; font-size:17px; line-height:1.6; color:#a6a09a; text-wrap:pretty;">A 90-second cooldown after every incident resolves. Two emergencies at once isn't a decision, it's a coin flip — so the mod never gives you one.</p>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px,1fr)); gap:1px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.1);">
+        <div style="background:#0d0b13; padding:22px 20px; display:flex; flex-direction:column; gap:9px;"><div style="display:flex; justify-content:space-between; align-items:baseline; gap:10px;"><div style="font-size:17px; font-weight:700;">Bad client</div><div style="font-family:'IBM Plex Mono', monospace; font-size:13px; color:#d9694f;">8%/h</div></div><div style="font-size:15px; line-height:1.5; color:#a6a09a;">Red blip, ninety seconds, and you're across the map. Let it ride and she pays for it.</div></div>
+        <div style="background:#0d0b13; padding:22px 20px; display:flex; flex-direction:column; gap:9px;"><div style="display:flex; justify-content:space-between; align-items:baseline; gap:10px;"><div style="font-size:17px; font-weight:700;">Vice sting</div><div style="font-family:'IBM Plex Mono', monospace; font-size:13px; color:#d9694f;">heat × 0.25</div></div><div style="font-size:15px; line-height:1.5; color:#a6a09a;">Scales entirely off the heat you chose to let build.</div></div>
+        <div style="background:#0d0b13; padding:22px 20px; display:flex; flex-direction:column; gap:9px;"><div style="display:flex; justify-content:space-between; align-items:baseline; gap:10px;"><div style="font-size:17px; font-weight:700;">Walk-off</div><div style="font-family:'IBM Plex Mono', monospace; font-size:13px; color:#d9694f;">35%/h</div></div><div style="font-size:15px; line-height:1.5; color:#a6a09a;">Below 25 loyalty. She leaves, and she isn't coming back.</div></div>
+        <div style="background:#0d0b13; padding:22px 20px; display:flex; flex-direction:column; gap:9px;"><div style="display:flex; justify-content:space-between; align-items:baseline; gap:10px;"><div style="font-size:17px; font-weight:700;">Rival contest</div><div style="font-family:'IBM Plex Mono', monospace; font-size:13px; color:#7b5cd6;">12% × aggression</div></div><div style="font-size:15px; line-height:1.5; color:#a6a09a;">Every crew you've poached from pushes that number up. It clamps at 1 — it can't spiral.</div></div>
+      </div>
+    </div>
+
+    <div id="upgrades" style="display:flex; flex-direction:column; gap:20px; scroll-margin-top:80px;">
+      <div style="display:flex; flex-direction:column; gap:12px; max-width:720px;">
+        <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.18em; color:#e8a33d;">05 · UPGRADES</div>
+        <h2 style="margin:0; font-size:clamp(26px,4.2vw,38px); font-weight:800; letter-spacing:-.02em;">What money buys back</h2>
+        <p style="margin:0; font-size:17px; line-height:1.6; color:#a6a09a; text-wrap:pretty;">Permanent, and mostly bought to remove a constraint rather than add income.</p>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:1px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.1);">
+        <div style="background:#0d0b13; padding:22px 20px; display:flex; flex-direction:column; gap:9px;"><div style="font-size:17px; font-weight:700;">More roster</div><div style="font-size:15px; line-height:1.5; color:#a6a09a;">+2 to the cap each time. The first one you'll want before you can afford it.</div></div>
+        <div style="background:#0d0b13; padding:22px 20px; display:flex; flex-direction:column; gap:9px;"><div style="font-size:17px; font-weight:700;">Ring light and a laptop</div><div style="font-size:15px; line-height:1.5; color:#a6a09a;">Unlocks subscriptions entirely. Until you own it, off-duty hours earn nothing at all.</div></div>
+        <div style="background:#0d0b13; padding:22px 20px; display:flex; flex-direction:column; gap:9px;"><div style="font-size:17px; font-weight:700;">Legal retainer</div><div style="font-size:15px; line-height:1.5; color:#a6a09a;">Turns an arrest from a night lost into a phone call.</div></div>
+        <div style="background:#0d0b13; padding:22px 20px; display:flex; flex-direction:column; gap:9px;"><div style="display:flex; justify-content:space-between; align-items:baseline; gap:10px;"><div style="font-size:17px; font-weight:700;">Laundering</div><div style="font-family:'IBM Plex Mono', monospace; font-size:13px; color:#8fd08a;">heat ×1.5 decay</div></div><div style="font-size:15px; line-height:1.5; color:#a6a09a;">Everything cools faster, everywhere. The upgrade you buy when you've decided to run hot.</div></div>
+      </div>
+    </div>
+
+    <div id="property" style="display:flex; flex-direction:column; gap:20px; scroll-margin-top:80px;">
+      <div style="display:flex; flex-direction:column; gap:12px; max-width:720px;">
+        <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.18em; color:#4fd0c4;">06 · PROPERTY</div>
+        <h2 style="margin:0; font-size:clamp(26px,4.2vw,38px); font-weight:800; letter-spacing:-.02em;">Somewhere to put people</h2>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:1px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.1);">
+        <div style="background:#0d0b13; padding:22px 20px; display:flex; flex-direction:column; gap:11px;">
+          <div style="font-size:17px; font-weight:700;">Stash houses</div>
+          <div style="font-size:15px; line-height:1.5; color:#a6a09a;">Fast travel to the region, and the block cools twice as fast while you own one there.</div>
+          <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:2px;">
+            <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; padding:4px 8px; background:rgba(143,208,138,.15); color:#8fd08a;">HEAT DECAY ×2.0</div>
+            <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; padding:4px 8px; background:rgba(143,208,138,.15); color:#8fd08a;">REST ×1.5</div>
+          </div>
+        </div>
+        <div style="background:#0d0b13; padding:22px 20px; display:flex; flex-direction:column; gap:11px;">
+          <div style="display:flex; justify-content:space-between; align-items:baseline; gap:10px;"><div style="font-size:17px; font-weight:700;">A car for the region</div><div style="font-family:'IBM Plex Mono', monospace; font-size:13px; color:#8fd08a;">$28,000</div></div>
+          <div style="font-size:15px; line-height:1.5; color:#a6a09a;">Crew get driven instead of walking. Demand up, stamina drain down.</div>
+          <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:2px;">
+            <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; padding:4px 8px; background:rgba(143,208,138,.15); color:#8fd08a;">PAYOUT ×1.10</div>
+            <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; padding:4px 8px; background:rgba(143,208,138,.15); color:#8fd08a;">DRAIN ×0.75</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="muscle" style="display:flex; flex-direction:column; gap:20px; scroll-margin-top:80px;">
+      <div style="display:flex; flex-direction:column; gap:12px; max-width:720px;">
+        <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.18em; color:#ff3d8b;">07 · MUSCLE</div>
+        <h2 style="margin:0; font-size:clamp(26px,4.2vw,38px); font-weight:800; letter-spacing:-.02em;">People who answer the blip for you</h2>
+        <p style="margin:0; font-size:17px; line-height:1.6; color:#a6a09a; text-wrap:pretty;">$12,000 to hire, $350 a day at midnight. Miss the wage bill once and every one of them walks the same night.</p>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px,1fr)); gap:1px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.1);">
+        <div style="background:#0d0b13; padding:22px 20px; display:flex; flex-direction:column; gap:8px;"><div style="font-size:17px; font-weight:700;">They cover the corner</div><div style="font-size:15px; line-height:1.5; color:#a6a09a;">An enforcer on post handles a bad client without you driving anywhere.</div></div>
+        <div style="background:#0d0b13; padding:22px 20px; display:flex; flex-direction:column; gap:8px;"><div style="font-size:17px; font-weight:700;">They're a fixed cost</div><div style="font-size:15px; line-height:1.5; color:#a6a09a;">Paid whether the night went well or not. Three of them is $1,050 before you've earned anything.</div></div>
+        <div style="background:#0d0b13; padding:22px 20px; display:flex; flex-direction:column; gap:8px;"><div style="font-size:17px; font-weight:700;">They don't take turf</div><div style="font-size:15px; line-height:1.5; color:#a6a09a;">Contesting a rival corner is still you, in person, with whatever you brought.</div></div>
+      </div>
+    </div>
+
+    <div id="debt" style="display:flex; flex-direction:column; gap:20px; scroll-margin-top:80px;">
+      <div style="display:flex; flex-direction:column; gap:12px; max-width:720px;">
+        <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.18em; color:#d9694f;">08 · DEBT</div>
+        <h2 style="margin:0; font-size:clamp(26px,4.2vw,38px); font-weight:800; letter-spacing:-.02em;">The way to lose</h2>
+      </div>
+      <div style="display:flex; gap:16px; align-items:flex-start; padding:clamp(20px,3vw,28px); background:rgba(217,105,79,.1); border:1px solid rgba(217,105,79,.4);">
+        <div style="width:9px; height:9px; background:#d9694f; margin-top:9px; flex:none; animation:blip 1.4s infinite;"></div>
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <div style="font-size:17px; line-height:1.6; color:#d6bdb4; text-wrap:pretty;">Wages, bail and fines you can't cover become debt. Debt compounds at 8% a day, at midnight, whether you're playing or not. At $150,000 the operation folds and the save is over.</div>
+          <div style="font-size:16px; line-height:1.55; color:#a6a09a; text-wrap:pretty;">It's slow enough to climb out of and fast enough to notice — which is the only thing that makes the risky choices feel like choices.</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; flex-wrap:wrap; gap:12px; padding-top:8px;">
+      <a href="https://www.patreon.com/gtaontheblade" style="padding:15px 26px; background:#ff3d8b; color:#12080d; font-size:16px; font-weight:700;">Get the build</a>
+      <a href="manual.html" style="padding:15px 26px; border:1px solid rgba(255,255,255,.35); color:#f2efe9; font-size:16px; font-weight:600;">Read the full manual</a>
+    </div>
+  </div>
+
+  <div style="padding:clamp(32px,5vw,56px) clamp(16px,4vw,56px); border-top:1px solid rgba(255,255,255,.1); background:#08070c;">
+    <div style="max-width:1080px; margin:0 auto; display:flex; flex-wrap:wrap; gap:20px; align-items:center; justify-content:space-between;">
+      <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#6f6a65; letter-spacing:.08em;">v0.2.0 — A SINGLE-PLAYER GTA V MOD BY THEGTAMOD</div>
+      <div style="display:flex; flex-wrap:wrap; gap:22px; font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.08em;">
+        <a href="index.html" style="color:#a6a09a;">HOME</a>
+        <a href="install.html" style="color:#a6a09a;">INSTALL</a>
+        <a href="changelog.html" style="color:#a6a09a;">CHANGELOG</a>
+        <a href="faq.html" style="color:#a6a09a;">FAQ</a>
+        <a href="https://www.patreon.com/gtaontheblade" style="color:#ff3d8b;">PATREON</a>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { strat: 'c', zone: 0 };
+  renderVals() {
+    const s = this.state.strat, pick = k => () => this.setState({ strat: k });
+    const z = this.state.zone, pickZone = i => () => this.setState({ zone: i });
+    return {
+      stratA: s === 'a', stratB: s === 'b', stratC: s === 'c',
+      sel0: z === 0, sel1: z === 1, sel2: z === 2, sel3: z === 3, sel4: z === 4, sel5: z === 5,
+      z0: pickZone(0), z1: pickZone(1), z2: pickZone(2), z3: pickZone(3), z4: pickZone(4), z5: pickZone(5),
+      pickA: pick('a'), pickB: pick('b'), pickC: pick('c')
+    };
+  }
+}
+</script>
+</body>
+</html>

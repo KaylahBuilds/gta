@@ -1,778 +1,439 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>On The Blade — a GTA V management mod</title>
-<meta name="description" content="A roster and territory management game mode for GTA V single player. One build for Legacy and Enhanced.">
-<style>
-  :root {
-    --bg: #0d0f12;
-    --bg-raised: #14181d;
-    --bg-sunken: #090b0d;
-    --line: #232a32;
-    --text: #e6e9ed;
-    --text-dim: #98a2ae;
-    --text-faint: #6b7683;
-    --accent: #6fcf7f;
-    --accent-dim: #3f7a49;
-    --warn: #e0913f;
-    --danger: #e05c5c;
-    --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
-    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    --radius: 8px;
-    --maxw: 860px;
-  }
-
-  @media (prefers-color-scheme: light) {
-    :root {
-      --bg: #fbfbfa;
-      --bg-raised: #ffffff;
-      --bg-sunken: #f2f2f0;
-      --line: #e0e0dc;
-      --text: #1a1d21;
-      --text-dim: #545c66;
-      --text-faint: #858d97;
-      --accent: #2f7d3d;
-      --accent-dim: #8fc79a;
-    }
-  }
-
-  * { box-sizing: border-box; }
-
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--sans);
-    font-size: 16px;
-    line-height: 1.65;
-    -webkit-font-smoothing: antialiased;
-  }
-
-  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
-
-  /* ---- header ---- */
-  header {
-    border-bottom: 1px solid var(--line);
-    background: linear-gradient(180deg, var(--bg-raised), var(--bg));
-    padding: 72px 0 56px;
-  }
-  .eyebrow {
-    font-family: var(--mono);
-    font-size: 12px;
-    letter-spacing: .14em;
-    text-transform: uppercase;
-    color: var(--accent);
-    margin: 0 0 14px;
-  }
-  h1 {
-    margin: 0 0 16px;
-    font-size: clamp(2.2rem, 6vw, 3.4rem);
-    line-height: 1.05;
-    letter-spacing: -0.02em;
-    font-weight: 700;
-  }
-  .tagline {
-    margin: 0 0 28px;
-    font-size: clamp(1.05rem, 2.4vw, 1.25rem);
-    color: var(--text-dim);
-    max-width: 60ch;
-  }
-  .badges { display: flex; flex-wrap: wrap; gap: 8px; }
-  .badge {
-    font-family: var(--mono);
-    font-size: 12px;
-    padding: 5px 11px;
-    border: 1px solid var(--line);
-    border-radius: 100px;
-    color: var(--text-dim);
-    background: var(--bg-sunken);
-    white-space: nowrap;
-  }
-  .badge.ok { color: var(--accent); border-color: var(--accent-dim); }
-
-  /* ---- nav ---- */
-  nav {
-    position: sticky; top: 0; z-index: 10;
-    background: color-mix(in srgb, var(--bg) 88%, transparent);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid var(--line);
-  }
-  nav ul {
-    display: flex; gap: 4px; list-style: none;
-    margin: 0 auto; padding: 0 16px;
-    max-width: var(--maxw);
-    overflow-x: auto;
-  }
-  nav a {
-    display: block; padding: 13px 12px;
-    color: var(--text-dim); text-decoration: none;
-    font-size: 14px; white-space: nowrap;
-    border-bottom: 2px solid transparent;
-  }
-  nav a:hover { color: var(--text); border-bottom-color: var(--accent-dim); }
-
-  /* ---- sections ---- */
-  section { padding: 56px 0; border-bottom: 1px solid var(--line); }
-  section:last-of-type { border-bottom: none; }
-  h2 {
-    margin: 0 0 8px;
-    font-size: 1.5rem;
-    letter-spacing: -0.01em;
-  }
-  h2 + .lede { margin: 0 0 28px; color: var(--text-dim); max-width: 62ch; }
-  h3 {
-    margin: 32px 0 10px;
-    font-size: 1.05rem;
-    letter-spacing: -0.005em;
-  }
-  p { max-width: 68ch; }
-  a { color: var(--accent); text-decoration-color: var(--accent-dim); text-underline-offset: 3px; }
-
-  /* ---- callouts ---- */
-  .callout {
-    border: 1px solid var(--line);
-    border-left: 3px solid var(--text-faint);
-    border-radius: var(--radius);
-    background: var(--bg-raised);
-    padding: 16px 18px;
-    margin: 24px 0;
-  }
-  .callout p { margin: 0; }
-  .callout p + p { margin-top: 10px; }
-  .callout.danger { border-left-color: var(--danger); }
-  .callout.warn { border-left-color: var(--warn); }
-  .callout strong { color: var(--text); }
-  .callout .label {
-    display: block;
-    font-family: var(--mono); font-size: 11px;
-    letter-spacing: .12em; text-transform: uppercase;
-    margin-bottom: 6px; color: var(--text-faint);
-  }
-  .callout.danger .label { color: var(--danger); }
-  .callout.warn .label { color: var(--warn); }
-
-  /* ---- steps ---- */
-  ol.steps { counter-reset: step; list-style: none; padding: 0; margin: 24px 0 0; }
-  ol.steps > li {
-    counter-increment: step;
-    position: relative;
-    padding: 0 0 28px 44px;
-    border-left: 1px solid var(--line);
-    margin-left: 13px;
-  }
-  ol.steps > li:last-child { border-left-color: transparent; padding-bottom: 0; }
-  ol.steps > li::before {
-    content: counter(step);
-    position: absolute; left: -14px; top: -2px;
-    width: 27px; height: 27px;
-    display: grid; place-items: center;
-    background: var(--bg-sunken);
-    border: 1px solid var(--line);
-    border-radius: 50%;
-    font-family: var(--mono); font-size: 12px;
-    color: var(--accent);
-  }
-  ol.steps h3 { margin: 0 0 6px; font-size: 1rem; }
-  ol.steps p { margin: 0 0 10px; color: var(--text-dim); }
-
-  /* ---- code ---- */
-  code {
-    font-family: var(--mono);
-    font-size: .87em;
-    background: var(--bg-sunken);
-    border: 1px solid var(--line);
-    border-radius: 4px;
-    padding: 1px 5px;
-    /* Long unbreakable identifiers must wrap rather than push the page wide.
-       No effect inside <pre>, which uses white-space: pre and scrolls instead. */
-    overflow-wrap: anywhere;
-  }
-  pre {
-    background: var(--bg-sunken);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    padding: 14px 16px;
-    overflow-x: auto;
-    margin: 0 0 16px;
-  }
-  pre code { background: none; border: none; padding: 0; font-size: .85rem; }
-  .path { color: var(--text-faint); }
-
-  /* ---- tables ---- */
-  .scroller { overflow-x: auto; margin: 20px 0; border: 1px solid var(--line); border-radius: var(--radius); }
-  table { border-collapse: collapse; width: 100%; font-size: .9rem; }
-  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
-  th {
-    background: var(--bg-sunken);
-    font-family: var(--mono); font-size: 11px;
-    letter-spacing: .1em; text-transform: uppercase;
-    color: var(--text-faint); font-weight: 500;
-  }
-  tr:last-child td { border-bottom: none; }
-  td code { white-space: nowrap; }
-  .num { font-family: var(--mono); color: var(--text-dim); white-space: nowrap; }
-
-  /* ---- cards ---- */
-  .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin: 24px 0 0; }
-  .card {
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    background: var(--bg-raised);
-    padding: 18px;
-  }
-  .card h3 { margin: 0 0 6px; font-size: .95rem; }
-  .card p { margin: 0; font-size: .9rem; color: var(--text-dim); }
-
-  ul.tight { padding-left: 20px; }
-  ul.tight li { margin-bottom: 7px; color: var(--text-dim); }
-  ul.tight li strong { color: var(--text); font-weight: 600; }
-
-  footer {
-    padding: 40px 0 64px;
-    color: var(--text-faint);
-    font-size: .85rem;
-    border-top: 1px solid var(--line);
-  }
-  footer p { margin: 0 0 8px; }
-</style>
+<script src="support.js"></script>
 </head>
 <body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  html, body { margin:0; padding:0; background:#0b0910; color:#f2efe9; font-family:Archivo, system-ui, sans-serif; -webkit-font-smoothing:antialiased; scroll-behavior:smooth; }
+  a { color:#ff3d8b; text-decoration:none; }
+  a:hover { color:#ff9ec4; }
+  @keyframes blip { 0%,100% { opacity:1; } 50% { opacity:.3; } }
+</style>
+</helmet>
 
-<header>
-  <div class="wrap">
-    <p class="eyebrow">GTA V · Single player</p>
-    <h1>On The Blade</h1>
-    <p class="tagline">
-      A roster and territory management game mode. You don't play a minigame —
-      you run a business, and drive out when it generates a problem.
-    </p>
-    <div class="badges">
-      <span class="badge ok">Legacy + Enhanced</span>
-      <span class="badge">v0.2.0</span>
-      <span class="badge">ScriptHookVDotNet Enhanced</span>
-      <span class="badge">.NET Framework 4.8</span>
-    </div>
-  </div>
-</header>
-
-<nav>
-  <ul>
-    <li><a href="#what">What it is</a></li>
-    <li><a href="#systems">Systems</a></li>
-    <li><a href="#install">Install</a></li>
-    <li><a href="#controls">Controls</a></li>
-    <li><a href="#config">Config</a></li>
-    <li><a href="#trouble">Troubleshooting</a></li>
-    <li><a href="#build">Build</a></li>
-  </ul>
-</nav>
-
-<div class="wrap">
-
-<section id="what">
-  <h2>What it is</h2>
-  <p class="lede">Saints Row business mechanics and a Mafia III racket board, running live in the open world.</p>
-
-  <p>
-    Recruit crew, post them to zones, collect an hourly take, and handle the
-    problems the operation generates. The action isn't scripted missions — it's
-    you responding to what your own business throws up. Everything stays at the
-    abstraction level the base game uses: money, timers, heat, fade-to-black.
-  </p>
-
-  <div class="callout danger">
-    <span class="label">Read this first</span>
-    <p>
-      <strong>Single player only.</strong> Loading script mods into GTA Online
-      will get the account banned. Launch story mode, and on Enhanced make sure
-      BattlEye is not running.
-    </p>
-  </div>
-
-  <div class="callout">
-    <span class="label">Content</span>
-    <p>
-      Adult themes, handled the way the base game handles them — abstracted, no
-      explicit content. All characters are adults. The systems are management and
-      turf mechanics, not depictions.
-    </p>
-  </div>
-</section>
-
-<section id="systems">
-  <h2>Systems</h2>
-  <p class="lede">Five layers, each feeding the next.</p>
-
-  <div class="grid">
-    <div class="card">
-      <h3>Two revenue streams</h3>
-      <p>An hourly street take that generates heat and risk, and a safe weekly subscription deposit. They compete for the same worker-hours.</p>
-    </div>
-    <div class="card">
-      <h3>Incidents</h3>
-      <p>Bad clients, vice stings and walk-offs. One at a time, then a cooldown — two emergencies at once isn't a choice.</p>
-    </div>
-    <div class="card">
-      <h3>Territory</h3>
-      <p>Six zones, four rival crews. Work a neutral corner to claim it; take a held one by force.</p>
-    </div>
-    <div class="card">
-      <h3>Business</h3>
-      <p>Roster upgrades, a legal retainer, laundering, stash houses with fast travel, and hired muscle on wages.</p>
+<div style="max-width:100%; overflow-x:hidden;">
+  <div style="position:sticky; top:0; z-index:30; display:flex; align-items:center; gap:18px; flex-wrap:wrap; padding:14px clamp(16px,4vw,56px); background:rgba(11,9,16,.88); backdrop-filter:blur(12px); border-bottom:1px solid rgba(255,255,255,.1);">
+    <a href="index.html" style="font-family:'Instrument Serif', serif; font-style:italic; font-size:26px; line-height:1; color:#f2efe9; margin-right:auto;">On The Blade</a>
+    <div style="display:flex; align-items:center; gap:clamp(10px,2vw,22px); font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.1em;">
+      <a href="features.html" style="color:#a6a09a;">FEATURES</a>
+      <a href="install.html" style="color:#a6a09a;">INSTALL</a>
+      <a href="changelog.html" style="color:#a6a09a;">CHANGELOG</a>
+      <a href="faq.html" style="color:#a6a09a;">FAQ</a>
+      <a href="manual.html" style="color:#ff3d8b;">MANUAL</a>
+      <a href="https://www.patreon.com/gtaontheblade" style="padding:9px 14px; background:#ff3d8b; color:#12080d; font-weight:600;">GET IT</a>
     </div>
   </div>
 
-  <h3>The two streams</h3>
-  <p>
-    <strong>Street take</strong> resolves every in-game hour. It scales on tier,
-    zone demand, loyalty, heat and stamina, with a night bonus and a bonus on turf
-    you hold. It also generates heat and invites incidents.
-  </p>
-  <p>
-    <strong>Subscription deposits</strong> land every seven game days, unlocked by
-    the <em>Ring light and a laptop</em> upgrade. Each worker carries a follower
-    count that builds only while they are <em>off</em> the street and decays while
-    they are on it. The deposit cannot fail, generates no heat and never triggers
-    an incident.
-  </p>
-  <p>
-    So the two streams compete for the same worker-hours. The roster stops being a
-    throughput problem and becomes an allocation one: who earns now and hot, who
-    earns later and safe.
-  </p>
-
-  <h3>The tension</h3>
-  <p>
-    Stamina drains on shift and recovers off duty. Exhausted crew bleed loyalty,
-    and loyalty scales payout — so working the roster into the ground is
-    mathematically self-defeating. Subscriptions reinforce that rather than
-    bypassing it: a worker parked off duty to build an audience is also resting,
-    and a rested worker builds faster.
-  </p>
-  <p>Tuned by simulating 12 game weeks for a tier-2 worker at 70 loyalty:</p>
-
-  <div class="scroller">
-    <table>
-      <thead>
-        <tr><th>Strategy</th><th>Street / wk</th><th>Subs / wk</th><th>Total / wk</th></tr>
-      </thead>
-      <tbody>
-        <tr><td>Street whenever rested</td><td class="num">$16,937</td><td class="num">$1,784</td><td class="num">$18,721</td></tr>
-        <tr><td>Never on the street</td><td class="num">$0</td><td class="num">$7,970</td><td class="num">$7,970</td></tr>
-        <tr><td>Night shift, rest by day</td><td class="num">$14,737</td><td class="num">$5,611</td><td class="num"><strong>$20,348</strong></td></tr>
-      </tbody>
-    </table>
-  </div>
-  <p>
-    The mixed strategy wins. Street pays more per hour; subscriptions pay less but
-    carry no risk at all.
-  </p>
-
-  <h3>Recruiting</h3>
-  <p>
-    Eligibility is a curated list of ped models, matched by hash. Keeping the pool
-    deliberate is what makes hotspots matter — eligible peds are uncommon enough
-    that where you look is a real decision. The list is
-    <code>RecruitModels</code> in <code>config.json</code>, so it can be widened
-    without a rebuild. Two kinds of area make searching easier:
-  </p>
-
-  <div class="scroller">
-    <table>
-      <thead>
-        <tr><th>Area</th><th>Search radius</th><th>Tier 1</th><th>Tier 2</th><th>Tier 3</th></tr>
-      </thead>
-      <tbody>
-        <tr><td>Gang turf</td><td class="num">70m</td><td class="num">70%</td><td class="num">25%</td><td class="num">5%</td></tr>
-        <tr><td>Vinewood</td><td class="num">70m</td><td class="num">25%</td><td class="num">45%</td><td class="num">30%</td></tr>
-        <tr><td>Anywhere else</td><td class="num">35m</td><td class="num">60%</td><td class="num">30%</td><td class="num">10%</td></tr>
-      </tbody>
-    </table>
+  <div style="padding:clamp(40px,7vw,84px) clamp(16px,4vw,56px) clamp(28px,4vw,44px); border-bottom:1px solid rgba(255,255,255,.1);">
+    <div style="max-width:1140px; margin:0 auto; display:flex; flex-direction:column; gap:16px;">
+      <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.2em; color:#ff3d8b;">MANUAL · v0.2.0</div>
+      <h1 style="margin:0; font-size:clamp(34px,7vw,64px); font-weight:800; letter-spacing:-.03em; line-height:1;">Everything the mod does</h1>
+      <p style="margin:0; font-size:18px; line-height:1.55; color:#a6a09a; max-width:660px; text-wrap:pretty;">Systems, install, every config key, and what to check when it doesn't load. One build covers Legacy and Enhanced.</p>
+      <div style="display:flex; flex-wrap:wrap; gap:10px 24px; margin-top:4px; font-family:'IBM Plex Mono', monospace; font-size:12px; color:#8d8781; letter-spacing:.06em;">
+        <div>LEGACY + ENHANCED</div>
+        <div>SHVDN ENHANCED 1.1.0.6+</div>
+        <div>.NET FRAMEWORK 4.8</div>
+      </div>
+    </div>
   </div>
 
-  <p>
-    Gang turf turns up volume at the lower tiers; Vinewood turns up fewer people
-    but a better class of them. Standing in either also <strong>blips nearby
-    prospects</strong> — the mod cannot make the game spawn more people, so
-    instead it points at the ones already there. Ordinary areas get no blips,
-    which is what keeps a hotspot feeling like one.
-  </p>
+  <div style="max-width:1140px; margin:0 auto; padding:0 clamp(16px,4vw,56px); display:grid; grid-template-columns:minmax(0,1fr); gap:clamp(28px,4vw,56px);">
+    <div style="display:flex; flex-wrap:wrap; gap:8px; padding:clamp(20px,3vw,32px) 0 0; font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.08em;">
+      <a href="#what" style="padding:8px 12px; border:1px solid rgba(255,255,255,.16); color:#c9c3bc;">WHAT IT IS</a>
+      <a href="#systems" style="padding:8px 12px; border:1px solid rgba(255,255,255,.16); color:#c9c3bc;">SYSTEMS</a>
+      <a href="#install" style="padding:8px 12px; border:1px solid rgba(255,255,255,.16); color:#c9c3bc;">INSTALL</a>
+      <a href="#controls" style="padding:8px 12px; border:1px solid rgba(255,255,255,.16); color:#c9c3bc;">CONTROLS</a>
+      <a href="#config" style="padding:8px 12px; border:1px solid rgba(255,255,255,.16); color:#c9c3bc;">CONFIG</a>
+      <a href="#trouble" style="padding:8px 12px; border:1px solid rgba(255,255,255,.16); color:#c9c3bc;">TROUBLESHOOTING</a>
+      <a href="#build" style="padding:8px 12px; border:1px solid rgba(255,255,255,.16); color:#c9c3bc;">BUILD</a>
+    </div>
 
-  <h3>Taking someone else's earner</h3>
-  <p>
-    Some prospects already work for somebody — 45% on gang turf, 30% around
-    Vinewood, 12% anywhere else. Signing one is the cheapest way to get an
-    experienced earner and the fastest way to start a war.
-  </p>
+    <div style="display:flex; flex-direction:column; gap:clamp(44px,6vw,76px); padding-bottom:clamp(56px,8vw,104px);">
 
-  <div class="scroller">
-    <table>
-      <thead><tr><th>Consequence</th><th>Why</th></tr></thead>
-      <tbody>
-        <tr><td>She comes in a tier higher</td><td>She already knows the job</td></tr>
-        <tr><td>Loyalty −15</td><td>She has been through something and doesn't trust you yet</td></tr>
-        <tr><td>Her crew: aggression +0.15, strength +5</td><td>They pull people in</td></tr>
-        <tr><td>Every other crew: aggression +0.04</td><td>Word travels — a pimp who poaches is everyone's problem</td></tr>
-        <tr><td>55% chance they arrive within the minute</td><td>Anchored where the deal was struck, not at her post</td></tr>
-      </tbody>
-    </table>
+      <div id="what" style="display:flex; flex-direction:column; gap:16px; scroll-margin-top:80px;">
+        <h2 style="margin:0; font-size:clamp(26px,4.2vw,38px); font-weight:800; letter-spacing:-.02em;">What it is</h2>
+        <p style="margin:0; font-size:17px; line-height:1.6; color:#c9c3bc; max-width:720px; text-wrap:pretty;">Saints Row business mechanics and a Mafia III racket board, running live in the open world.</p>
+        <p style="margin:0; font-size:17px; line-height:1.6; color:#a6a09a; max-width:720px; text-wrap:pretty;">Recruit crew, post them to zones, collect an hourly take, and handle the problems the operation generates. The action isn't scripted missions — it's you responding to what your own business throws up. Everything stays at the abstraction level the base game uses: money, timers, heat, fade-to-black.</p>
+        <div style="display:flex; gap:16px; align-items:flex-start; padding:20px; background:rgba(217,105,79,.1); border:1px solid rgba(217,105,79,.4); margin-top:6px;">
+          <div style="width:9px; height:9px; background:#d9694f; margin-top:8px; flex:none; animation:blip 1.4s infinite;"></div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <div style="font-size:18px; font-weight:700;">Single player only</div>
+            <div style="font-size:16px; line-height:1.55; color:#d6bdb4; text-wrap:pretty;">Loading script mods into GTA Online will get the account banned. Launch story mode, and on Enhanced make sure BattlEye is not running.</div>
+          </div>
+        </div>
+        <div style="padding:20px; border:1px solid rgba(255,255,255,.14); background:#0d0b13;">
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.16em; color:#6f6a65; margin-bottom:8px;">CONTENT</div>
+          <div style="font-size:16px; line-height:1.55; color:#a6a09a; text-wrap:pretty;">Adult themes, handled the way the base game handles them — abstracted, no explicit content. All characters are adults. The systems are management and turf mechanics, not depictions.</div>
+        </div>
+      </div>
+
+      <div id="systems" style="display:flex; flex-direction:column; gap:20px; scroll-margin-top:80px;">
+        <h2 style="margin:0; font-size:clamp(26px,4.2vw,38px); font-weight:800; letter-spacing:-.02em;">Systems</h2>
+        <p style="margin:0; font-size:17px; line-height:1.6; color:#a6a09a; max-width:720px;">Five layers, each feeding the next.</p>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px,1fr)); gap:1px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.1);">
+          <div style="background:#0d0b13; padding:22px 20px; display:flex; flex-direction:column; gap:9px;">
+            <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#8fd08a; letter-spacing:.14em;">REVENUE</div>
+            <div style="font-size:18px; font-weight:700;">Two streams</div>
+            <div style="font-size:15px; line-height:1.5; color:#a6a09a; text-wrap:pretty;">An hourly street take that generates heat and risk, and a safe weekly subscription deposit. They compete for the same worker-hours.</div>
+          </div>
+          <div style="background:#0d0b13; padding:22px 20px; display:flex; flex-direction:column; gap:9px;">
+            <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#d9694f; letter-spacing:.14em;">INCIDENTS</div>
+            <div style="font-size:18px; font-weight:700;">One at a time</div>
+            <div style="font-size:15px; line-height:1.5; color:#a6a09a; text-wrap:pretty;">Bad clients, vice stings and walk-offs, then a cooldown — two emergencies at once isn't a choice.</div>
+          </div>
+          <div style="background:#0d0b13; padding:22px 20px; display:flex; flex-direction:column; gap:9px;">
+            <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#4fd0c4; letter-spacing:.14em;">TERRITORY</div>
+            <div style="font-size:18px; font-weight:700;">Six zones, four crews</div>
+            <div style="font-size:15px; line-height:1.5; color:#a6a09a; text-wrap:pretty;">Work a neutral corner to claim it; take a held one by force.</div>
+          </div>
+          <div style="background:#0d0b13; padding:22px 20px; display:flex; flex-direction:column; gap:9px;">
+            <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#e8a33d; letter-spacing:.14em;">BUSINESS</div>
+            <div style="font-size:18px; font-weight:700;">What money buys</div>
+            <div style="font-size:15px; line-height:1.5; color:#a6a09a; text-wrap:pretty;">Roster upgrades, a legal retainer, laundering, stash houses with fast travel, and hired muscle on wages.</div>
+          </div>
+        </div>
+
+        <h3 style="margin:14px 0 0; font-size:clamp(20px,3vw,25px); font-weight:700; letter-spacing:-.01em;">The two streams</h3>
+        <p style="margin:0; font-size:17px; line-height:1.6; color:#a6a09a; max-width:720px; text-wrap:pretty;"><strong style="color:#f2efe9;">Street take</strong> resolves every in-game hour. It scales on tier, zone demand, loyalty, heat and stamina, with a night bonus and a bonus on turf you hold. It also generates heat and invites incidents.</p>
+        <p style="margin:0; font-size:17px; line-height:1.6; color:#a6a09a; max-width:720px; text-wrap:pretty;"><strong style="color:#f2efe9;">Subscription deposits</strong> land every seven game days, unlocked by the <em>Ring light and a laptop</em> upgrade. Each worker carries a follower count that builds only while they are off the street and decays while they are on it. The deposit cannot fail, generates no heat and never triggers an incident.</p>
+        <p style="margin:0; font-size:17px; line-height:1.6; color:#a6a09a; max-width:720px; text-wrap:pretty;">So the roster stops being a throughput problem and becomes an allocation one: who earns now and hot, who earns later and safe.</p>
+
+        <h3 style="margin:14px 0 0; font-size:clamp(20px,3vw,25px); font-weight:700; letter-spacing:-.01em;">The tension</h3>
+        <p style="margin:0; font-size:17px; line-height:1.6; color:#a6a09a; max-width:720px; text-wrap:pretty;">Stamina drains on shift and recovers off duty. Exhausted crew bleed loyalty, and loyalty scales payout — so working the roster into the ground is mathematically self-defeating. A worker parked off duty to build an audience is also resting, and a rested worker builds faster.</p>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.14em; color:#6f6a65;">12 GAME WEEKS · TIER-2 WORKER AT 70 LOYALTY</div>
+          <div style="overflow-x:auto; border:1px solid rgba(255,255,255,.12);">
+            <table style="width:100%; min-width:520px; border-collapse:collapse; font-size:15px;">
+              <tr style="background:#0d0b13;">
+                <th style="text-align:left; padding:12px 16px; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.12em; color:#6f6a65; font-weight:500;">STRATEGY</th>
+                <th style="text-align:right; padding:12px 16px; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.12em; color:#6f6a65; font-weight:500;">STREET/WK</th>
+                <th style="text-align:right; padding:12px 16px; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.12em; color:#6f6a65; font-weight:500;">SUBS/WK</th>
+                <th style="text-align:right; padding:12px 16px; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.12em; color:#6f6a65; font-weight:500;">TOTAL/WK</th>
+              </tr>
+              <tr><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); color:#c9c3bc;">Street whenever rested</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); text-align:right; font-family:'IBM Plex Mono', monospace; color:#a6a09a;">$16,937</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); text-align:right; font-family:'IBM Plex Mono', monospace; color:#a6a09a;">$1,784</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); text-align:right; font-family:'IBM Plex Mono', monospace; color:#c9c3bc;">$18,721</td></tr>
+              <tr><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); color:#c9c3bc;">Never on the street</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); text-align:right; font-family:'IBM Plex Mono', monospace; color:#6f6a65;">$0</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); text-align:right; font-family:'IBM Plex Mono', monospace; color:#a6a09a;">$7,970</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); text-align:right; font-family:'IBM Plex Mono', monospace; color:#c9c3bc;">$7,970</td></tr>
+              <tr><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); color:#f2efe9; font-weight:600;">Night shift, rest by day</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); text-align:right; font-family:'IBM Plex Mono', monospace; color:#a6a09a;">$14,737</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); text-align:right; font-family:'IBM Plex Mono', monospace; color:#a6a09a;">$5,611</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); text-align:right; font-family:'IBM Plex Mono', monospace; color:#8fd08a; font-weight:600;">$20,348</td></tr>
+            </table>
+          </div>
+          <div style="font-size:15px; line-height:1.55; color:#a6a09a; text-wrap:pretty;">The mixed strategy wins. Street pays more per hour; subscriptions pay less but carry no risk at all.</div>
+        </div>
+
+        <h3 style="margin:14px 0 0; font-size:clamp(20px,3vw,25px); font-weight:700; letter-spacing:-.01em;">Recruiting</h3>
+        <p style="margin:0; font-size:17px; line-height:1.6; color:#a6a09a; max-width:720px; text-wrap:pretty;">Eligibility is a curated list of ped models, matched by hash. Keeping the pool deliberate is what makes hotspots matter — eligible peds are uncommon enough that where you look is a real decision. The list is <span style="font-family:'IBM Plex Mono', monospace; color:#8fd08a;">RecruitModels</span> in config.json, so it can be widened without a rebuild.</p>
+        <div style="overflow-x:auto; border:1px solid rgba(255,255,255,.12);">
+          <table style="width:100%; min-width:520px; border-collapse:collapse; font-size:15px;">
+            <tr style="background:#0d0b13;">
+              <th style="text-align:left; padding:12px 16px; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.12em; color:#6f6a65; font-weight:500;">AREA</th>
+              <th style="text-align:right; padding:12px 16px; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.12em; color:#6f6a65; font-weight:500;">RADIUS</th>
+              <th style="text-align:right; padding:12px 16px; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.12em; color:#6f6a65; font-weight:500;">TIER 1</th>
+              <th style="text-align:right; padding:12px 16px; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.12em; color:#6f6a65; font-weight:500;">TIER 2</th>
+              <th style="text-align:right; padding:12px 16px; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.12em; color:#6f6a65; font-weight:500;">TIER 3</th>
+            </tr>
+            <tr><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); color:#c9c3bc;">Gang turf</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); text-align:right; font-family:'IBM Plex Mono', monospace; color:#a6a09a;">70m</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); text-align:right; font-family:'IBM Plex Mono', monospace; color:#8fd08a;">70%</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); text-align:right; font-family:'IBM Plex Mono', monospace; color:#a6a09a;">25%</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); text-align:right; font-family:'IBM Plex Mono', monospace; color:#a6a09a;">5%</td></tr>
+            <tr><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); color:#c9c3bc;">Vinewood</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); text-align:right; font-family:'IBM Plex Mono', monospace; color:#a6a09a;">70m</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); text-align:right; font-family:'IBM Plex Mono', monospace; color:#a6a09a;">25%</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); text-align:right; font-family:'IBM Plex Mono', monospace; color:#8fd08a;">45%</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); text-align:right; font-family:'IBM Plex Mono', monospace; color:#8fd08a;">30%</td></tr>
+            <tr><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); color:#c9c3bc;">Anywhere else</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); text-align:right; font-family:'IBM Plex Mono', monospace; color:#a6a09a;">35m</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); text-align:right; font-family:'IBM Plex Mono', monospace; color:#a6a09a;">60%</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); text-align:right; font-family:'IBM Plex Mono', monospace; color:#a6a09a;">30%</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); text-align:right; font-family:'IBM Plex Mono', monospace; color:#a6a09a;">10%</td></tr>
+          </table>
+        </div>
+        <p style="margin:0; font-size:17px; line-height:1.6; color:#a6a09a; max-width:720px; text-wrap:pretty;">Gang turf turns up volume at the lower tiers; Vinewood turns up fewer people but a better class of them. Standing in either also blips nearby prospects — the mod cannot make the game spawn more people, so instead it points at the ones already there. Ordinary areas get no blips, which is what keeps a hotspot feeling like one.</p>
+
+        <h3 style="margin:14px 0 0; font-size:clamp(20px,3vw,25px); font-weight:700; letter-spacing:-.01em;">Taking someone else's earner</h3>
+        <p style="margin:0; font-size:17px; line-height:1.6; color:#a6a09a; max-width:720px; text-wrap:pretty;">Some prospects already work for somebody — 45% on gang turf, 30% around Vinewood, 12% anywhere else. Signing one is the cheapest way to get an experienced earner and the fastest way to start a war.</p>
+        <div style="overflow-x:auto; border:1px solid rgba(255,255,255,.12);">
+          <table style="width:100%; min-width:560px; border-collapse:collapse; font-size:15px;">
+            <tr style="background:#0d0b13;">
+              <th style="text-align:left; padding:12px 16px; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.12em; color:#6f6a65; font-weight:500;">CONSEQUENCE</th>
+              <th style="text-align:left; padding:12px 16px; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.12em; color:#6f6a65; font-weight:500;">WHY</th>
+            </tr>
+            <tr><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); color:#c9c3bc;">She comes in a tier higher</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); color:#a6a09a;">She already knows the job</td></tr>
+            <tr><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); color:#c9c3bc;">Loyalty −15</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); color:#a6a09a;">She's been through something and doesn't trust you yet</td></tr>
+            <tr><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); color:#c9c3bc;">Her crew: aggression +0.15, strength +5</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); color:#a6a09a;">They pull people in</td></tr>
+            <tr><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); color:#c9c3bc;">Every other crew: aggression +0.04</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); color:#a6a09a;">Word travels — a pimp who poaches is everyone's problem</td></tr>
+            <tr><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); color:#c9c3bc;">55% chance they arrive within the minute</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); color:#a6a09a;">Anchored where the deal was struck, not at her post</td></tr>
+          </table>
+        </div>
+        <p style="margin:0; font-size:17px; line-height:1.6; color:#a6a09a; max-width:720px; text-wrap:pretty;">Clear them and her crew backs off — and she saw you show up. Fail and they take her back permanently. Rival aggression feeds the turf-contest roll, so poaching is the lever that turns the map hostile: with none, a contest lands roughly every 9 real minutes; after ten, about every 5.6. It cannot spiral, because aggression clamps at 1. Once every rival is broken there's nobody left to poach from, so late-game recruiting quietly becomes safe — that falls out of the design rather than being special-cased.</p>
+        <div style="padding:18px 20px; border:1px solid rgba(232,163,61,.4); background:rgba(232,163,61,.08);">
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.16em; color:#e8a33d; margin-bottom:8px;">NEEDS VERIFYING IN-GAME</div>
+          <div style="font-size:15px; line-height:1.55; color:#d9c9a8; text-wrap:pretty;">Hotspots are matched on the game's zone codes rather than coordinates, and the code lists are unverified. The recruit menu prints the code you're standing in so you can check and correct them. An unrecognised code falls through to "anywhere else" rather than breaking anything.</div>
+        </div>
+
+        <h3 style="margin:14px 0 0; font-size:clamp(20px,3vw,25px); font-weight:700; letter-spacing:-.01em;">Territory rules</h3>
+        <div style="overflow-x:auto; border:1px solid rgba(255,255,255,.12);">
+          <table style="width:100%; min-width:560px; border-collapse:collapse; font-size:15px;">
+            <tr style="background:#0d0b13;">
+              <th style="text-align:left; padding:12px 16px; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.12em; color:#6f6a65; font-weight:500;">ZONE STATE</th>
+              <th style="text-align:left; padding:12px 16px; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.12em; color:#6f6a65; font-weight:500;">POST CREW?</th>
+              <th style="text-align:left; padding:12px 16px; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.12em; color:#6f6a65; font-weight:500;">PAYOUT</th>
+              <th style="text-align:left; padding:12px 16px; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.12em; color:#6f6a65; font-weight:500;">RIVAL PRESSURE</th>
+            </tr>
+            <tr><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); color:#c9c3bc;">Neutral</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); color:#a6a09a;">Yes — doing so claims it</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); font-family:'IBM Plex Mono', monospace; color:#a6a09a;">base</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); color:#a6a09a;">None</td></tr>
+            <tr><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); color:#c9c3bc;">Yours</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); color:#a6a09a;">Yes</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); font-family:'IBM Plex Mono', monospace; color:#8fd08a;">×1.15</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); color:#a6a09a;">Contested while staffed</td></tr>
+            <tr><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); color:#c9c3bc;">Rival-held</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); color:#a6a09a;">No — take it first</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); font-family:'IBM Plex Mono', monospace; color:#6f6a65;">—</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); color:#6f6a65;">—</td></tr>
+          </table>
+        </div>
+        <p style="margin:0; font-size:17px; line-height:1.6; color:#a6a09a; max-width:720px; text-wrap:pretty;">Rivals only attack turf you hold and have staffed. Being attacked over an empty corner you happen to own reads as noise rather than pressure.</p>
+      </div>
+
+      <div id="install" style="display:flex; flex-direction:column; gap:18px; scroll-margin-top:80px;">
+        <h2 style="margin:0; font-size:clamp(26px,4.2vw,38px); font-weight:800; letter-spacing:-.02em;">Install</h2>
+        <p style="margin:0; font-size:17px; line-height:1.6; color:#a6a09a; max-width:720px;">Same steps for Legacy and Enhanced — one build covers both.</p>
+
+        <div style="display:flex; flex-direction:column; gap:1px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.1);">
+          <div style="background:#0d0b13; padding:15px 18px; display:flex; flex-wrap:wrap; gap:6px 14px; align-items:baseline;"><div style="font-size:16px; font-weight:700;">GTA V</div><div style="font-size:15px; color:#a6a09a;">Legacy or Enhanced, story mode</div></div>
+          <div style="background:#0d0b13; padding:15px 18px; display:flex; flex-wrap:wrap; gap:6px 14px; align-items:baseline;"><div style="font-size:16px; font-weight:700;">Script Hook V</div><div style="font-size:15px; color:#a6a09a;">by Alexander Blade, matching your edition</div></div>
+          <div style="background:#0d0b13; padding:15px 18px; display:flex; flex-wrap:wrap; gap:6px 14px; align-items:baseline;"><div style="font-size:16px; font-weight:700;">ScriptHookVDotNet Enhanced</div><div style="font-family:'IBM Plex Mono', monospace; font-size:14px; color:#8fd08a;">v1.1.0.6+</div></div>
+          <div style="background:#0d0b13; padding:15px 18px; display:flex; flex-wrap:wrap; gap:6px 14px; align-items:baseline;"><div style="font-size:16px; font-weight:700;">.NET Framework 4.8</div><div style="font-size:15px; color:#a6a09a;">or newer</div></div>
+          <div style="background:#0d0b13; padding:15px 18px; display:flex; flex-wrap:wrap; gap:6px 14px; align-items:baseline;"><div style="font-size:16px; font-weight:700;">Visual C++ Redistributable</div><div style="font-size:15px; color:#a6a09a;">2019 x64</div></div>
+        </div>
+
+        <div style="padding:18px 20px; border:1px solid rgba(255,255,255,.14); background:#0d0b13;">
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.16em; color:#6f6a65; margin-bottom:8px;">WHY SHVDNE, NOT STOCK SHVDN</div>
+          <div style="font-size:15px; line-height:1.55; color:#a6a09a; text-wrap:pretty;">SHVDNE is a drop-in replacement that runs the same binaries on both editions. Stock SHVDN will not load this on Enhanced. Install SHVDNE even if you're on Legacy.</div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:20px; margin-top:6px;">
+          <div style="display:flex; gap:18px; align-items:flex-start;">
+            <div style="font-family:'IBM Plex Mono', monospace; font-size:14px; font-weight:600; color:#ff3d8b; padding-top:3px; flex:none;">01</div>
+            <div style="display:flex; flex-direction:column; gap:8px;"><div style="font-size:18px; font-weight:700;">Install Script Hook V</div><div style="font-size:16px; line-height:1.55; color:#a6a09a; text-wrap:pretty;">Get the build for your edition and copy its files into the game root — the folder with <span style="font-family:'IBM Plex Mono', monospace; color:#8fd08a;">GTA5.exe</span> or <span style="font-family:'IBM Plex Mono', monospace; color:#8fd08a;">GTA5_Enhanced.exe</span>.</div></div>
+          </div>
+          <div style="display:flex; gap:18px; align-items:flex-start;">
+            <div style="font-family:'IBM Plex Mono', monospace; font-size:14px; font-weight:600; color:#ff3d8b; padding-top:3px; flex:none;">02</div>
+            <div style="display:flex; flex-direction:column; gap:8px;"><div style="font-size:18px; font-weight:700;">Install ScriptHookVDotNet Enhanced</div><div style="font-size:16px; line-height:1.55; color:#a6a09a; text-wrap:pretty;">Copy <span style="font-family:'IBM Plex Mono', monospace; color:#8fd08a;">ScriptHookVDotNet.asi</span>, <span style="font-family:'IBM Plex Mono', monospace; color:#8fd08a;">ScriptHookVDotNet2.dll</span> and <span style="font-family:'IBM Plex Mono', monospace; color:#8fd08a;">ScriptHookVDotNet3.dll</span> into the same game root. If a <span style="font-family:'IBM Plex Mono', monospace;">scripts</span> folder doesn't exist yet, create one there now.</div></div>
+          </div>
+          <div style="display:flex; gap:18px; align-items:flex-start;">
+            <div style="font-family:'IBM Plex Mono', monospace; font-size:14px; font-weight:600; color:#ff3d8b; padding-top:3px; flex:none;">03</div>
+            <div style="display:flex; flex-direction:column; gap:10px; min-width:0; flex:1;">
+              <div style="font-size:18px; font-weight:700;">Drop in the mod</div>
+              <div style="overflow-x:auto; padding:16px 18px; background:#08070c; border:1px solid rgba(255,255,255,.14); font-family:'IBM Plex Mono', monospace; font-size:14px; line-height:1.7; color:#c9c3bc; white-space:pre;">&lt;game root&gt;/scripts/
+  <span style="color:#8fd08a;">OnTheBlade.dll</span>
+  <span style="color:#8fd08a;">LemonUI.SHVDN3.dll</span>
+  <span style="color:#8fd08a;">iFruitAddon2.dll</span></div>
+              <div style="font-size:15px; line-height:1.55; color:#a6a09a; text-wrap:pretty;">All three are required. <span style="font-family:'IBM Plex Mono', monospace;">iFruitAddon2.dll</span> only powers the phone contact — if it's missing the mod still loads and logs why, but you lose the in-game phone entry.</div>
+            </div>
+          </div>
+          <div style="display:flex; gap:18px; align-items:flex-start;">
+            <div style="font-family:'IBM Plex Mono', monospace; font-size:14px; font-weight:600; color:#ff3d8b; padding-top:3px; flex:none;">04</div>
+            <div style="display:flex; flex-direction:column; gap:8px;"><div style="font-size:18px; font-weight:700;">Launch story mode</div><div style="font-size:16px; line-height:1.55; color:#a6a09a; text-wrap:pretty;">On Enhanced, start the game without BattlEye. Load a single-player save and wait for the world to finish streaming.</div></div>
+          </div>
+          <div style="display:flex; gap:18px; align-items:flex-start;">
+            <div style="font-family:'IBM Plex Mono', monospace; font-size:14px; font-weight:600; color:#ff3d8b; padding-top:3px; flex:none;">05</div>
+            <div style="display:flex; flex-direction:column; gap:8px;"><div style="font-size:18px; font-weight:700;">Press F5</div><div style="font-size:16px; line-height:1.55; color:#a6a09a; text-wrap:pretty;">You should see an "On The Blade loaded" notification on startup and the operations menu on F5. If not, check <a href="#trouble">troubleshooting</a>.</div></div>
+          </div>
+        </div>
+
+        <h3 style="margin:14px 0 0; font-size:clamp(20px,3vw,25px); font-weight:700; letter-spacing:-.01em;">Where it keeps its files</h3>
+        <div style="overflow-x:auto; padding:16px 18px; background:#08070c; border:1px solid rgba(255,255,255,.14); font-family:'IBM Plex Mono', monospace; font-size:14px; line-height:1.7; color:#c9c3bc; white-space:pre;">&lt;game root&gt;/scripts/OnTheBlade/
+  <span style="color:#8fd08a;">config.json</span>      balance and keybinds
+  <span style="color:#8fd08a;">save.json</span>        roster, territory, upgrades
+  <span style="color:#8fd08a;">OnTheBlade.log</span>   startup and error log</div>
+        <p style="margin:0; font-size:16px; line-height:1.6; color:#a6a09a; max-width:720px; text-wrap:pretty;">Paths resolve off the game root, so Legacy and Enhanced installs keep completely independent saves and configs with no extra setup. Copy <span style="font-family:'IBM Plex Mono', monospace; color:#8fd08a;">save.json</span> between them if you'd rather share progress.</p>
+
+        <h3 style="margin:14px 0 0; font-size:clamp(20px,3vw,25px); font-weight:700; letter-spacing:-.01em;">Uninstalling</h3>
+        <p style="margin:0; font-size:16px; line-height:1.6; color:#a6a09a; max-width:720px; text-wrap:pretty;">Delete <span style="font-family:'IBM Plex Mono', monospace; color:#8fd08a;">OnTheBlade.dll</span> from scripts. Leave the other two DLLs if other mods use them. The <span style="font-family:'IBM Plex Mono', monospace;">OnTheBlade/</span> data folder can go too, or stay if you might come back to the save.</p>
+      </div>
+
+      <div id="controls" style="display:flex; flex-direction:column; gap:16px; scroll-margin-top:80px;">
+        <h2 style="margin:0; font-size:clamp(26px,4.2vw,38px); font-weight:800; letter-spacing:-.02em;">Controls</h2>
+        <div style="display:flex; flex-direction:column; gap:1px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.1);">
+          <div style="background:#0d0b13; padding:15px 18px; display:flex; flex-wrap:wrap; gap:8px 18px; align-items:baseline;"><div style="font-family:'IBM Plex Mono', monospace; font-size:14px; font-weight:600; color:#ff3d8b; min-width:108px;">F5</div><div style="font-size:15px; color:#c9c3bc;">Operations menu — roster, territory, upgrades, property, muscle</div></div>
+          <div style="background:#0d0b13; padding:15px 18px; display:flex; flex-wrap:wrap; gap:8px 18px; align-items:baseline;"><div style="font-family:'IBM Plex Mono', monospace; font-size:14px; font-weight:600; color:#ff3d8b; min-width:108px;">F1</div><div style="font-size:15px; color:#c9c3bc;">Phone menu — status report, recall everyone, fast travel</div></div>
+          <div style="background:#0d0b13; padding:15px 18px; display:flex; flex-wrap:wrap; gap:8px 18px; align-items:baseline;"><div style="font-family:'IBM Plex Mono', monospace; font-size:14px; font-weight:600; color:#ff3d8b; min-width:108px;">Phone contact</div><div style="font-size:15px; color:#c9c3bc;">"On The Blade" in the in-game phone opens the same menu</div></div>
+          <div style="background:#0d0b13; padding:15px 18px; display:flex; flex-wrap:wrap; gap:8px 18px; align-items:baseline;"><div style="font-family:'IBM Plex Mono', monospace; font-size:14px; font-weight:600; color:#ff3d8b; min-width:108px;">Insert</div><div style="font-size:15px; color:#c9c3bc;">SHVDN script reload. Safe — releases every owned ped and saves first</div></div>
+        </div>
+        <p style="margin:0; font-size:16px; line-height:1.6; color:#a6a09a;">Both keys are rebindable in config.json via <span style="font-family:'IBM Plex Mono', monospace; color:#8fd08a;">MenuKeyName</span> and <span style="font-family:'IBM Plex Mono', monospace; color:#8fd08a;">PhoneKeyName</span>.</p>
+      </div>
+
+      <div id="config" style="display:flex; flex-direction:column; gap:20px; scroll-margin-top:80px;">
+        <h2 style="margin:0; font-size:clamp(26px,4.2vw,38px); font-weight:800; letter-spacing:-.02em;">Config</h2>
+        <p style="margin:0; font-size:17px; line-height:1.6; color:#a6a09a; max-width:720px;">Everything is tunable without a rebuild. Edit <span style="font-family:'IBM Plex Mono', monospace; color:#8fd08a;">config.json</span> and press Insert to reload.</p>
+        <sc-for list="{{ configGroups }}" as="grp" hint-placeholder-count="8">
+          <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:26px;">
+            <h3 style="margin:0; font-size:clamp(18px,2.6vw,22px); font-weight:700; letter-spacing:-.01em;">{{ grp.title }}</h3>
+            <div style="overflow-x:auto; border:1px solid rgba(255,255,255,.12);">
+              <table style="width:100%; min-width:600px; border-collapse:collapse; font-size:14px;">
+                <tr style="background:#0d0b13;">
+                  <th style="text-align:left; padding:11px 16px; font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.12em; color:#6f6a65; font-weight:500;">SETTING</th>
+                  <th style="text-align:left; padding:11px 16px; font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.12em; color:#6f6a65; font-weight:500; white-space:nowrap;">DEFAULT</th>
+                  <th style="text-align:left; padding:11px 16px; font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.12em; color:#6f6a65; font-weight:500;">EFFECT</th>
+                </tr>
+                <sc-for list="{{ grp.rows }}" as="row" hint-placeholder-count="4">
+                  <tr>
+                    <td style="padding:11px 16px; border-top:1px solid rgba(255,255,255,.1); font-family:'IBM Plex Mono', monospace; color:#8fd08a; white-space:nowrap;">{{ row.k }}</td>
+                    <td style="padding:11px 16px; border-top:1px solid rgba(255,255,255,.1); font-family:'IBM Plex Mono', monospace; color:#e3ded7; white-space:nowrap;">{{ row.d }}</td>
+                    <td style="padding:11px 16px; border-top:1px solid rgba(255,255,255,.1); color:#a6a09a; line-height:1.45;">{{ row.e }}</td>
+                  </tr>
+                </sc-for>
+              </table>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div id="trouble" style="display:flex; flex-direction:column; gap:18px; scroll-margin-top:80px;">
+        <h2 style="margin:0; font-size:clamp(26px,4.2vw,38px); font-weight:800; letter-spacing:-.02em;">Troubleshooting</h2>
+        <p style="margin:0; font-size:17px; line-height:1.6; color:#a6a09a; max-width:720px; text-wrap:pretty;">Start with <span style="font-family:'IBM Plex Mono', monospace; color:#8fd08a;">scripts/OnTheBlade/OnTheBlade.log</span> — it records the game file version at startup, which is the first thing worth knowing.</p>
+
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div style="font-size:18px; font-weight:700;">Nothing happens when I press F5</div>
+          <div style="display:flex; flex-direction:column; gap:8px; font-size:16px; line-height:1.55; color:#a6a09a;">
+            <div>Check <span style="font-family:'IBM Plex Mono', monospace; color:#8fd08a;">ScriptHookVDotNet.log</span> in the game root. If OnTheBlade.dll isn't listed, it isn't being loaded at all.</div>
+            <div>Confirm all three DLLs are in scripts, not the game root.</div>
+            <div>Confirm you installed SHVDNE, not stock ScriptHookVDotNet.</div>
+            <div>Make sure you didn't also copy ScriptHookVDotNet3.dll into scripts — a second copy there breaks loading.</div>
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="font-size:18px; font-weight:700;">It stopped working after a game update</div>
+          <div style="font-size:16px; line-height:1.55; color:#a6a09a; text-wrap:pretty;">SHVDNE pins memory offsets per game build and ships point releases to chase patches. Check for a newer SHVDNE before assuming the mod is at fault — that's the usual cause, especially on Enhanced.</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="font-size:18px; font-weight:700;">The phone contact is missing</div>
+          <div style="font-size:16px; line-height:1.55; color:#a6a09a; text-wrap:pretty;">The log will say why. A missing or incompatible iFruitAddon2.dll disables just that feature rather than the whole mod. You need 3.0.2 or newer — that's the release where one file covers both editions. The F1 menu works regardless.</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="font-size:18px; font-weight:700;">Crew are standing in odd places</div>
+          <div style="font-size:16px; line-height:1.55; color:#a6a09a; text-wrap:pretty;">Zone anchors and stash positions are approximate in this build and still need verifying in-game. They live in Zones.cs and Regions.cs.</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="font-size:18px; font-weight:700;">Someone is stuck "in trouble"</div>
+          <div style="font-size:16px; line-height:1.55; color:#a6a09a; text-wrap:pretty;">Press Insert to reload. That aborts any active incident, releases its peds and clears the stuck state before saving.</div>
+        </div>
+      </div>
+
+      <div id="build" style="display:flex; flex-direction:column; gap:16px; scroll-margin-top:80px;">
+        <h2 style="margin:0; font-size:clamp(26px,4.2vw,38px); font-weight:800; letter-spacing:-.02em;">Build from source</h2>
+        <p style="margin:0; font-size:17px; line-height:1.6; color:#a6a09a; max-width:720px; text-wrap:pretty;">Windows and the .NET SDK. Visual Studio is not required. The project pulls <span style="font-family:'IBM Plex Mono', monospace; color:#8fd08a;">Microsoft.NETFramework.ReferenceAssemblies</span>, so the SDK alone can target net48. Put three reference DLLs in <span style="font-family:'IBM Plex Mono', monospace;">lib/</span> first — the build fails with a pointer to lib/README.md if any is missing.</p>
+        <div style="overflow-x:auto; border:1px solid rgba(255,255,255,.12);">
+          <table style="width:100%; min-width:560px; border-collapse:collapse; font-size:15px;">
+            <tr style="background:#0d0b13;">
+              <th style="text-align:left; padding:12px 16px; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.12em; color:#6f6a65; font-weight:500;">FILE</th>
+              <th style="text-align:left; padding:12px 16px; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.12em; color:#6f6a65; font-weight:500;">SOURCE</th>
+              <th style="text-align:left; padding:12px 16px; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.12em; color:#6f6a65; font-weight:500;">VERIFIED WITH</th>
+            </tr>
+            <tr><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); font-family:'IBM Plex Mono', monospace; color:#8fd08a;">ScriptHookVDotNet3.dll</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); color:#a6a09a;">SHVDNE release zip</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); font-family:'IBM Plex Mono', monospace; color:#c9c3bc;">v1.1.0.6</td></tr>
+            <tr><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); font-family:'IBM Plex Mono', monospace; color:#8fd08a;">LemonUI.SHVDN3.dll</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); color:#a6a09a;">LemonUI.zip → SHVDN3/</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); font-family:'IBM Plex Mono', monospace; color:#c9c3bc;">v2.2</td></tr>
+            <tr><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); font-family:'IBM Plex Mono', monospace; color:#8fd08a;">iFruitAddon2.dll</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); color:#a6a09a;">iFruitAddon2 release or NuGet</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); font-family:'IBM Plex Mono', monospace; color:#c9c3bc;">3.1.1</td></tr>
+          </table>
+        </div>
+        <div style="overflow-x:auto; padding:16px 18px; background:#08070c; border:1px solid rgba(255,255,255,.14); font-family:'IBM Plex Mono', monospace; font-size:14px; color:#c9c3bc; white-space:pre;">dotnet build OnTheBlade.csproj -c Release</div>
+        <p style="margin:0; font-size:16px; line-height:1.6; color:#a6a09a; max-width:720px; text-wrap:pretty;">Builds clean with 0 errors and 0 warnings on .NET SDK 8.0.423. <span style="font-family:'IBM Plex Mono', monospace;">bin/Release</span> should contain exactly OnTheBlade.dll, LemonUI.SHVDN3.dll and iFruitAddon2.dll — ScriptHookVDotNet3.dll is reference-only and must not be copied.</p>
+        <div style="padding:18px 20px; border:1px solid rgba(255,255,255,.14); background:#0d0b13;">
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.16em; color:#6f6a65; margin-bottom:8px;">WHY ONE BUILD COVERS BOTH EDITIONS</div>
+          <div style="font-size:15px; line-height:1.55; color:#a6a09a; text-wrap:pretty;">SHVDNE supports Legacy and Enhanced from the same binaries, and a script written for Legacy runs as-is on Enhanced. The documented exception is scripts using their own memory patterns. This mod uses none — everything goes through the SHVDN API and game natives, so there are no edition-specific code paths to maintain.</div>
+        </div>
+      </div>
+
+    </div>
   </div>
 
-  <p>
-    Clear them and her crew backs off, and she saw you show up. Fail and they take
-    her back permanently. Rival aggression feeds the turf-contest roll, so poaching
-    is the lever that turns the map hostile: with none, a contest lands roughly
-    every 9 real minutes; after ten, about every 5.6. It cannot spiral, because
-    aggression clamps at 1.
-  </p>
-  <p>
-    Once every rival is broken there is nobody left to poach from, so late-game
-    recruiting quietly becomes safe. That falls out of the design rather than
-    being special-cased.
-  </p>
-
-  <div class="callout warn">
-    <span class="label">Needs verifying in-game</span>
-    <p>
-      Hotspots are matched on the game's zone codes rather than coordinates, and
-      the code lists are unverified. The recruit menu prints the code you are
-      standing in so you can check and correct them. An unrecognised code falls
-      through to "anywhere else" rather than breaking anything.
-    </p>
+  <div style="padding:clamp(32px,5vw,56px) clamp(16px,4vw,56px); border-top:1px solid rgba(255,255,255,.1); background:#08070c;">
+    <div style="max-width:1140px; margin:0 auto; display:flex; flex-wrap:wrap; gap:20px; align-items:center; justify-content:space-between;">
+      <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#6f6a65; letter-spacing:.08em;">v0.2.0 — A SINGLE-PLAYER GTA V MOD BY THEGTAMOD</div>
+      <div style="display:flex; flex-wrap:wrap; gap:22px; font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.08em;">
+        <a href="index.html" style="color:#a6a09a;">HOME</a>
+        <a href="features.html" style="color:#a6a09a;">FEATURES</a>
+      <a href="install.html" style="color:#a6a09a;">INSTALL</a>
+        <a href="changelog.html" style="color:#a6a09a;">CHANGELOG</a>
+        <a href="faq.html" style="color:#a6a09a;">FAQ</a>
+        <a href="https://www.patreon.com/gtaontheblade" style="color:#ff3d8b;">PATREON</a>
+      </div>
+    </div>
   </div>
-
-  <h3>Territory rules</h3>
-  <div class="scroller">
-    <table>
-      <thead>
-        <tr><th>Zone state</th><th>Post crew?</th><th>Payout</th><th>Rival pressure</th></tr>
-      </thead>
-      <tbody>
-        <tr><td>Neutral</td><td>Yes — doing so claims it</td><td class="num">base</td><td>None</td></tr>
-        <tr><td>Yours</td><td>Yes</td><td class="num">×1.15</td><td>Contested while staffed</td></tr>
-        <tr><td>Rival-held</td><td>No — take it first</td><td class="num">—</td><td>—</td></tr>
-      </tbody>
-    </table>
-  </div>
-  <p>
-    Rivals only attack turf you hold <em>and have staffed</em>. Being attacked
-    over an empty corner you happen to own reads as noise rather than pressure.
-  </p>
-</section>
-
-<section id="install">
-  <h2>Install</h2>
-  <p class="lede">Same steps for Legacy and Enhanced — one build covers both.</p>
-
-  <h3>Requirements</h3>
-  <ul class="tight">
-    <li><strong>GTA V</strong> — Legacy or Enhanced, story mode</li>
-    <li><strong>Script Hook V</strong> by Alexander Blade, matching your edition</li>
-    <li><strong>ScriptHookVDotNet Enhanced</strong> (SHVDNE) v1.1.0.6 or newer</li>
-    <li><strong>.NET Framework 4.8</strong> or newer</li>
-    <li><strong>Visual C++ Redistributable 2019 x64</strong></li>
-  </ul>
-
-  <div class="callout warn">
-    <span class="label">Why SHVDNE, not stock SHVDN</span>
-    <p>
-      SHVDNE is a drop-in replacement for ScriptHookVDotNet that runs the same
-      binaries on both editions. Stock SHVDN will not load this on Enhanced.
-      Install SHVDNE even if you are on Legacy.
-    </p>
-  </div>
-
-  <ol class="steps">
-    <li>
-      <h3>Install Script Hook V</h3>
-      <p>Get the build for your edition and copy its files into the game root — the folder with <code>GTA5.exe</code> or <code>GTA5_Enhanced.exe</code>.</p>
-    </li>
-    <li>
-      <h3>Install ScriptHookVDotNet Enhanced</h3>
-      <p>Download the release zip and copy <code>ScriptHookVDotNet.asi</code>, <code>ScriptHookVDotNet2.dll</code> and <code>ScriptHookVDotNet3.dll</code> into the same game root.</p>
-      <p>If a <code>scripts</code> folder doesn't exist yet, create one there now.</p>
-    </li>
-    <li>
-      <h3>Drop in the mod</h3>
-      <p>Copy all three DLLs into <code>scripts/</code>:</p>
-      <pre><code><span class="path">&lt;game root&gt;/scripts/</span>
-  OnTheBlade.dll
-  LemonUI.SHVDN3.dll
-  iFruitAddon2.dll</code></pre>
-      <p>All three are required. <code>iFruitAddon2.dll</code> only powers the phone contact — if it's missing the mod still loads and logs why, but you lose the in-game phone entry.</p>
-    </li>
-    <li>
-      <h3>Launch story mode</h3>
-      <p>On Enhanced, start the game without BattlEye. Load a single-player save and wait for the world to finish streaming.</p>
-    </li>
-    <li>
-      <h3>Press F5</h3>
-      <p>You should see an "On The Blade loaded" notification on startup and the operations menu on <code>F5</code>. If not, check <a href="#trouble">Troubleshooting</a>.</p>
-    </li>
-  </ol>
-
-  <h3>Where it keeps its files</h3>
-  <p>On first run the mod creates a folder next to the scripts:</p>
-  <pre><code><span class="path">&lt;game root&gt;/scripts/OnTheBlade/</span>
-  config.json        balance and keybinds
-  save.json          roster, territory, upgrades
-  OnTheBlade.log   startup and error log</code></pre>
-  <p>
-    Paths resolve off the game root, so Legacy and Enhanced installs keep
-    completely independent saves and configs with no extra setup. Copy
-    <code>save.json</code> between them if you'd rather share progress.
-  </p>
-
-  <h3>Uninstalling</h3>
-  <p>
-    Delete <code>OnTheBlade.dll</code> from <code>scripts/</code>. Leave the
-    other two DLLs if other mods use them. The <code>OnTheBlade/</code> data
-    folder can go too, or stay if you might come back to the save.
-  </p>
-</section>
-
-<section id="controls">
-  <h2>Controls</h2>
-  <div class="scroller">
-    <table>
-      <thead><tr><th>Key</th><th>Action</th></tr></thead>
-      <tbody>
-        <tr><td><code>F5</code></td><td>Operations menu — roster, territory, upgrades, property, muscle</td></tr>
-        <tr><td><code>F1</code></td><td>Phone menu — status report, recall everyone, fast travel</td></tr>
-        <tr><td>Phone contact</td><td>"On The Blade" in the in-game phone opens the same phone menu</td></tr>
-        <tr><td><code>Insert</code></td><td>SHVDN script reload. Safe — releases every owned ped and saves first</td></tr>
-      </tbody>
-    </table>
-  </div>
-  <p>Both keys are rebindable in <code>config.json</code> via <code>MenuKeyName</code> and <code>PhoneKeyName</code>.</p>
-</section>
-
-<section id="config">
-  <h2>Config</h2>
-  <p class="lede">Everything is tunable without a rebuild. Edit <code>config.json</code> and press <code>Insert</code> to reload.</p>
-
-  <h3>Keys and interface</h3>
-  <div class="scroller">
-    <table>
-      <thead><tr><th>Setting</th><th>Default</th><th>Effect</th></tr></thead>
-      <tbody>
-        <tr><td><code>MenuKeyName</code></td><td class="num">F5</td><td>Operations menu key</td></tr>
-        <tr><td><code>PhoneKeyName</code></td><td class="num">F1</td><td>Phone menu key</td></tr>
-        <tr><td><code>EnablePhoneContact</code></td><td class="num">true</td><td>Registers the in-game phone contact. Off skips loading iFruitAddon2 entirely</td></tr>
-        <tr><td><code>AutoSaveIntervalMs</code></td><td class="num">120000</td><td>Autosave period</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <h3>Streaming</h3>
-  <div class="scroller">
-    <table>
-      <thead><tr><th>Setting</th><th>Default</th><th>Effect</th></tr></thead>
-      <tbody>
-        <tr><td><code>SpawnRadius</code></td><td class="num">150</td><td>Distance at which a crew ped is created</td></tr>
-        <tr><td><code>DespawnRadius</code></td><td class="num">220</td><td>Distance at which it is deleted. Keep the gap wide or walking the boundary thrashes</td></tr>
-        <tr><td><code>StreamScanIntervalMs</code></td><td class="num">750</td><td>How often streaming is evaluated</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <h3>Economy</h3>
-  <div class="scroller">
-    <table>
-      <thead><tr><th>Setting</th><th>Default</th><th>Effect</th></tr></thead>
-      <tbody>
-        <tr><td><code>TierBaseRate1/2/3</code></td><td class="num">120 / 260 / 550</td><td>Base hourly payout by crew tier</td></tr>
-        <tr><td><code>NightDemandBonus</code></td><td class="num">1.6</td><td>Multiplier between 20:00 and 05:00</td></tr>
-        <tr><td><code>OwnedZoneBonus</code></td><td class="num">1.15</td><td>Multiplier on turf you hold</td></tr>
-        <tr><td><code>StaminaDrainPerHour</code></td><td class="num">9</td><td>Drain while on shift</td></tr>
-        <tr><td><code>StaminaRecoverPerHour</code></td><td class="num">14</td><td>Recovery while off duty</td></tr>
-        <tr><td><code>LoyaltyDrainWhenExhausted</code></td><td class="num">4</td><td>Loyalty lost per hour below 10 stamina</td></tr>
-        <tr><td><code>HeatDecayPerHour</code></td><td class="num">0.03</td><td>Base heat bleed-off, all zones</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <h3>Recruiting</h3>
-  <div class="scroller">
-    <table>
-      <thead><tr><th>Setting</th><th>Default</th><th>Effect</th></tr></thead>
-      <tbody>
-        <tr><td><code>RecruitModels</code></td><td class="num">31 models</td><td>The eligibility list. Widen it here rather than in code</td></tr>
-        <tr><td><code>RecruitRadius</code></td><td class="num">35</td><td>Search radius in an ordinary area</td></tr>
-        <tr><td><code>RecruitRadiusHotspot</code></td><td class="num">70</td><td>Search radius on gang turf and around Vinewood</td></tr>
-        <tr><td><code>ShowProspectBlips</code></td><td class="num">true</td><td>Blip nearby prospects while standing in a hotspot</td></tr>
-        <tr><td><code>MaxProspectBlips</code></td><td class="num">8</td><td>Cap on simultaneous prospect blips</td></tr>
-        <tr><td><code>ProspectBlipRefreshMs</code></td><td class="num">1500</td><td>How often the blip set is rebuilt</td></tr>
-        <tr><td><code>WorkerBlipColourName</code></td><td class="num">Pink</td><td>Map colour for crew on post. Any <code>GTA.BlipColor</code> name</td></tr>
-        <tr><td><code>ProspectBlipColourName</code></td><td class="num">Pink</td><td>Map colour for prospects. Unrecognised names fall back to Pink</td></tr>
-        <tr><td><code>ClaimChanceGang</code></td><td class="num">0.45</td><td>Odds a prospect on gang turf already works for somebody</td></tr>
-        <tr><td><code>ClaimChanceVinewood</code></td><td class="num">0.30</td><td>Same, around Vinewood</td></tr>
-        <tr><td><code>ClaimChanceOrdinary</code></td><td class="num">0.12</td><td>Same, anywhere else</td></tr>
-        <tr><td><code>RetaliationChance</code></td><td class="num">0.55</td><td>Odds a claim brings her crew straight to you</td></tr>
-        <tr><td><code>PoachAggressionHit</code></td><td class="num">0.15</td><td>Aggression added to the crew you took her from</td></tr>
-        <tr><td><code>PoachAggressionSpread</code></td><td class="num">0.04</td><td>Aggression added to every other crew</td></tr>
-        <tr><td><code>PoachLoyaltyPenalty</code></td><td class="num">15</td><td>Loyalty she arrives short of</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <h3>Subscriptions</h3>
-  <div class="scroller">
-    <table>
-      <thead><tr><th>Setting</th><th>Default</th><th>Effect</th></tr></thead>
-      <tbody>
-        <tr><td><code>SubscriptionBrand</code></td><td class="num">JustFans</td><td>In-fiction platform name, shown in menus and the deposit notification</td></tr>
-        <tr><td><code>SubscriptionPayoutDays</code></td><td class="num">7</td><td>Game days between deposits. Seven is about 5.5 real hours at default timescale — lower it if you want a faster loop</td></tr>
-        <tr><td><code>FollowerGainPerHourOffDuty</code></td><td class="num">60</td><td>Before stamina, loyalty and tier scaling</td></tr>
-        <tr><td><code>FollowerDecayPerHourWorking</code></td><td class="num">8</td><td>Lost per hour on the street — nobody is posting</td></tr>
-        <tr><td><code>RevenuePerFollowerWeekly</code></td><td class="num">0.5</td><td>Deposit = followers × this × (loyalty/100)</td></tr>
-        <tr><td><code>MaxFollowers</code></td><td class="num">25000</td><td>Ceiling per worker</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <h3>Incidents and rivals</h3>
-  <div class="scroller">
-    <table>
-      <thead><tr><th>Setting</th><th>Default</th><th>Effect</th></tr></thead>
-      <tbody>
-        <tr><td><code>BadClientChance</code></td><td class="num">0.08</td><td>Per worker per hour</td></tr>
-        <tr><td><code>WalkOffChance</code></td><td class="num">0.35</td><td>Per worker per hour, below 25 loyalty</td></tr>
-        <tr><td><code>ViceStingHeatFactor</code></td><td class="num">0.25</td><td>Sting chance = zone heat × this</td></tr>
-        <tr><td><code>RivalContestChance</code></td><td class="num">0.12</td><td>× crew aggression, per hour</td></tr>
-        <tr><td><code>IncidentCooldownMs</code></td><td class="num">90000</td><td>Quiet period after one resolves</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <h3>Saturation, raids, debt</h3>
-  <div class="scroller">
-    <table>
-      <thead><tr><th>Setting</th><th>Default</th><th>Effect</th></tr></thead>
-      <tbody>
-        <tr><td><code>ZoneSaturationFalloff</code></td><td class="num">0.35</td><td>Per-worker yield divided by 1 + others × this. Stops stacking one corner being optimal</td></tr>
-        <tr><td><code>RaidHeatThreshold</code></td><td class="num">0.95</td><td>Heat at which a staffed zone gets turned over</td></tr>
-        <tr><td><code>RaidLockoutDays</code></td><td class="num">3</td><td>Game days the corner stays shut</td></tr>
-        <tr><td><code>RaidHeatAfter</code></td><td class="num">0.5</td><td>Heat left behind after a raid</td></tr>
-        <tr><td><code>RaidFine</code></td><td class="num">5000</td><td>Charged on a raid — becomes debt if unaffordable</td></tr>
-        <tr><td><code>BribeCostPerHeat</code></td><td class="num">9000</td><td>Cost to clear one full point of heat</td></tr>
-        <tr><td><code>BribeHeatCleared</code></td><td class="num">0.5</td><td>Heat removed per bribe</td></tr>
-        <tr><td><code>DebtInterestPerDay</code></td><td class="num">0.08</td><td>Compounded at midnight</td></tr>
-        <tr><td><code>DebtCollapseThreshold</code></td><td class="num">150000</td><td>Debt at which the operation folds</td></tr>
-        <tr><td><code>VehicleCost</code></td><td class="num">28000</td><td>Per region</td></tr>
-        <tr><td><code>VehicleDemandBonus</code></td><td class="num">1.10</td><td>Payout multiplier in that region</td></tr>
-        <tr><td><code>VehicleStaminaRelief</code></td><td class="num">0.75</td><td>Stamina drain multiplier in that region</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <h3>Business</h3>
-  <div class="scroller">
-    <table>
-      <thead><tr><th>Setting</th><th>Default</th><th>Effect</th></tr></thead>
-      <tbody>
-        <tr><td><code>BaseRosterCap</code></td><td class="num">4</td><td>Starting roster size, +2 per roster upgrade</td></tr>
-        <tr><td><code>EnforcerHireCost</code></td><td class="num">12000</td><td>Up-front cost per enforcer</td></tr>
-        <tr><td><code>EnforcerDailyWage</code></td><td class="num">350</td><td>Charged at 00:00. Miss it and they all walk</td></tr>
-        <tr><td><code>StashHeatDecayBonus</code></td><td class="num">2.0</td><td>Heat decay multiplier in a stash's region</td></tr>
-        <tr><td><code>StashStaminaBonus</code></td><td class="num">1.5</td><td>Off-duty recovery multiplier, any stash owned</td></tr>
-        <tr><td><code>LaunderedHeatDecayBonus</code></td><td class="num">1.5</td><td>Heat decay multiplier from the laundering upgrade</td></tr>
-      </tbody>
-    </table>
-  </div>
-</section>
-
-<section id="trouble">
-  <h2>Troubleshooting</h2>
-  <p class="lede">Start with <code>scripts/OnTheBlade/OnTheBlade.log</code> — it records the game file version at startup, which is the first thing worth knowing.</p>
-
-  <h3>Nothing happens when I press F5</h3>
-  <ul class="tight">
-    <li>Check <code>ScriptHookVDotNet.log</code> in the game root. If <code>OnTheBlade.dll</code> isn't listed, it isn't being loaded at all.</li>
-    <li>Confirm all three DLLs are in <code>scripts/</code>, not the game root.</li>
-    <li>Confirm you installed <strong>SHVDNE</strong>, not stock ScriptHookVDotNet.</li>
-    <li>Make sure you did not also copy <code>ScriptHookVDotNet3.dll</code> into <code>scripts/</code> — a second copy there breaks loading.</li>
-  </ul>
-
-  <h3>It stopped working after a game update</h3>
-  <p>
-    SHVDNE pins memory offsets per game build and ships point releases to chase
-    patches. Check for a newer SHVDNE before assuming the mod is at fault — that
-    is the usual cause, especially on Enhanced.
-  </p>
-
-  <h3>The phone contact is missing</h3>
-  <p>
-    The log will say why. A missing or incompatible <code>iFruitAddon2.dll</code>
-    disables just that feature rather than the whole mod. You need 3.0.2 or
-    newer — that's the release where one file covers both editions. The
-    <code>F1</code> menu works regardless.
-  </p>
-
-  <h3>Crew are standing in odd places</h3>
-  <p>
-    Zone anchors and stash positions are approximate in this build and still need
-    verifying in-game. They live in <code>Zones.cs</code> and <code>Regions.cs</code>.
-  </p>
-
-  <h3>Someone is stuck "in trouble"</h3>
-  <p>
-    Press <code>Insert</code> to reload. That aborts any active incident, releases
-    its peds and clears the stuck state before saving.
-  </p>
-</section>
-
-<section id="build">
-  <h2>Build from source</h2>
-  <p class="lede">Windows and the .NET SDK. Visual Studio is not required.</p>
-
-  <p>
-    The project pulls <code>Microsoft.NETFramework.ReferenceAssemblies</code>, so
-    the SDK alone can target <code>net48</code>. Put three reference DLLs in
-    <code>lib/</code> first — the build fails with a pointer to
-    <code>lib/README.md</code> if any is missing.
-  </p>
-
-  <div class="scroller">
-    <table>
-      <thead><tr><th>File</th><th>Source</th><th>Verified with</th></tr></thead>
-      <tbody>
-        <tr><td><code>ScriptHookVDotNet3.dll</code></td><td>SHVDNE release zip</td><td class="num">v1.1.0.6</td></tr>
-        <tr><td><code>LemonUI.SHVDN3.dll</code></td><td><code>LemonUI.zip</code> → <code>SHVDN3/</code></td><td class="num">v2.2</td></tr>
-        <tr><td><code>iFruitAddon2.dll</code></td><td>iFruitAddon2 release or NuGet</td><td class="num">3.1.1</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <pre><code>dotnet build OnTheBlade.csproj -c Release</code></pre>
-
-  <p>
-    Builds clean with 0 errors and 0 warnings on .NET SDK 8.0.423.
-    <code>bin/Release</code> should contain exactly <code>OnTheBlade.dll</code>,
-    <code>LemonUI.SHVDN3.dll</code> and <code>iFruitAddon2.dll</code> —
-    <code>ScriptHookVDotNet3.dll</code> is reference-only and must not be copied.
-  </p>
-
-  <h3>Why one build covers both editions</h3>
-  <p>
-    SHVDNE supports Legacy and Enhanced from the same binaries, and a script
-    written for Legacy runs as-is on Enhanced. The documented exception is
-    scripts using their own memory patterns. This mod uses none — everything goes
-    through the SHVDN API and game natives, so there are no edition-specific code
-    paths to maintain.
-  </p>
-</section>
-
 </div>
-
-<footer>
-  <div class="wrap">
-    <p>On The Blade v0.2.0 — a single-player GTA V mod. <a href="changelog.html">Changelog</a></p>
-    <p>Not affiliated with or endorsed by Rockstar Games or Take-Two Interactive.</p>
-  </div>
-</footer>
-
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      configGroups: [
+        { title: 'Keys and interface', rows: [
+          { k: 'MenuKeyName', d: 'F5', e: 'Operations menu key' },
+          { k: 'PhoneKeyName', d: 'F1', e: 'Phone menu key' },
+          { k: 'EnablePhoneContact', d: 'true', e: 'Registers the in-game phone contact. Off skips loading iFruitAddon2 entirely' },
+          { k: 'AutoSaveIntervalMs', d: '120000', e: 'Autosave period' }
+        ]},
+        { title: 'Streaming', rows: [
+          { k: 'SpawnRadius', d: '150', e: 'Distance at which a crew ped is created' },
+          { k: 'DespawnRadius', d: '220', e: 'Distance at which it is deleted. Keep the gap wide or walking the boundary thrashes' },
+          { k: 'StreamScanIntervalMs', d: '750', e: 'How often streaming is evaluated' }
+        ]},
+        { title: 'Economy', rows: [
+          { k: 'TierBaseRate1/2/3', d: '120 / 260 / 550', e: 'Base hourly payout by crew tier' },
+          { k: 'NightDemandBonus', d: '1.6', e: 'Multiplier between 20:00 and 05:00' },
+          { k: 'OwnedZoneBonus', d: '1.15', e: 'Multiplier on turf you hold' },
+          { k: 'StaminaDrainPerHour', d: '9', e: 'Drain while on shift' },
+          { k: 'StaminaRecoverPerHour', d: '14', e: 'Recovery while off duty' },
+          { k: 'LoyaltyDrainWhenExhausted', d: '4', e: 'Loyalty lost per hour below 10 stamina' },
+          { k: 'HeatDecayPerHour', d: '0.03', e: 'Base heat bleed-off, all zones' }
+        ]},
+        { title: 'Recruiting', rows: [
+          { k: 'RecruitModels', d: '31 models', e: 'The eligibility list. Widen it here rather than in code' },
+          { k: 'RecruitRadius', d: '35', e: 'Search radius in an ordinary area' },
+          { k: 'RecruitRadiusHotspot', d: '70', e: 'Search radius on gang turf and around Vinewood' },
+          { k: 'ShowProspectBlips', d: 'true', e: 'Blip nearby prospects while standing in a hotspot' },
+          { k: 'MaxProspectBlips', d: '8', e: 'Cap on simultaneous prospect blips' },
+          { k: 'ProspectBlipRefreshMs', d: '1500', e: 'How often the blip set is rebuilt' },
+          { k: 'WorkerBlipColourName', d: 'Pink', e: 'Map colour for crew on post. Any GTA.BlipColor name' },
+          { k: 'ProspectBlipColourName', d: 'Pink', e: 'Map colour for prospects. Unrecognised names fall back to Pink' },
+          { k: 'ClaimChanceGang', d: '0.45', e: 'Odds a prospect on gang turf already works for somebody' },
+          { k: 'ClaimChanceVinewood', d: '0.30', e: 'Same, around Vinewood' },
+          { k: 'ClaimChanceOrdinary', d: '0.12', e: 'Same, anywhere else' },
+          { k: 'RetaliationChance', d: '0.55', e: 'Odds a claim brings her crew straight to you' },
+          { k: 'PoachAggressionHit', d: '0.15', e: 'Aggression added to the crew you took her from' },
+          { k: 'PoachAggressionSpread', d: '0.04', e: 'Aggression added to every other crew' },
+          { k: 'PoachLoyaltyPenalty', d: '15', e: 'Loyalty she arrives short of' }
+        ]},
+        { title: 'Subscriptions', rows: [
+          { k: 'SubscriptionBrand', d: 'JustFans', e: 'In-fiction platform name, shown in menus and the deposit notification' },
+          { k: 'SubscriptionPayoutDays', d: '7', e: 'Game days between deposits. Seven is about 5.5 real hours at default timescale' },
+          { k: 'FollowerGainPerHourOffDuty', d: '60', e: 'Before stamina, loyalty and tier scaling' },
+          { k: 'FollowerDecayPerHourWorking', d: '8', e: 'Lost per hour on the street — nobody is posting' },
+          { k: 'RevenuePerFollowerWeekly', d: '0.5', e: 'Deposit = followers × this × (loyalty/100)' },
+          { k: 'MaxFollowers', d: '25000', e: 'Ceiling per worker' }
+        ]},
+        { title: 'Incidents and rivals', rows: [
+          { k: 'BadClientChance', d: '0.08', e: 'Per worker per hour' },
+          { k: 'WalkOffChance', d: '0.35', e: 'Per worker per hour, below 25 loyalty' },
+          { k: 'ViceStingHeatFactor', d: '0.25', e: 'Sting chance = zone heat × this' },
+          { k: 'RivalContestChance', d: '0.12', e: '× crew aggression, per hour' },
+          { k: 'IncidentCooldownMs', d: '90000', e: 'Quiet period after one resolves' }
+        ]},
+        { title: 'Saturation, raids, debt', rows: [
+          { k: 'ZoneSaturationFalloff', d: '0.35', e: 'Per-worker yield divided by 1 + others × this. Stops stacking one corner being optimal' },
+          { k: 'RaidHeatThreshold', d: '0.95', e: 'Heat at which a staffed zone gets turned over' },
+          { k: 'RaidLockoutDays', d: '3', e: 'Game days the corner stays shut' },
+          { k: 'RaidHeatAfter', d: '0.5', e: 'Heat left behind after a raid' },
+          { k: 'RaidFine', d: '5000', e: 'Charged on a raid — becomes debt if unaffordable' },
+          { k: 'BribeCostPerHeat', d: '9000', e: 'Cost to clear one full point of heat' },
+          { k: 'BribeHeatCleared', d: '0.5', e: 'Heat removed per bribe' },
+          { k: 'DebtInterestPerDay', d: '0.08', e: 'Compounded at midnight' },
+          { k: 'DebtCollapseThreshold', d: '150000', e: 'Debt at which the operation folds' },
+          { k: 'VehicleCost', d: '28000', e: 'Per region' },
+          { k: 'VehicleDemandBonus', d: '1.10', e: 'Payout multiplier in that region' },
+          { k: 'VehicleStaminaRelief', d: '0.75', e: 'Stamina drain multiplier in that region' }
+        ]},
+        { title: 'Business', rows: [
+          { k: 'BaseRosterCap', d: '4', e: 'Starting roster size, +2 per roster upgrade' },
+          { k: 'EnforcerHireCost', d: '12000', e: 'Up-front cost per enforcer' },
+          { k: 'EnforcerDailyWage', d: '350', e: 'Charged at 00:00. Miss it and they all walk' },
+          { k: 'StashHeatDecayBonus', d: '2.0', e: "Heat decay multiplier in a stash's region" },
+          { k: 'StashStaminaBonus', d: '1.5', e: 'Off-duty recovery multiplier, any stash owned' },
+          { k: 'LaunderedHeatDecayBonus', d: '1.5', e: 'Heat decay multiplier from the laundering upgrade' }
+        ]}
+      ]
+    };
+  }
+}
+</script>
 </body>
 </html>

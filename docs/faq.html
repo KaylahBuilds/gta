@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  html, body { margin:0; padding:0; background:#0b0910; color:#f2efe9; font-family:Archivo, system-ui, sans-serif; -webkit-font-smoothing:antialiased; }
+  a { color:#ff3d8b; text-decoration:none; }
+  a:hover { color:#ff9ec4; }
+</style>
+</helmet>
+
+<div style="max-width:100%; overflow-x:hidden;">
+  <div style="position:sticky; top:0; z-index:20; display:flex; align-items:center; gap:18px; flex-wrap:wrap; padding:14px clamp(16px,4vw,56px); background:rgba(11,9,16,.86); backdrop-filter:blur(12px); border-bottom:1px solid rgba(255,255,255,.1);">
+    <a href="index.html" style="font-family:'Instrument Serif', serif; font-style:italic; font-size:26px; line-height:1; color:#f2efe9; margin-right:auto;">On The Blade</a>
+    <div style="display:flex; align-items:center; gap:clamp(10px,2vw,22px); font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.1em;">
+      <a href="features.html" style="color:#a6a09a;">FEATURES</a>
+      <a href="install.html" style="color:#a6a09a;">INSTALL</a>
+      <a href="changelog.html" style="color:#a6a09a;">CHANGELOG</a>
+      <a href="faq.html" style="color:#ff3d8b;">FAQ</a>
+      <a href="manual.html" style="color:#a6a09a;">MANUAL</a>
+      <a href="https://www.patreon.com/gtaontheblade" style="padding:9px 14px; background:#ff3d8b; color:#12080d; font-weight:600;">GET IT</a>
+    </div>
+  </div>
+
+  <div style="padding:clamp(40px,7vw,84px) clamp(16px,4vw,56px) clamp(24px,4vw,40px); border-bottom:1px solid rgba(255,255,255,.1);">
+    <div style="max-width:820px; margin:0 auto; display:flex; flex-direction:column; gap:16px;">
+      <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.2em; color:#ff3d8b;">FAQ</div>
+      <h1 style="margin:0; font-size:clamp(34px,7vw,64px); font-weight:800; letter-spacing:-.03em; line-height:1;">Answers, mostly short</h1>
+    </div>
+  </div>
+
+  <div style="padding:clamp(24px,4vw,44px) clamp(16px,4vw,56px) clamp(48px,7vw,88px);">
+    <div style="max-width:820px; margin:0 auto; display:flex; flex-direction:column; gap:clamp(30px,4.5vw,48px);">
+
+      <div style="display:flex; flex-direction:column; gap:18px;">
+        <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.18em; color:#6f6a65;">INSTALLING</div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="font-size:19px; font-weight:700; text-wrap:balance;">It says loaded but F5 does nothing.</div>
+          <div style="font-size:16px; line-height:1.6; color:#a6a09a; text-wrap:pretty;">Another mod owns F5. Change <span style="font-family:'IBM Plex Mono', monospace; color:#8fd08a;">keys.operations</span> in config.json to anything free and press Insert to reload.</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="font-size:19px; font-weight:700; text-wrap:balance;">Nothing loads at all on Enhanced.</div>
+          <div style="font-size:16px; line-height:1.6; color:#a6a09a; text-wrap:pretty;">Two usual causes: you're on standard ScriptHookVDotNet instead of the Enhanced build, or BattlEye is still on. Launch without it. <a href="install.html">Install guide</a>.</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="font-size:19px; font-weight:700; text-wrap:balance;">Every script in my game broke after installing.</div>
+          <div style="font-size:16px; line-height:1.6; color:#a6a09a; text-wrap:pretty;">You almost certainly have a second copy of <span style="font-family:'IBM Plex Mono', monospace;">ScriptHookVDotNet3.dll</span> in the scripts folder. It belongs in the game root only — delete the one in scripts.</div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:18px;">
+        <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.18em; color:#6f6a65;">PLAYING</div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="font-size:19px; font-weight:700; text-wrap:balance;">Where do I find people to recruit?</div>
+          <div style="font-size:16px; line-height:1.6; color:#a6a09a; text-wrap:pretty;">Prospects are blipped while you're standing in gang turf. Walk a block if the search comes back empty — the pool refreshes on a timer, not on demand.</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="font-size:19px; font-weight:700; text-wrap:balance;">My whole block got shut down. What happened?</div>
+          <div style="font-size:16px; line-height:1.6; color:#a6a09a; text-wrap:pretty;">Heat hit the ceiling and vice turned the corner over. Everyone comes off the street and it stays closed for days. Bribe it down before it gets there, or leave the corner unstaffed and let it cool.</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="font-size:19px; font-weight:700; text-wrap:balance;">Is the weekly deposit just free money?</div>
+          <div style="font-size:16px; line-height:1.6; color:#a6a09a; text-wrap:pretty;">It only builds while someone is off the street, so it costs you their hourly take. It's safe, not free.</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="font-size:19px; font-weight:700; text-wrap:balance;">Can I lose?</div>
+          <div style="font-size:16px; line-height:1.6; color:#a6a09a; text-wrap:pretty;">Yes. Unpaid wages, bail and fines become debt, debt compounds, and eventually the people you owe come collecting.</div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:18px;">
+        <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.18em; color:#6f6a65;">THE BUILD</div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="font-size:19px; font-weight:700; text-wrap:balance;">Why is it behind Patreon?</div>
+          <div style="font-size:16px; line-height:1.6; color:#a6a09a; text-wrap:pretty;">It funds the time. Any paid tier gets the file — Patreon does the membership check itself, so there's no key and nothing to activate.</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="font-size:19px; font-weight:700; text-wrap:balance;">Online?</div>
+          <div style="font-size:16px; line-height:1.6; color:#d6bdb4; text-wrap:pretty;">No, and don't try. Script mods in GTA Online get accounts banned.</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="font-size:19px; font-weight:700; text-wrap:balance;">Will saves survive updates?</div>
+          <div style="font-size:16px; line-height:1.6; color:#a6a09a; text-wrap:pretty;">Through 0.x, assume they might not. Balance is still moving and some changes reset the roster. It'll settle before 1.0.</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="font-size:19px; font-weight:700; text-wrap:balance;">How explicit is it?</div>
+          <div style="font-size:16px; line-height:1.6; color:#a6a09a; text-wrap:pretty;">It isn't. Adult themes handled the way the base game handles them — abstracted, fade to black. Every character is an adult. What's modelled is money, hours, heat and territory.</div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:14px; padding:24px 22px; border:1px solid rgba(255,255,255,.14); background:#0d0b13;">
+        <div style="font-size:19px; font-weight:700;">Still stuck?</div>
+        <div style="font-size:16px; line-height:1.55; color:#a6a09a; text-wrap:pretty;">Post in the Patreon comments with your edition, your SHVDN version and the last few lines of <span style="font-family:'IBM Plex Mono', monospace; color:#8fd08a;">ScriptHookVDotNet.log</span>.</div>
+        <div style="display:flex; flex-wrap:wrap; gap:12px; margin-top:4px;">
+          <a href="https://www.patreon.com/gtaontheblade" style="padding:13px 22px; background:#ff3d8b; color:#12080d; font-size:15px; font-weight:700;">Ask on Patreon</a>
+          <a href="manual.html" style="padding:13px 22px; border:1px solid rgba(255,255,255,.35); color:#f2efe9; font-size:15px; font-weight:600;">Read the manual</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:clamp(32px,5vw,56px) clamp(16px,4vw,56px); border-top:1px solid rgba(255,255,255,.1); background:#08070c;">
+    <div style="max-width:820px; margin:0 auto; display:flex; flex-wrap:wrap; gap:20px; align-items:center; justify-content:space-between;">
+      <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#6f6a65; letter-spacing:.08em;">v0.2.0 — A SINGLE-PLAYER GTA V MOD BY THEGTAMOD</div>
+      <div style="display:flex; flex-wrap:wrap; gap:22px; font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.08em;">
+        <a href="index.html" style="color:#a6a09a;">HOME</a>
+        <a href="features.html" style="color:#a6a09a;">FEATURES</a>
+      <a href="install.html" style="color:#a6a09a;">INSTALL</a>
+        <a href="changelog.html" style="color:#a6a09a;">CHANGELOG</a>
+        <a href="https://www.patreon.com/gtaontheblade" style="color:#ff3d8b;">PATREON</a>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

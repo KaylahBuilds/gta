@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  html, body { margin:0; padding:0; background:#0b0910; color:#f2efe9; font-family:Archivo, system-ui, sans-serif; -webkit-font-smoothing:antialiased; }
+  a { color:#ff3d8b; text-decoration:none; }
+  a:hover { color:#ff9ec4; }
+  @keyframes blip { 0%,100% { opacity:1; } 50% { opacity:.3; } }
+</style>
+</helmet>
+
+<div style="max-width:100%; overflow-x:hidden;">
+  <div style="position:sticky; top:0; z-index:20; display:flex; align-items:center; gap:18px; flex-wrap:wrap; padding:14px clamp(16px,4vw,56px); background:rgba(11,9,16,.86); backdrop-filter:blur(12px); border-bottom:1px solid rgba(255,255,255,.1);">
+    <a href="index.html" style="font-family:'Instrument Serif', serif; font-style:italic; font-size:26px; line-height:1; color:#f2efe9; margin-right:auto;">On The Blade</a>
+    <div style="display:flex; align-items:center; gap:clamp(10px,2vw,22px); font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.1em;">
+      <a href="features.html" style="color:#a6a09a;">FEATURES</a>
+      <a href="install.html" style="color:#ff3d8b;">INSTALL</a>
+      <a href="changelog.html" style="color:#a6a09a;">CHANGELOG</a>
+      <a href="faq.html" style="color:#a6a09a;">FAQ</a>
+      <a href="manual.html" style="color:#a6a09a;">MANUAL</a>
+      <a href="https://www.patreon.com/gtaontheblade" style="padding:9px 14px; background:#ff3d8b; color:#12080d; font-weight:600;">GET IT</a>
+    </div>
+  </div>
+
+  <div style="padding:clamp(40px,7vw,84px) clamp(16px,4vw,56px) clamp(28px,4vw,48px); border-bottom:1px solid rgba(255,255,255,.1);">
+    <div style="max-width:860px; margin:0 auto; display:flex; flex-direction:column; gap:16px;">
+      <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.2em; color:#ff3d8b;">INSTALL · v0.2.0</div>
+      <h1 style="margin:0; font-size:clamp(34px,7vw,64px); font-weight:800; letter-spacing:-.03em; line-height:1;">Ten minutes, once</h1>
+      <p style="margin:0; font-size:18px; line-height:1.55; color:#a6a09a; max-width:640px; text-wrap:pretty;">Three files into a folder and a keypress. If you've installed a script mod before, skip to step 2.</p>
+    </div>
+  </div>
+
+  <div style="padding:clamp(24px,4vw,44px) clamp(16px,4vw,56px);">
+    <div style="max-width:860px; margin:0 auto; display:flex; gap:16px; align-items:flex-start; padding:22px 22px; background:rgba(217,105,79,.1); border:1px solid rgba(217,105,79,.4);">
+      <div style="width:9px; height:9px; background:#d9694f; margin-top:8px; flex:none; animation:blip 1.4s infinite;"></div>
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        <div style="font-size:19px; font-weight:700;">Read this first</div>
+        <div style="font-size:16px; line-height:1.55; color:#d6bdb4; text-wrap:pretty;">Story mode only. Loading script mods into GTA Online will get your account banned. On Enhanced, launch the game without BattlEye.</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:clamp(20px,3vw,32px) clamp(16px,4vw,56px) clamp(48px,7vw,88px);">
+    <div style="max-width:860px; margin:0 auto; display:flex; flex-direction:column; gap:clamp(28px,4vw,44px);">
+
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <h2 style="margin:0; font-size:clamp(22px,3.4vw,30px); font-weight:800; letter-spacing:-.02em;">What you need first</h2>
+        <div style="display:flex; flex-direction:column; gap:1px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.1);">
+          <div style="background:#0d0b13; padding:16px 18px; display:flex; flex-wrap:wrap; gap:6px 14px; align-items:baseline;">
+            <div style="font-size:16px; font-weight:700;">GTA V</div>
+            <div style="font-size:15px; color:#a6a09a;">Legacy or Enhanced, story mode</div>
+          </div>
+          <div style="background:#0d0b13; padding:16px 18px; display:flex; flex-wrap:wrap; gap:6px 14px; align-items:baseline;">
+            <div style="font-size:16px; font-weight:700;">Script Hook V</div>
+            <div style="font-size:15px; color:#a6a09a;">the build for your edition</div>
+          </div>
+          <div style="background:#0d0b13; padding:16px 18px; display:flex; flex-direction:column; gap:5px;">
+            <div style="display:flex; flex-wrap:wrap; gap:6px 14px; align-items:baseline;">
+              <div style="font-size:16px; font-weight:700;">ScriptHookVDotNet Enhanced</div>
+              <div style="font-family:'IBM Plex Mono', monospace; font-size:14px; color:#8fd08a;">1.1.0.6+</div>
+            </div>
+            <div style="font-size:15px; line-height:1.5; color:#e8a33d; text-wrap:pretty;">Install this even on Legacy. The standard build won't load the mod on Enhanced.</div>
+          </div>
+          <div style="background:#0d0b13; padding:16px 18px; display:flex; flex-wrap:wrap; gap:6px 14px; align-items:baseline;">
+            <div style="font-size:16px; font-weight:700;">.NET Framework 4.8</div>
+            <div style="font-size:15px; color:#a6a09a;">and the Visual C++ 2019 x64 redistributable</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:22px;">
+        <h2 style="margin:0; font-size:clamp(22px,3.4vw,30px); font-weight:800; letter-spacing:-.02em;">Install</h2>
+
+        <div style="display:flex; gap:clamp(14px,2.5vw,22px); align-items:flex-start;">
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:14px; font-weight:600; color:#ff3d8b; padding-top:3px; flex:none;">01</div>
+          <div style="display:flex; flex-direction:column; gap:9px;">
+            <div style="font-size:19px; font-weight:700;">Base tools into the game folder</div>
+            <div style="font-size:16px; line-height:1.55; color:#a6a09a; text-wrap:pretty;">Script Hook V and SHVDNE go in the folder with <span style="font-family:'IBM Plex Mono', monospace; color:#8fd08a;">GTA5.exe</span>. Make a <span style="font-family:'IBM Plex Mono', monospace; color:#8fd08a;">scripts</span> folder there if you don't have one.</div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:clamp(14px,2.5vw,22px); align-items:flex-start;">
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:14px; font-weight:600; color:#ff3d8b; padding-top:3px; flex:none;">02</div>
+          <div style="display:flex; flex-direction:column; gap:12px; min-width:0; flex:1;">
+            <div style="font-size:19px; font-weight:700;">Three files into scripts</div>
+            <div style="overflow-x:auto; padding:16px 18px; background:#08070c; border:1px solid rgba(255,255,255,.14); font-family:'IBM Plex Mono', monospace; font-size:14px; line-height:1.7; color:#c9c3bc; white-space:pre;">&lt;game root&gt;/scripts/
+  <span style="color:#8fd08a;">OnTheBlade.dll</span>
+  <span style="color:#8fd08a;">LemonUI.SHVDN3.dll</span>
+  <span style="color:#8fd08a;">iFruitAddon2.dll</span></div>
+            <div style="font-size:15px; line-height:1.55; color:#e8a33d; text-wrap:pretty;">Don't put <span style="font-family:'IBM Plex Mono', monospace;">ScriptHookVDotNet3.dll</span> in there — a second copy breaks script loading. It belongs in the game root only.</div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:clamp(14px,2.5vw,22px); align-items:flex-start;">
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:14px; font-weight:600; color:#ff3d8b; padding-top:3px; flex:none;">03</div>
+          <div style="display:flex; flex-direction:column; gap:9px;">
+            <div style="font-size:19px; font-weight:700;">Load story mode and press F5</div>
+            <div style="font-size:16px; line-height:1.55; color:#a6a09a; text-wrap:pretty;">You should get an <em style="color:#f2efe9; font-style:normal; font-weight:600;">On The Blade loaded</em> notification. If a key clashes with another mod, both are rebindable in <span style="font-family:'IBM Plex Mono', monospace; color:#8fd08a;">config.json</span>.</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <h2 style="margin:0; font-size:clamp(22px,3.4vw,30px); font-weight:800; letter-spacing:-.02em;">Keys</h2>
+        <div style="display:flex; flex-direction:column; gap:1px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.1);">
+          <div style="background:#0d0b13; padding:15px 18px; display:flex; flex-wrap:wrap; gap:8px 18px; align-items:baseline;">
+            <div style="font-family:'IBM Plex Mono', monospace; font-size:14px; font-weight:600; color:#ff3d8b; min-width:64px;">F5</div>
+            <div style="font-size:15px; color:#c9c3bc;">Operations — roster, territory, upgrades, property, muscle</div>
+          </div>
+          <div style="background:#0d0b13; padding:15px 18px; display:flex; flex-wrap:wrap; gap:8px 18px; align-items:baseline;">
+            <div style="font-family:'IBM Plex Mono', monospace; font-size:14px; font-weight:600; color:#ff3d8b; min-width:64px;">F1</div>
+            <div style="font-size:15px; color:#c9c3bc;">Phone — status, recall everyone, fast travel</div>
+          </div>
+          <div style="background:#0d0b13; padding:15px 18px; display:flex; flex-wrap:wrap; gap:8px 18px; align-items:baseline;">
+            <div style="font-family:'IBM Plex Mono', monospace; font-size:14px; font-weight:600; color:#ff3d8b; min-width:64px;">Insert</div>
+            <div style="font-size:15px; color:#c9c3bc;">Reload scripts. Safe — releases every ped the mod owns and saves first</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-wrap:wrap; gap:12px; padding-top:8px;">
+        <a href="https://www.patreon.com/gtaontheblade" style="padding:15px 26px; background:#ff3d8b; color:#12080d; font-size:16px; font-weight:700;">Get the build</a>
+        <a href="faq.html" style="padding:15px 26px; border:1px solid rgba(255,255,255,.35); color:#f2efe9; font-size:16px; font-weight:600;">Something's broken</a>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:clamp(32px,5vw,56px) clamp(16px,4vw,56px); border-top:1px solid rgba(255,255,255,.1); background:#08070c;">
+    <div style="max-width:860px; margin:0 auto; display:flex; flex-wrap:wrap; gap:20px; align-items:center; justify-content:space-between;">
+      <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#6f6a65; letter-spacing:.08em;">v0.2.0 — A SINGLE-PLAYER GTA V MOD BY THEGTAMOD</div>
+      <div style="display:flex; flex-wrap:wrap; gap:22px; font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.08em;">
+        <a href="index.html" style="color:#a6a09a;">HOME</a>
+        <a href="changelog.html" style="color:#a6a09a;">CHANGELOG</a>
+        <a href="faq.html" style="color:#a6a09a;">FAQ</a>
+        <a href="https://www.patreon.com/gtaontheblade" style="color:#ff3d8b;">PATREON</a>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

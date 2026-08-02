@@ -1,486 +1,476 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>On The Blade — run the blade in GTA V</title>
-<meta name="description" content="A roster and territory management mod for GTA V single player. Recruit a crew, hold corners, and answer for it when the night goes wrong. Legacy and Enhanced.">
-<style>
-  /* ------------------------------------------------------------------
-     Night-street identity: wet asphalt ground, storefront neon accent.
-     Pink is not decorative — it is the colour the mod blips your crew.
-     ------------------------------------------------------------------ */
-  :root {
-    --asphalt:    #08070c;
-    --asphalt-2:  #13111c;
-    --asphalt-3:  #1c1927;
-    --hairline:   #2b2739;
-    --chalk:      #f3eef4;
-    --chalk-dim:  #a49fb1;
-    --chalk-faint:#6f6a7e;
-    --neon:       #ff2e88;
-    --neon-soft:  #ff2e8833;
-    --ice:        #3be0f0;
-    --sodium:     #ffb25c;
-
-    --display: Impact, "Haettenschweiler", "Franklin Gothic Heavy", "Arial Narrow Bold", sans-serif;
-    --body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    --mono: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
-
-    --measure: 66ch;
-    --col: 880px;
-  }
-
-  /* Daylight variant: the same identity printed on paper rather than lit. */
-  @media (prefers-color-scheme: light) {
-    :root {
-      --asphalt:    #faf7fa;
-      --asphalt-2:  #ffffff;
-      --asphalt-3:  #f1ecf2;
-      --hairline:   #e0d8e4;
-      --chalk:      #16111d;
-      --chalk-dim:  #574f63;
-      --chalk-faint:#8b8397;
-      --neon:       #c4106a;
-      --neon-soft:  #c4106a1a;
-      --ice:        #0a7e96;
-      --sodium:     #a35c00;
-    }
-  }
-  :root[data-theme="light"] {
-    --asphalt:#faf7fa; --asphalt-2:#ffffff; --asphalt-3:#f1ecf2; --hairline:#e0d8e4;
-    --chalk:#16111d; --chalk-dim:#574f63; --chalk-faint:#8b8397;
-    --neon:#c4106a; --neon-soft:#c4106a1a; --ice:#0a7e96; --sodium:#a35c00;
-  }
-  :root[data-theme="dark"] {
-    --asphalt:#08070c; --asphalt-2:#13111c; --asphalt-3:#1c1927; --hairline:#2b2739;
-    --chalk:#f3eef4; --chalk-dim:#a49fb1; --chalk-faint:#6f6a7e;
-    --neon:#ff2e88; --neon-soft:#ff2e8833; --ice:#3be0f0; --sodium:#ffb25c;
-  }
-
-  * { box-sizing: border-box; }
-
-  body {
-    margin: 0;
-    background: var(--asphalt);
-    color: var(--chalk);
-    font-family: var(--body);
-    font-size: 17px;
-    line-height: 1.65;
-    -webkit-font-smoothing: antialiased;
-  }
-
-  .col { width: min(var(--col), 100% - 44px); margin-inline: auto; }
-  p { max-width: var(--measure); }
-
-  a { color: var(--neon); text-underline-offset: 3px; }
-  a:focus-visible, button:focus-visible {
-    outline: 2px solid var(--ice); outline-offset: 3px; border-radius: 2px;
-  }
-
-  /* ---------------- hero ---------------- */
-  .hero {
-    position: relative;
-    padding: clamp(64px, 12vw, 132px) 0 clamp(48px, 7vw, 84px);
-    overflow: hidden;
-    border-bottom: 1px solid var(--hairline);
-  }
-  /* the glow off a storefront onto wet road */
-  .hero::before {
-    content: "";
-    position: absolute; inset: -40% 0 0 -20%;
-    width: 90%; height: 150%;
-    background: radial-gradient(closest-side, var(--neon-soft), transparent 70%);
-    pointer-events: none;
-  }
-  .hero > * { position: relative; }
-
-  .eyebrow {
-    font-family: var(--mono);
-    font-size: 11.5px; letter-spacing: .22em; text-transform: uppercase;
-    color: var(--neon); margin: 0 0 18px;
-  }
-
-  .wordmark {
-    font-family: var(--display);
-    font-weight: 400;
-    font-size: clamp(3.4rem, 13vw, 8.2rem);
-    line-height: .84;
-    letter-spacing: .012em;
-    text-transform: uppercase;
-    margin: 0 0 22px;
-    color: var(--chalk);
-    text-wrap: balance;
-  }
-  .wordmark .lit {
-    color: var(--neon);
-    text-shadow: 0 0 18px var(--neon-soft), 0 0 46px var(--neon-soft);
-  }
-  @media (prefers-color-scheme: light) { .wordmark .lit { text-shadow: none; } }
-  :root[data-theme="light"] .wordmark .lit { text-shadow: none; }
-
-  @media (prefers-reduced-motion: no-preference) {
-    :root[data-theme="dark"] .wordmark .lit,
-    .wordmark .lit { animation: strike 1.5s steps(1, end) 1; }
-    @keyframes strike {
-      0%, 14%, 26% { opacity: .28; }
-      8%, 20%, 100% { opacity: 1; }
-    }
-  }
-
-  .tagline {
-    font-size: clamp(1.1rem, 2.4vw, 1.4rem);
-    color: var(--chalk-dim);
-    max-width: 52ch;
-    margin: 0 0 30px;
-    text-wrap: balance;
-  }
-
-  .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 34px; }
-  .badge {
-    font-family: var(--mono); font-size: 11.5px; letter-spacing: .05em;
-    padding: 6px 12px; border: 1px solid var(--hairline); border-radius: 999px;
-    color: var(--chalk-dim); background: var(--asphalt-2); white-space: nowrap;
-  }
-  .badge.live { color: var(--neon); border-color: var(--neon); }
-
-  .actions { display: flex; flex-wrap: wrap; gap: 12px; }
-  .btn {
-    display: inline-flex; align-items: center; gap: 9px;
-    font: inherit; font-weight: 650; text-decoration: none;
-    padding: 13px 22px; border-radius: 3px; border: 1px solid transparent;
-    transition: transform .12s ease, box-shadow .12s ease;
-  }
-  .btn-primary { background: var(--neon); color: #14000a; box-shadow: 0 0 0 var(--neon-soft); }
-  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 26px var(--neon-soft); }
-  :root[data-theme="light"] .btn-primary,
-  .btn-primary { color: #ffffff; }
-  @media (prefers-color-scheme: dark) { .btn-primary { color: #14000a; } }
-  :root[data-theme="dark"] .btn-primary { color: #14000a; }
-
-  .btn-ghost { border-color: var(--hairline); color: var(--chalk); background: var(--asphalt-2); }
-  .btn-ghost:hover { border-color: var(--neon); }
-  @media (prefers-reduced-motion: reduce) { .btn { transition: none; } .btn:hover { transform: none; } }
-
-  /* ---------------- sections ---------------- */
-  section { padding: clamp(52px, 8vw, 88px) 0; border-bottom: 1px solid var(--hairline); }
-  section:last-of-type { border-bottom: none; }
-
-  .kicker {
-    font-family: var(--display); font-weight: 400;
-    font-size: 13px; letter-spacing: .18em; text-transform: uppercase;
-    color: var(--neon); margin: 0 0 10px;
-  }
-  h2 {
-    font-size: clamp(1.6rem, 3.6vw, 2.3rem); line-height: 1.12;
-    letter-spacing: -.015em; margin: 0 0 18px; text-wrap: balance;
-  }
-  h3 { font-size: 1.06rem; margin: 0 0 7px; letter-spacing: -.005em; }
-
-  .lead { font-size: 1.14rem; color: var(--chalk-dim); }
-
-  /* ---------------- systems ---------------- */
-  .systems { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); margin-top: 30px; }
-  .sys {
-    background: var(--asphalt-2); border: 1px solid var(--hairline);
-    border-top: 2px solid var(--neon); border-radius: 3px; padding: 20px;
-  }
-  .sys p { margin: 0; font-size: .94rem; color: var(--chalk-dim); }
-
-  /* ---------------- the loop ---------------- */
-  .loop { list-style: none; padding: 0; margin: 30px 0 0; display: grid; gap: 2px; }
-  .loop li {
-    display: grid; grid-template-columns: 84px 1fr; gap: 18px; align-items: baseline;
-    padding: 15px 18px; background: var(--asphalt-2); border-left: 2px solid var(--hairline);
-  }
-  .loop li:hover { border-left-color: var(--neon); }
-  .loop .t {
-    font-family: var(--mono); font-size: .82rem; color: var(--neon);
-    letter-spacing: .04em; font-variant-numeric: tabular-nums;
-  }
-  .loop .w { color: var(--chalk-dim); font-size: .96rem; }
-  .loop .w b { color: var(--chalk); font-weight: 650; }
-  @media (max-width: 560px) {
-    .loop li { grid-template-columns: 1fr; gap: 4px; }
-  }
-
-  /* ---------------- download band ---------------- */
-  .band {
-    background: var(--asphalt-3);
-    border-block: 1px solid var(--neon);
-    padding: clamp(48px, 7vw, 76px) 0;
-  }
-  .gate { display: grid; gap: 26px; grid-template-columns: 1.25fr 1fr; align-items: start; }
-  @media (max-width: 720px) { .gate { grid-template-columns: 1fr; } }
-  .tierbox {
-    background: var(--asphalt-2); border: 1px solid var(--hairline);
-    border-radius: 3px; padding: 20px;
-  }
-  .tierbox h3 { color: var(--neon); }
-  .tierbox ul { margin: 0; padding-left: 18px; }
-  .tierbox li { color: var(--chalk-dim); font-size: .93rem; margin-bottom: 6px; }
-
-  /* ---------------- install ---------------- */
-  ol.steps { counter-reset: s; list-style: none; padding: 0; margin: 30px 0 0; }
-  ol.steps > li {
-    counter-increment: s; position: relative;
-    padding: 0 0 26px 46px; margin-left: 12px;
-    border-left: 1px solid var(--hairline);
-  }
-  ol.steps > li:last-child { border-left-color: transparent; padding-bottom: 0; }
-  ol.steps > li::before {
-    content: counter(s);
-    position: absolute; left: -13px; top: -3px;
-    width: 26px; height: 26px; display: grid; place-items: center;
-    background: var(--asphalt); border: 1px solid var(--neon); border-radius: 50%;
-    font-family: var(--mono); font-size: 11.5px; color: var(--neon);
-  }
-  ol.steps p { margin: 0 0 8px; color: var(--chalk-dim); font-size: .96rem; }
-
-  code {
-    font-family: var(--mono); font-size: .86em;
-    background: var(--asphalt-3); border: 1px solid var(--hairline);
-    border-radius: 3px; padding: 1px 6px; overflow-wrap: anywhere;
-  }
-  pre {
-    background: var(--asphalt-3); border: 1px solid var(--hairline);
-    border-radius: 3px; padding: 14px 16px; overflow-x: auto; margin: 0 0 14px;
-  }
-  pre code { background: none; border: none; padding: 0; font-size: .84rem; }
-  .dim { color: var(--chalk-faint); }
-
-  /* ---------------- misc ---------------- */
-  .scroller { overflow-x: auto; border: 1px solid var(--hairline); border-radius: 3px; margin: 22px 0; }
-  table { border-collapse: collapse; width: 100%; font-size: .93rem; }
-  th, td { text-align: left; padding: 11px 15px; border-bottom: 1px solid var(--hairline); vertical-align: top; }
-  th {
-    background: var(--asphalt-3); font-family: var(--mono); font-size: 10.5px;
-    letter-spacing: .12em; text-transform: uppercase; color: var(--chalk-faint); font-weight: 500;
-  }
-  tr:last-child td { border-bottom: none; }
-  td code { white-space: nowrap; }
-
-  .note {
-    border: 1px solid var(--hairline); border-left: 2px solid var(--sodium);
-    background: var(--asphalt-2); border-radius: 3px; padding: 16px 18px; margin: 24px 0;
-  }
-  .note p { margin: 0; font-size: .94rem; color: var(--chalk-dim); }
-  .note .lbl {
-    display: block; font-family: var(--mono); font-size: 10.5px;
-    letter-spacing: .14em; text-transform: uppercase; color: var(--sodium); margin-bottom: 6px;
-  }
-  .note.hot { border-left-color: var(--neon); }
-  .note.hot .lbl { color: var(--neon); }
-
-  ul.plain { padding-left: 19px; }
-  ul.plain li { color: var(--chalk-dim); margin-bottom: 7px; }
-  ul.plain b { color: var(--chalk); font-weight: 650; }
-
-  footer { padding: 46px 0 72px; color: var(--chalk-faint); font-size: .87rem; }
-  footer p { margin: 0 0 8px; max-width: var(--measure); }
-</style>
+<script src="support.js"></script>
 </head>
 <body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,800&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  html, body { margin:0; padding:0; background:#0b0910; color:#f2efe9; font-family:Archivo, system-ui, sans-serif; -webkit-font-smoothing:antialiased; }
+  a { color:#ff3d8b; text-decoration:none; }
+  a:hover { color:#ff9ec4; }
+  @keyframes blip { 0%,100% { opacity:1; } 50% { opacity:.3; } }
+  @keyframes neon { 0%,17%,20%,52%,56%,100% { opacity:1; text-shadow:0 0 10px rgba(255,61,139,.95), 0 0 34px rgba(255,61,139,.6), 0 0 78px rgba(255,61,139,.35); } 18.5%,54% { opacity:.55; text-shadow:0 0 4px rgba(255,61,139,.3); } 19.4% { opacity:.85; text-shadow:0 0 12px rgba(255,61,139,.7); } }
+</style>
+</helmet>
 
-<header class="hero">
-  <div class="col">
-    <p class="eyebrow">GTA V · Story mode · Legacy &amp; Enhanced</p>
-    <h1 class="wordmark">On <span class="lit">The Blade</span></h1>
-    <p class="tagline">
-      You don't play a minigame. You run a business — and answer for it when the
-      night goes wrong.
-    </p>
-    <div class="badges">
-      <span class="badge live">v0.2.0 — early build</span>
-      <span class="badge">Single player only</span>
-      <span class="badge">One build, both editions</span>
-      <span class="badge">Adults only</span>
-    </div>
-    <div class="actions">
-      <a class="btn btn-primary" href="https://www.patreon.com/gtaontheblade">Get it on Patreon</a>
-      <a class="btn btn-ghost" href="manual.html">Read the manual</a>
-      <a class="btn btn-ghost" href="changelog.html">What's new</a>
+<div style="max-width:100%; overflow-x:hidden;">
+
+  <div style="position:sticky; top:0; z-index:20; display:flex; align-items:center; gap:18px; flex-wrap:wrap; padding:14px clamp(16px,4vw,56px); background:rgba(11,9,16,.86); backdrop-filter:blur(12px); border-bottom:1px solid rgba(255,255,255,.1);">
+    <a href="index.html" style="font-family:'Instrument Serif', serif; font-style:italic; font-size:26px; line-height:1; color:#f2efe9; margin-right:auto;">On The Blade</a>
+    <div style="display:flex; align-items:center; gap:clamp(10px,2vw,22px); font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.1em;">
+      <a href="features.html" style="color:#a6a09a;">FEATURES</a>
+      <a href="install.html" style="color:#a6a09a;">INSTALL</a>
+      <a href="changelog.html" style="color:#a6a09a;">CHANGELOG</a>
+      <a href="faq.html" style="color:#a6a09a;">FAQ</a>
+      <a href="manual.html" style="color:#a6a09a;">MANUAL</a>
+      <a href="https://www.patreon.com/gtaontheblade" style="padding:9px 14px; background:#ff3d8b; color:#12080d; font-weight:600;">GET IT</a>
     </div>
   </div>
-</header>
 
-<section>
-  <div class="col">
-    <p class="kicker">What it is</p>
-    <h2>A management sim wearing a crime game's clothes</h2>
-    <p class="lead">
-      Recruit a crew off the street. Post them to corners. Collect every hour, and
-      drive out when the operation generates a problem — because it will.
-    </p>
-    <p>
-      Everything stays at the abstraction the base game uses: money, timers, heat,
-      fade to black. The interesting part was never the corner. It's deciding who
-      works it, when, and what you do the night a rival decides it's theirs.
-    </p>
-
-    <div class="systems">
-      <div class="sys">
-        <h3>Two ways to earn</h3>
-        <p>An hourly street take that draws heat, and a safe weekly deposit that only builds while a worker is <em>off</em> the street. They compete for the same hours.</p>
+  <div style="position:relative; padding:clamp(56px,10vw,120px) clamp(16px,4vw,56px) clamp(48px,7vw,88px); background-image:url('plate2.png'); background-size:cover; background-position:52% 30%;">
+    <div style="position:absolute; inset:0; background:linear-gradient(180deg, rgba(11,9,16,.72), rgba(11,9,16,.88) 55%, #0b0910);"></div>
+    <div style="position:relative; max-width:1080px; margin:0 auto; display:flex; flex-direction:column; gap:clamp(18px,3vw,28px);">
+      <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.2em; color:#ff3d8b;">GTA V · STORY MODE · LEGACY &amp; ENHANCED</div>
+      <div style="font-family:'Instrument Serif', serif; font-style:italic; font-size:clamp(56px,13vw,148px); line-height:.86; color:#fff; animation:neon 7s infinite; margin:2px 0 6px;">On The Blade</div>
+      <h1 style="margin:0; font-size:clamp(28px,5.2vw,54px); font-weight:800; letter-spacing:-.03em; line-height:.98; text-wrap:balance;">You don't play a minigame. You run a business.</h1>
+      <p style="margin:0; max-width:620px; font-size:clamp(17px,2.2vw,22px); line-height:1.5; color:#c9c3bc; text-wrap:pretty;">Recruit a crew off the street. Post them to corners. Collect every hour — and drive out when the operation generates a problem. Because it will.</p>
+      <div style="display:flex; flex-wrap:wrap; gap:12px; margin-top:6px;">
+        <a href="https://www.patreon.com/gtaontheblade" style="padding:15px 26px; background:#ff3d8b; color:#12080d; font-size:16px; font-weight:700; letter-spacing:.02em;">Get it on Patreon</a>
+        <a href="install.html" style="padding:15px 26px; border:1px solid rgba(255,255,255,.35); color:#f2efe9; font-size:16px; font-weight:600;">Install guide</a>
       </div>
-      <div class="sys">
-        <h3>Six corners, four crews</h3>
-        <p>Work a neutral corner to claim it. Take a held one by force. Rivals come back for turf you hold — and only turf you've actually staffed.</p>
-      </div>
-      <div class="sys">
-        <h3>A roster with shapes</h3>
-        <p>Hustlers earn on the street. Camera-ready ones build an audience. Fragile ones break when you push them. Loyal ones never walk.</p>
-      </div>
-      <div class="sys">
-        <h3>Heat that bites</h3>
-        <p>Let a corner run hot and vice turn it over — everyone off the street, the block shut for days. Bribe it down, launder it away, or pay for it.</p>
-      </div>
-      <div class="sys">
-        <h3>Somebody else's earner</h3>
-        <p>Half the people worth signing already work for someone. Take one and she comes in experienced, distrustful, and with her old crew right behind her.</p>
-      </div>
-      <div class="sys">
-        <h3>A way to lose</h3>
-        <p>Wages, bail and fines you can't cover become debt, and debt compounds. Let it run and the people you owe come collecting.</p>
+      <div style="display:flex; flex-wrap:wrap; gap:10px 26px; margin-top:10px; font-family:'IBM Plex Mono', monospace; font-size:12px; color:#8d8781; letter-spacing:.06em;">
+        <div><span style="color:#8fd08a;">v0.2.0</span> EARLY BUILD</div>
+        <div>SINGLE PLAYER ONLY</div>
+        <div>ONE FILE, BOTH EDITIONS</div>
+        <div style="color:#d9694f;">ADULTS ONLY</div>
       </div>
     </div>
   </div>
-</section>
 
-<section>
-  <div class="col">
-    <p class="kicker">A night on the block</p>
-    <h2>How it actually plays</h2>
+  <div style="padding:clamp(48px,7vw,96px) clamp(16px,4vw,56px); border-top:1px solid rgba(255,255,255,.08);">
+    <div style="max-width:1080px; margin:0 auto; display:flex; flex-direction:column; gap:clamp(28px,4vw,44px);">
+      <div style="display:flex; flex-direction:column; gap:14px; max-width:720px;">
+        <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.2em; color:#ff3d8b;">WHAT IT IS</div>
+        <h2 style="margin:0; font-size:clamp(28px,4.6vw,46px); font-weight:800; letter-spacing:-.02em; line-height:1.08; text-wrap:balance;">A management sim wearing a crime game's clothes</h2>
+        <p style="margin:0; font-size:17px; line-height:1.55; color:#a6a09a; text-wrap:pretty;">Everything stays at the abstraction the base game uses: money, timers, heat, fade to black. The interesting part was never the corner. It's deciding who works it, when, and what you do the night a rival decides it's theirs.</p>
+      </div>
 
-    <ol class="loop">
-      <li><span class="t">20:00</span><span class="w">Night rate kicks in. Three of your crew are out on <b>Del Perro</b>; two are resting and building followers instead.</span></li>
-      <li><span class="t">21:00</span><span class="w">First take of the night lands. Heat on Del Perro ticks up — that's four hours before it's a problem.</span></li>
-      <li><span class="t">21:40</span><span class="w">A client turns on <b>Marisol</b>. Red blip. You've got ninety seconds and you're across the map.</span></li>
-      <li><span class="t">22:15</span><span class="w">You bribe the corner cool rather than pull anyone off it. Expensive, but the night's not over.</span></li>
-      <li><span class="t">23:30</span><span class="w">The <b>Lost MC</b> move on a corner you took off them last week. They brought five.</span></li>
-      <li><span class="t">00:00</span><span class="w">Wages clear. The weekly deposit lands. You're up — and every crew on the map is angrier than they were yesterday.</span></li>
-    </ol>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:1px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.1);">
+        <div style="background:#0d0b13; padding:26px 22px; display:flex; flex-direction:column; gap:10px;">
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#8fd08a; letter-spacing:.14em;">01 · EARNING</div>
+          <div style="font-size:19px; font-weight:700;">Two ways to earn</div>
+          <div style="font-size:15px; line-height:1.5; color:#a6a09a; text-wrap:pretty;">An hourly street take that draws heat, and a safe weekly deposit that only builds while a worker is off the street. They compete for the same hours.</div>
+        </div>
+        <div style="background:#0d0b13; padding:26px 22px; display:flex; flex-direction:column; gap:10px;">
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#4fd0c4; letter-spacing:.14em;">02 · TERRITORY</div>
+          <div style="font-size:19px; font-weight:700;">Six corners, four crews</div>
+          <div style="font-size:15px; line-height:1.5; color:#a6a09a; text-wrap:pretty;">Work a neutral corner to claim it. Take a held one by force. Rivals come back for turf you hold — and only turf you've actually staffed.</div>
+        </div>
+        <div style="background:#0d0b13; padding:26px 22px; display:flex; flex-direction:column; gap:10px;">
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#ff3d8b; letter-spacing:.14em;">03 · ROSTER</div>
+          <div style="font-size:19px; font-weight:700;">People with shapes</div>
+          <div style="font-size:15px; line-height:1.5; color:#a6a09a; text-wrap:pretty;">Hustlers earn on the street. Camera-ready ones build an audience. Fragile ones break when you push them. Loyal ones never walk.</div>
+        </div>
+        <div style="background:#0d0b13; padding:26px 22px; display:flex; flex-direction:column; gap:10px;">
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#d9694f; letter-spacing:.14em;">04 · HEAT</div>
+          <div style="font-size:19px; font-weight:700;">Heat that bites</div>
+          <div style="font-size:15px; line-height:1.5; color:#a6a09a; text-wrap:pretty;">Let a corner run hot and vice turn it over — everyone off the street, the block shut for days. Bribe it down, launder it away, or pay for it.</div>
+        </div>
+        <div style="background:#0d0b13; padding:26px 22px; display:flex; flex-direction:column; gap:10px;">
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#7b5cd6; letter-spacing:.14em;">05 · POACHING</div>
+          <div style="font-size:19px; font-weight:700;">Somebody else's earner</div>
+          <div style="font-size:15px; line-height:1.5; color:#a6a09a; text-wrap:pretty;">Half the people worth signing already work for someone. Take one and she comes in experienced, distrustful, and with her old crew right behind her.</div>
+        </div>
+        <div style="background:#0d0b13; padding:26px 22px; display:flex; flex-direction:column; gap:10px;">
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#e8a33d; letter-spacing:.14em;">06 · DEBT</div>
+          <div style="font-size:19px; font-weight:700;">A way to lose</div>
+          <div style="font-size:15px; line-height:1.5; color:#a6a09a; text-wrap:pretty;">Wages, bail and fines you can't cover become debt, and debt compounds. Let it run and the people you owe come collecting.</div>
+        </div>
+      </div>
+    </div>
   </div>
-</section>
 
-<section class="band">
-  <div class="col">
-    <p class="kicker">Download</p>
-    <h2>Available to patrons</h2>
-
-    <div class="gate">
-      <div>
-        <p>
-          The build is posted on Patreon as a patrons-only download. Join at any
-          paid tier, grab the file from the latest post, and follow the install
-          below.
-        </p>
-        <p>
-          Patreon handles the membership check itself — there's no key to enter
-          and nothing to activate. If you can see the post, you can download it.
-        </p>
-        <div class="actions" style="margin-top:22px">
-          <a class="btn btn-primary" href="https://www.patreon.com/gtaontheblade">Join and download</a>
-          <a class="btn btn-ghost" href="https://www.youtube.com/@TheGTAMod">Watch it on YouTube</a>
+  <div style="padding:clamp(48px,7vw,96px) clamp(16px,4vw,56px); background:#0d0b13; border-top:1px solid rgba(255,255,255,.08);">
+    <div style="max-width:1080px; margin:0 auto; display:flex; flex-direction:column; gap:clamp(24px,4vw,40px);">
+      <div style="display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:18px;">
+        <div style="display:flex; flex-direction:column; gap:12px; max-width:640px;">
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.2em; color:#ff3d8b;">A NIGHT ON THE BLOCK</div>
+          <h2 style="margin:0; font-size:clamp(28px,4.6vw,46px); font-weight:800; letter-spacing:-.02em; line-height:1.08;">How it actually plays</h2>
+        </div>
+        <div onClick="{{ togglePlay }}" style="display:flex; align-items:center; gap:10px; padding:11px 18px; border:1px solid rgba(255,255,255,.25); font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.12em; cursor:pointer; user-select:none;" style-hover="border-color:#ff3d8b; color:#ff3d8b">
+          <sc-if value="{{ playing }}" hint-placeholder-val="{{ true }}"><span>❙❙ PAUSE</span></sc-if>
+          <sc-if value="{{ paused }}"><span>▶ PLAY THE NIGHT</span></sc-if>
         </div>
       </div>
 
-      <div class="tierbox">
-        <h3>What you get</h3>
-        <ul>
-          <li><code>OnTheBlade.dll</code> plus the two libraries it needs</li>
-          <li>Every balance value in a plain <code>config.json</code> — no rebuild to retune</li>
-          <li>Builds for both Legacy and Enhanced from one file</li>
-          <li>Updates as the build moves</li>
-        </ul>
+      <div style="display:flex; gap:clamp(14px,2.5vw,28px); align-items:stretch;">
+        <div style="position:relative; width:3px; flex:none; background:rgba(255,255,255,.12);">
+          <div style="position:absolute; left:0; top:0; width:100%; background:linear-gradient(180deg,#ff3d8b,#ff8a3d); box-shadow:0 0 12px rgba(255,61,139,.7); transition:height .5s ease; height:{{ fillPct }};"></div>
+        </div>
+        <div style="flex:1; display:flex; flex-direction:column; gap:2px;">
+
+          <div onClick="{{ go0 }}" style="position:relative; padding:clamp(14px,2.2vw,20px) clamp(12px,2vw,22px); cursor:pointer;">
+            <div style="display:flex; flex-wrap:wrap; align-items:baseline; gap:14px;">
+              <div style="font-family:'IBM Plex Mono', monospace; font-size:clamp(15px,2.4vw,19px); font-weight:600; color:#ff3d8b; min-width:64px;">20:00</div>
+              <div style="font-size:clamp(16px,2.3vw,20px); font-weight:700;">Night rate kicks in</div>
+            </div>
+            <div style="margin-top:6px; padding-left:0; font-size:15px; line-height:1.5; color:#a6a09a; text-wrap:pretty;">Three of your crew are out on Del Perro. Two are resting and building followers instead — that's money you don't see tonight.</div>
+            <sc-if value="{{ off0 }}"><div style="position:absolute; inset:0; background:rgba(13,11,19,.66);"></div></sc-if>
+          </div>
+
+          <div onClick="{{ go1 }}" style="position:relative; padding:clamp(14px,2.2vw,20px) clamp(12px,2vw,22px); cursor:pointer;">
+            <div style="display:flex; flex-wrap:wrap; align-items:baseline; gap:14px;">
+              <div style="font-family:'IBM Plex Mono', monospace; font-size:clamp(15px,2.4vw,19px); font-weight:600; color:#ff3d8b; min-width:64px;">21:00</div>
+              <div style="font-size:clamp(16px,2.3vw,20px); font-weight:700;">First take lands</div>
+            </div>
+            <div style="margin-top:6px; font-size:15px; line-height:1.5; color:#a6a09a; text-wrap:pretty;">Heat on Del Perro ticks up. Four hours before it's a problem — long enough to pretend it isn't one.</div>
+            <sc-if value="{{ off1 }}"><div style="position:absolute; inset:0; background:rgba(13,11,19,.66);"></div></sc-if>
+          </div>
+
+          <div onClick="{{ go2 }}" style="position:relative; padding:clamp(14px,2.2vw,20px) clamp(12px,2vw,22px); cursor:pointer;">
+            <div style="display:flex; flex-wrap:wrap; align-items:baseline; gap:14px;">
+              <div style="font-family:'IBM Plex Mono', monospace; font-size:clamp(15px,2.4vw,19px); font-weight:600; color:#ff3d8b; min-width:64px;">21:40</div>
+              <div style="font-size:clamp(16px,2.3vw,20px); font-weight:700;">A client turns on Marisol</div>
+            </div>
+            <div style="margin-top:6px; font-size:15px; line-height:1.5; color:#a6a09a; text-wrap:pretty;">Red blip. Ninety seconds. You're across the map.</div>
+            <sc-if value="{{ off2 }}"><div style="position:absolute; inset:0; background:rgba(13,11,19,.66);"></div></sc-if>
+          </div>
+
+          <div onClick="{{ go3 }}" style="position:relative; padding:clamp(14px,2.2vw,20px) clamp(12px,2vw,22px); cursor:pointer;">
+            <div style="display:flex; flex-wrap:wrap; align-items:baseline; gap:14px;">
+              <div style="font-family:'IBM Plex Mono', monospace; font-size:clamp(15px,2.4vw,19px); font-weight:600; color:#ff3d8b; min-width:64px;">22:15</div>
+              <div style="font-size:clamp(16px,2.3vw,20px); font-weight:700;">You bribe the corner cool</div>
+            </div>
+            <div style="margin-top:6px; font-size:15px; line-height:1.5; color:#a6a09a; text-wrap:pretty;">Rather than pull anyone off it. Expensive — and the night's not over.</div>
+            <sc-if value="{{ off3 }}"><div style="position:absolute; inset:0; background:rgba(13,11,19,.66);"></div></sc-if>
+          </div>
+
+          <div onClick="{{ go4 }}" style="position:relative; padding:clamp(14px,2.2vw,20px) clamp(12px,2vw,22px); cursor:pointer;">
+            <div style="display:flex; flex-wrap:wrap; align-items:baseline; gap:14px;">
+              <div style="font-family:'IBM Plex Mono', monospace; font-size:clamp(15px,2.4vw,19px); font-weight:600; color:#ff3d8b; min-width:64px;">23:30</div>
+              <div style="font-size:clamp(16px,2.3vw,20px); font-weight:700;">The Lost MC come back</div>
+            </div>
+            <div style="margin-top:6px; font-size:15px; line-height:1.5; color:#a6a09a; text-wrap:pretty;">For a corner you took off them last week. They brought five.</div>
+            <sc-if value="{{ off4 }}"><div style="position:absolute; inset:0; background:rgba(13,11,19,.66);"></div></sc-if>
+          </div>
+
+          <div onClick="{{ go5 }}" style="position:relative; padding:clamp(14px,2.2vw,20px) clamp(12px,2vw,22px); cursor:pointer;">
+            <div style="display:flex; flex-wrap:wrap; align-items:baseline; gap:14px;">
+              <div style="font-family:'IBM Plex Mono', monospace; font-size:clamp(15px,2.4vw,19px); font-weight:600; color:#8fd08a; min-width:64px;">00:00</div>
+              <div style="font-size:clamp(16px,2.3vw,20px); font-weight:700;">Wages clear</div>
+            </div>
+            <div style="margin-top:6px; font-size:15px; line-height:1.5; color:#a6a09a; text-wrap:pretty;">The weekly deposit lands. You're up — and every crew on the map is angrier than they were yesterday.</div>
+            <sc-if value="{{ off5 }}"><div style="position:absolute; inset:0; background:rgba(13,11,19,.66);"></div></sc-if>
+          </div>
+
+        </div>
       </div>
     </div>
+  </div>
 
-    <div class="note hot">
-      <span class="lbl">Early build</span>
-      <p>
-        v0.2.0 is playable but young. Systems are in and working; balance and
-        placement are still being tuned against real play. Expect rough edges and
-        expect them to move.
-      </p>
+
+  <div style="padding:clamp(48px,7vw,96px) clamp(16px,4vw,56px); border-top:1px solid rgba(255,255,255,.08);">
+    <div style="max-width:1080px; margin:0 auto; display:flex; flex-direction:column; gap:clamp(20px,3vw,32px);">
+      <div style="display:flex; flex-direction:column; gap:12px; max-width:680px;">
+        <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.2em; color:#ff3d8b;">IN GAME</div>
+        <h2 style="margin:0; font-size:clamp(28px,4.6vw,46px); font-weight:800; letter-spacing:-.02em; line-height:1.08;">One menu, five sections</h2>
+        <p style="margin:0; font-size:17px; line-height:1.55; color:#a6a09a; text-wrap:pretty;">F5 anywhere in story mode. The strip sits at the bottom of the screen so the block stays visible while you decide. Click the tabs — or <a href="features.html#board">walk the board corner by corner</a>.</p>
+      </div>
+
+      <div style="overflow-x:auto; padding-bottom:6px; border:1px solid rgba(255,255,255,.1);">
+        <div style="position:relative; width:1280px; height:720px; background-image:url('plate2.png'); background-size:cover; background-position:52% 34%;">
+          <div style="position:absolute; inset:0; background:linear-gradient(180deg, rgba(0,0,0,.5), rgba(0,0,0,0) 26%, rgba(0,0,0,.92));"></div>
+          <div style="position:absolute; left:40px; top:28px; font-family:'Instrument Serif', serif; font-style:italic; font-size:36px; text-shadow:0 0 26px rgba(255,61,139,.75);">On The Blade</div>
+
+          <div style="position:absolute; left:40px; right:40px; bottom:36px; background:rgba(14,10,20,.74); backdrop-filter:blur(16px); border:1px solid rgba(255,61,139,.45); box-shadow:0 0 40px rgba(255,61,139,.2);">
+            <div style="display:flex; border-bottom:1px solid rgba(255,255,255,.14);">
+              <div onClick="{{ goRoster }}" style="position:relative; padding:14px 24px; font-size:14px; font-weight:700; letter-spacing:.12em; cursor:pointer;" style-hover="color:#ff9ec4">ROSTER
+                <sc-if value="{{ rosterActive }}" hint-placeholder-val="{{ true }}"><div style="position:absolute; left:0; right:0; bottom:0; height:3px; background:#ff3d8b; box-shadow:0 0 14px #ff3d8b;"></div></sc-if>
+              </div>
+              <div onClick="{{ goTerritory }}" style="position:relative; padding:14px 24px; font-size:14px; font-weight:700; letter-spacing:.12em; cursor:pointer;" style-hover="color:#ff9ec4">TERRITORY
+                <sc-if value="{{ territoryActive }}"><div style="position:absolute; left:0; right:0; bottom:0; height:3px; background:#ff3d8b; box-shadow:0 0 14px #ff3d8b;"></div></sc-if>
+              </div>
+              <div onClick="{{ goUpgrades }}" style="position:relative; padding:14px 24px; font-size:14px; font-weight:700; letter-spacing:.12em; cursor:pointer;" style-hover="color:#ff9ec4">UPGRADES
+                <sc-if value="{{ upgradesActive }}"><div style="position:absolute; left:0; right:0; bottom:0; height:3px; background:#ff3d8b; box-shadow:0 0 14px #ff3d8b;"></div></sc-if>
+              </div>
+              <div style="margin-left:auto; display:flex; align-items:center; gap:20px; padding:14px 24px; font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.06em;">
+                <div style="color:#8fd08a;">$4,820 <span style="color:#6f6a65;">TONIGHT</span></div>
+                <div style="color:#d9694f;">$1,150 <span style="color:#6f6a65;">OWED</span></div>
+                <div style="color:#e3ded7;">SAT 23:41</div>
+                <div style="color:#6f6a65; padding-left:14px; border-left:1px solid rgba(255,255,255,.18);">F5 CLOSE</div>
+              </div>
+            </div>
+
+            <sc-if value="{{ rosterActive }}" hint-placeholder-val="{{ true }}">
+              <div style="display:grid; grid-template-columns:repeat(6, 1fr); gap:1px; background:rgba(255,255,255,.12);">
+                <div style="background:rgba(14,10,20,.92); padding:16px 14px; display:flex; flex-direction:column; gap:10px; box-shadow:inset 0 -3px 0 #ff3d8b;">
+                  <div style="font-size:15px; font-weight:700;">Marisol</div>
+                  <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#8fd08a; letter-spacing:.06em;">DEL PERRO · T2</div>
+                  <div style="display:flex; flex-wrap:wrap; gap:4px;">
+                    <div style="font-family:'IBM Plex Mono', monospace; font-size:9px; padding:3px 6px; background:rgba(143,208,138,.16); color:#8fd08a;">HUSTLER</div>
+                    <div style="font-family:'IBM Plex Mono', monospace; font-size:9px; padding:3px 6px; background:rgba(217,105,79,.16); color:#d9694f;">DISTRUSTFUL</div>
+                  </div>
+                  <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; color:#e3ded7;">$680/h</div>
+                </div>
+                <div style="background:rgba(14,10,20,.92); padding:16px 14px; display:flex; flex-direction:column; gap:10px;">
+                  <div style="font-size:15px; font-weight:700;">Trish</div>
+                  <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#8fd08a; letter-spacing:.06em;">DEL PERRO · T1</div>
+                  <div style="display:flex; flex-wrap:wrap; gap:4px;">
+                    <div style="font-family:'IBM Plex Mono', monospace; font-size:9px; padding:3px 6px; background:rgba(255,255,255,.1); color:#b9b2ab;">LOYAL</div>
+                  </div>
+                  <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; color:#e3ded7;">$410/h</div>
+                </div>
+                <div style="background:rgba(14,10,20,.92); padding:16px 14px; display:flex; flex-direction:column; gap:10px;">
+                  <div style="font-size:15px; font-weight:700;">Kiana</div>
+                  <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#6f9fd8; letter-spacing:.06em;">RESTING</div>
+                  <div style="display:flex; flex-wrap:wrap; gap:4px;">
+                    <div style="font-family:'IBM Plex Mono', monospace; font-size:9px; padding:3px 6px; background:rgba(111,159,216,.16); color:#6f9fd8;">CAMERA-READY</div>
+                  </div>
+                  <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; color:#6f9fd8;">+1.2K</div>
+                </div>
+                <div style="background:rgba(14,10,20,.92); padding:16px 14px; display:flex; flex-direction:column; gap:10px;">
+                  <div style="font-size:15px; font-weight:700;">Dominique</div>
+                  <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#8fd08a; letter-spacing:.06em;">VESPUCCI · T3</div>
+                  <div style="display:flex; flex-wrap:wrap; gap:4px;">
+                    <div style="font-family:'IBM Plex Mono', monospace; font-size:9px; padding:3px 6px; background:rgba(143,208,138,.16); color:#8fd08a;">HUSTLER</div>
+                  </div>
+                  <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; color:#e3ded7;">$905/h</div>
+                </div>
+                <div style="background:rgba(14,10,20,.92); padding:16px 14px; display:flex; flex-direction:column; gap:10px; opacity:.55;">
+                  <div style="font-size:15px; font-weight:700;">Amber</div>
+                  <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#d9694f; letter-spacing:.06em;">HOSPITAL · 2D</div>
+                  <div style="display:flex; flex-wrap:wrap; gap:4px;">
+                    <div style="font-family:'IBM Plex Mono', monospace; font-size:9px; padding:3px 6px; background:rgba(217,105,79,.16); color:#d9694f;">FRAGILE</div>
+                  </div>
+                  <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; color:#d9694f;">−$300</div>
+                </div>
+                <div style="background:rgba(14,10,20,.92); padding:16px 14px; display:flex; flex-direction:column; gap:10px;">
+                  <div style="font-size:15px; font-weight:700;">Renée</div>
+                  <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#8fd08a; letter-spacing:.06em;">STRAWBERRY · T1</div>
+                  <div style="display:flex; flex-wrap:wrap; gap:4px;">
+                    <div style="font-family:'IBM Plex Mono', monospace; font-size:9px; padding:3px 6px; background:rgba(255,255,255,.1); color:#b9b2ab;">GREEN</div>
+                  </div>
+                  <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; color:#e3ded7;">$390/h</div>
+                </div>
+              </div>
+              <div style="padding:12px 24px; border-top:1px solid rgba(255,255,255,.1); font-family:'IBM Plex Mono', monospace; font-size:11px; color:#6f6a65; letter-spacing:.06em;">ENTER ASSIGN POST · R RECALL ALL · DEL SEND HOME</div>
+            </sc-if>
+
+            <sc-if value="{{ territoryActive }}">
+              <div style="display:grid; grid-template-columns:repeat(6, 1fr); gap:1px; background:rgba(255,255,255,.12);">
+                <div style="background:rgba(14,10,20,.92); padding:16px 14px; display:flex; flex-direction:column; gap:11px; box-shadow:inset 0 -3px 0 #ff3d8b;">
+                  <div style="font-size:15px; font-weight:700;">Del Perro</div>
+                  <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#8fd08a; letter-spacing:.06em;">YOURS · 3 POSTED</div>
+                  <div style="height:5px; background:rgba(255,255,255,.14);"><div style="width:74%; height:100%; background:#d9694f;"></div></div>
+                  <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; color:#e3ded7;">$1,840/h</div>
+                </div>
+                <div style="background:rgba(14,10,20,.92); padding:16px 14px; display:flex; flex-direction:column; gap:11px; box-shadow:inset 0 -3px 0 #4fd0c4;">
+                  <div style="font-size:15px; font-weight:700;">Vespucci</div>
+                  <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#8fd08a; letter-spacing:.06em;">YOURS · 1 POSTED</div>
+                  <div style="height:5px; background:rgba(255,255,255,.14);"><div style="width:22%; height:100%; background:#8fd08a;"></div></div>
+                  <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; color:#e3ded7;">$905/h</div>
+                </div>
+                <div style="background:rgba(14,10,20,.92); padding:16px 14px; display:flex; flex-direction:column; gap:11px; box-shadow:inset 0 -3px 0 #4fd0c4;">
+                  <div style="font-size:15px; font-weight:700;">Strawberry</div>
+                  <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#8fd08a; letter-spacing:.06em;">YOURS · 1 POSTED</div>
+                  <div style="height:5px; background:rgba(255,255,255,.14);"><div style="width:41%; height:100%; background:#e8a33d;"></div></div>
+                  <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; color:#e3ded7;">$390/h</div>
+                </div>
+                <div style="background:rgba(14,10,20,.92); padding:16px 14px; display:flex; flex-direction:column; gap:11px; box-shadow:inset 0 -3px 0 rgba(255,255,255,.25);">
+                  <div style="font-size:15px; font-weight:700;">Mirror Park</div>
+                  <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#d9694f; letter-spacing:.06em;">YOURS · EMPTY</div>
+                  <div style="height:5px; background:rgba(255,255,255,.14);"><div style="width:6%; height:100%; background:#8fd08a;"></div></div>
+                  <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; color:#6f6a65;">$0/h</div>
+                </div>
+                <div style="background:rgba(14,10,20,.92); padding:16px 14px; display:flex; flex-direction:column; gap:11px; box-shadow:inset 0 -3px 0 #7b5cd6;">
+                  <div style="font-size:15px; font-weight:700;">Elysian</div>
+                  <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#7b5cd6; letter-spacing:.06em;">LOST MC</div>
+                  <div style="font-size:13px; color:#e3ded7;">5 hostiles</div>
+                  <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; color:#ff3d8b;">TAKE BY FORCE</div>
+                </div>
+                <div style="background:rgba(14,10,20,.92); padding:16px 14px; display:flex; flex-direction:column; gap:11px;">
+                  <div style="font-size:15px; font-weight:700; color:#b9b2ab;">Sandy Shores</div>
+                  <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#6f6a65; letter-spacing:.06em;">NEUTRAL</div>
+                  <div style="font-size:13px; color:#e3ded7;">Work it 2 nights</div>
+                  <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; color:#8fd08a;">CLAIM</div>
+                </div>
+              </div>
+              <div style="padding:12px 24px; border-top:1px solid rgba(255,255,255,.1); font-family:'IBM Plex Mono', monospace; font-size:11px; color:#6f6a65; letter-spacing:.06em;">ENTER POST WORKER · B BRIBE HEAT DOWN $1,200</div>
+            </sc-if>
+
+            <sc-if value="{{ upgradesActive }}">
+              <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:1px; background:rgba(255,255,255,.12);">
+                <div style="background:rgba(14,10,20,.92); padding:18px 16px; display:flex; flex-direction:column; gap:9px; box-shadow:inset 0 -3px 0 #ff3d8b;">
+                  <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                    <div style="font-size:16px; font-weight:700;">Burner network</div>
+                    <div style="font-family:'IBM Plex Mono', monospace; font-size:13px; color:#8fd08a;">$8,500</div>
+                  </div>
+                  <div style="font-size:13px; line-height:1.45; color:#a6a09a;">Incidents blip 30 seconds earlier. You get across the map or you don't.</div>
+                </div>
+                <div style="background:rgba(14,10,20,.92); padding:18px 16px; display:flex; flex-direction:column; gap:9px;">
+                  <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                    <div style="font-size:16px; font-weight:700;">Laundromat</div>
+                    <div style="font-family:'IBM Plex Mono', monospace; font-size:13px; color:#8fd08a;">$22,000</div>
+                  </div>
+                  <div style="font-size:13px; line-height:1.45; color:#a6a09a;">Wash 40% of the weekly deposit. Heat stops following the money home.</div>
+                </div>
+                <div style="background:rgba(14,10,20,.92); padding:18px 16px; display:flex; flex-direction:column; gap:9px;">
+                  <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                    <div style="font-size:16px; font-weight:700;">Bail fund</div>
+                    <div style="font-family:'IBM Plex Mono', monospace; font-size:13px; color:#8fd08a;">$6,000</div>
+                  </div>
+                  <div style="font-size:13px; line-height:1.45; color:#a6a09a;">Anyone picked up comes back the same night instead of costing you two.</div>
+                </div>
+                <div style="background:rgba(14,10,20,.92); padding:18px 16px; display:flex; flex-direction:column; gap:9px; opacity:.6;">
+                  <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                    <div style="font-size:16px; font-weight:700;">Ring light</div>
+                    <div style="font-family:'IBM Plex Mono', monospace; font-size:13px; color:#6f6a65;">OWNED</div>
+                  </div>
+                  <div style="font-size:13px; line-height:1.45; color:#a6a09a;">Camera-ready workers build followers 1.5× faster while off the street.</div>
+                </div>
+              </div>
+              <div style="padding:12px 24px; border-top:1px solid rgba(255,255,255,.1); font-family:'IBM Plex Mono', monospace; font-size:11px; color:#6f6a65; letter-spacing:.06em;">ENTER BUY · EVERY VALUE LIVES IN CONFIG.JSON</div>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+      <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#6f6a65; letter-spacing:.06em;">MENU PREVIEW · SWIPE FOR THE FULL FRAME</div>
     </div>
   </div>
-</section>
 
-<section>
-  <div class="col">
-    <p class="kicker">Before you start</p>
-    <h2>What you need</h2>
-    <ul class="plain">
-      <li><b>GTA V</b> — Legacy or Enhanced, story mode</li>
-      <li><b>Script Hook V</b> for your edition</li>
-      <li><b>ScriptHookVDotNet Enhanced</b> 1.1.0.6 or newer — install this even on Legacy; the standard build won't load the mod on Enhanced</li>
-      <li><b>.NET Framework 4.8</b> and the <b>Visual C++ 2019 x64</b> redistributable</li>
-    </ul>
-
-    <div class="note">
-      <span class="lbl">Read this first</span>
-      <p>
-        <b>Story mode only.</b> Loading script mods into GTA Online will get your
-        account banned. On Enhanced, launch without BattlEye.
-      </p>
-    </div>
-
-    <p class="kicker" style="margin-top:44px">Install</p>
-    <ol class="steps">
-      <li>
-        <h3>Base tools into the game folder</h3>
-        <p>Script Hook V and SHVDNE go in the folder with <code>GTA5.exe</code>. Make a <code>scripts</code> folder there if you don't have one.</p>
-      </li>
-      <li>
-        <h3>Three files into scripts</h3>
-        <pre><code><span class="dim">&lt;game root&gt;/scripts/</span>
-  OnTheBlade.dll
-  LemonUI.SHVDN3.dll
-  iFruitAddon2.dll</code></pre>
-        <p>Don't put <code>ScriptHookVDotNet3.dll</code> in there — a second copy breaks script loading. It belongs in the game root only.</p>
-      </li>
-      <li>
-        <h3>Load story mode and press F5</h3>
-        <p>You should get an <em>On The Blade loaded</em> notification. If a key clashes with another mod, both are rebindable in <code>config.json</code>.</p>
-      </li>
-    </ol>
-
-    <div class="scroller">
-      <table>
-        <thead><tr><th>Key</th><th>Does</th></tr></thead>
-        <tbody>
-          <tr><td><code>F5</code></td><td>Operations — roster, territory, upgrades, property, muscle</td></tr>
-          <tr><td><code>F1</code></td><td>Phone — status, recall everyone, fast travel</td></tr>
-          <tr><td><code>Insert</code></td><td>Reload scripts. Safe: releases every ped the mod owns and saves first</td></tr>
-        </tbody>
-      </table>
+  <div style="padding:clamp(48px,7vw,96px) clamp(16px,4vw,56px); background:#0d0b13; border-top:1px solid rgba(255,255,255,.08);">
+    <div style="max-width:1080px; margin:0 auto; display:flex; flex-direction:column; gap:22px;">
+      <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.2em; color:#ff3d8b;">WATCH IT RUN</div>
+      <sc-if value="{{ showPlayer }}">
+        <div style="position:relative; aspect-ratio:16/9; border:1px solid rgba(255,255,255,.14); background:#000;">
+          <iframe src="{{ videoSrc }}" title="On The Blade gameplay" allow="accelerometer; autoplay; encrypted-media; picture-in-picture" allowfullscreen="true" style="position:absolute; inset:0; width:100%; height:100%; border:0;"></iframe>
+        </div>
+      </sc-if>
+      <sc-if value="{{ showFacade }}">
+        <div onClick="{{ playVideo }}" style="position:relative; aspect-ratio:16/9; background-image:url('plate.png'); background-size:cover; background-position:60% 50%; border:1px solid rgba(255,255,255,.14); cursor:pointer;">
+          <div style="position:absolute; inset:0; background:rgba(11,9,16,.5); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px;">
+            <div style="width:clamp(56px,8vw,84px); height:clamp(56px,8vw,84px); border:2px solid #ff3d8b; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#ff3d8b; font-size:clamp(20px,3vw,28px); box-shadow:0 0 30px rgba(255,61,139,.4);">&#9654;</div>
+            <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.16em; color:#f2efe9;">A FULL NIGHT, UNCUT</div>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ noVideo }}" hint-placeholder-val="{{ true }}">
+        <div style="position:relative; aspect-ratio:16/9; border:1px solid rgba(255,61,139,.45); background-image:url('plate.png'); background-size:cover; background-position:60% 50%; box-shadow:inset 0 0 0 2000px rgba(11,9,16,.78); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; text-align:center; padding:20px;">
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.16em; color:#ff3d8b;">FOOTAGE COMING</div>
+          <div style="font-size:clamp(19px,2.6vw,26px); font-weight:700; letter-spacing:-.01em;">A full night, uncut &mdash; soon</div>
+          <div style="font-size:16px; line-height:1.5; color:#a6a09a; max-width:440px; text-wrap:pretty;">Subscribe and it lands in your feed the day it goes up.</div>
+          <a href="https://www.youtube.com/channel/UCPW5LTWEHZkEEsgXMXWNmvQ" style="margin-top:6px; padding:13px 24px; background:#ff3d8b; color:#12080d; font-size:15px; font-weight:700;">Subscribe on YouTube</a>
+        </div>
+      </sc-if>
     </div>
   </div>
-</section>
 
-<section>
-  <div class="col">
-    <p class="kicker">Fine print</p>
-    <h2>Content and conduct</h2>
-    <p>
-      Adult themes, handled the way the base game handles them — abstracted, no
-      explicit content. Every character is an adult. What's modelled is
-      management and turf: money, hours, heat, territory.
-    </p>
-    <p>
-      Single player only. Not affiliated with, endorsed by, or connected to
-      Rockstar Games or Take-Two Interactive.
-    </p>
+  <div style="padding:clamp(48px,7vw,96px) clamp(16px,4vw,56px); border-top:1px solid rgba(255,255,255,.08);">
+    <div style="max-width:1080px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:clamp(28px,4vw,56px);">
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.2em; color:#ff3d8b;">DOWNLOAD</div>
+        <h2 style="margin:0; font-size:clamp(28px,4.6vw,44px); font-weight:800; letter-spacing:-.02em; line-height:1.08;">Available to patrons</h2>
+        <p style="margin:0; font-size:17px; line-height:1.55; color:#a6a09a; text-wrap:pretty;">Join at any paid tier and grab the file from the latest post. Patreon handles the membership check itself — there's no key to enter and nothing to activate. If you can see the post, you can download it.</p>
+        <div style="display:flex; flex-wrap:wrap; gap:12px; margin-top:6px;">
+          <a href="https://www.patreon.com/gtaontheblade" style="padding:15px 26px; background:#ff3d8b; color:#12080d; font-size:16px; font-weight:700;">Join and download</a>
+          <a href="install.html" style="padding:15px 26px; border:1px solid rgba(255,255,255,.35); color:#f2efe9; font-size:16px; font-weight:600;">Then install it</a>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:14px; padding:26px 24px; border:1px solid rgba(255,255,255,.14); background:#0d0b13;">
+        <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.16em; color:#6f6a65;">WHAT YOU GET</div>
+        <div style="display:flex; flex-direction:column; gap:11px; font-size:15px; line-height:1.5; color:#c9c3bc;">
+          <div><span style="font-family:'IBM Plex Mono', monospace; color:#8fd08a;">OnTheBlade.dll</span> plus the two libraries it needs</div>
+          <div>Every balance value in a plain <span style="font-family:'IBM Plex Mono', monospace; color:#8fd08a;">config.json</span> — no rebuild to retune</div>
+          <div>Legacy and Enhanced from one file</div>
+          <div>Updates as the build moves</div>
+        </div>
+        <div style="margin-top:6px; padding-top:14px; border-top:1px solid rgba(255,255,255,.12); font-size:14px; line-height:1.5; color:#a6a09a;">
+          <span style="color:#e8a33d; font-weight:600;">v0.2.0 is young.</span> Systems are in and working; balance and placement are still being tuned against real play. Expect rough edges and expect them to move.
+        </div>
+      </div>
+    </div>
   </div>
-</section>
 
-<footer>
-  <div class="col">
-    <p>On The Blade v0.2.0 — a single-player GTA V mod by TheGTAMod.</p>
-    <p><a href="manual.html">Full manual</a> · <a href="changelog.html">Changelog</a> · <a href="https://www.youtube.com/@TheGTAMod">YouTube</a> · <a href="https://www.patreon.com/gtaontheblade">Patreon</a></p>
+  <div style="padding:clamp(36px,6vw,72px) clamp(16px,4vw,56px); background:rgba(217,105,79,.1); border-top:1px solid rgba(217,105,79,.35); border-bottom:1px solid rgba(217,105,79,.35);">
+    <div style="max-width:1080px; margin:0 auto; display:flex; gap:16px; align-items:flex-start;">
+      
+      <div style="width:9px; height:9px; background:#d9694f; margin-top:9px; flex:none; animation:blip 1.4s infinite;"></div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <div style="font-size:clamp(18px,2.6vw,22px); font-weight:700;">Story mode only</div>
+        <div style="font-size:16px; line-height:1.55; color:#d6bdb4; max-width:720px; text-wrap:pretty;">Loading script mods into GTA Online will get your account banned. On Enhanced, launch without BattlEye. <a href="install.html" style="color:#ff9ec4;">Full install guide &rarr;</a></div>
+      </div>
+    </div>
   </div>
-</footer>
 
+  <div style="padding:clamp(48px,7vw,88px) clamp(16px,4vw,56px);">
+    <div style="max-width:1080px; margin:0 auto; display:flex; flex-direction:column; gap:18px;">
+      <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.2em; color:#ff3d8b;">FINE PRINT</div>
+      <h2 style="margin:0; font-size:clamp(24px,3.6vw,34px); font-weight:800; letter-spacing:-.02em;">Content and conduct</h2>
+      <p style="margin:0; max-width:760px; font-size:16px; line-height:1.6; color:#a6a09a; text-wrap:pretty;">Adult themes, handled the way the base game handles them &mdash; abstracted, no explicit content. Every character is an adult. What's modelled is management and turf: money, hours, heat, territory.</p>
+      <p style="margin:0; max-width:760px; font-size:16px; line-height:1.6; color:#a6a09a; text-wrap:pretty;">Single player only. Not affiliated with, endorsed by, or connected to Rockstar Games or Take-Two Interactive.</p>
+    </div>
+  </div>
+
+  <div style="padding:clamp(32px,5vw,56px) clamp(16px,4vw,56px); border-top:1px solid rgba(255,255,255,.1); background:#08070c;">
+    <div style="max-width:1080px; margin:0 auto; display:flex; flex-wrap:wrap; gap:20px; align-items:center; justify-content:space-between;">
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        <div style="font-family:'Instrument Serif', serif; font-style:italic; font-size:24px;">On The Blade</div>
+        <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#6f6a65; letter-spacing:.08em;">v0.2.0 &mdash; A SINGLE-PLAYER GTA V MOD BY THEGTAMOD</div>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:22px; font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.08em;">
+        <a href="features.html" style="color:#a6a09a;">FEATURES</a>
+      <a href="install.html" style="color:#a6a09a;">INSTALL</a>
+        <a href="changelog.html" style="color:#a6a09a;">CHANGELOG</a>
+        <a href="faq.html" style="color:#a6a09a;">FAQ</a>
+        <a href="manual.html" style="color:#a6a09a;">MANUAL</a>
+        <a href="https://www.youtube.com/channel/UCPW5LTWEHZkEEsgXMXWNmvQ" style="color:#a6a09a;">YOUTUBE</a>
+        <a href="https://www.patreon.com/gtaontheblade" style="color:#ff3d8b;">PATREON</a>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"videoId":{"editor":"text","default":"","tsType":"string","section":"Content"},"$preview":{"width":1280}}'>
+class Component extends DCLogic {
+  state = { tab: 'roster', step: 0, playing: true, videoOn: false };
+  componentDidMount() {
+    this.timer = setInterval(() => {
+      if (!this.state.playing) return;
+      this.setState(s => ({ step: (s.step + 1) % 6 }));
+    }, 2600);
+  }
+  componentWillUnmount() { clearInterval(this.timer); }
+  renderVals() {
+    const t = this.state.tab, n = this.state.step;
+    const go = k => () => this.setState({ tab: k });
+    const vid = (this.props.videoId || '').trim();
+    const jump = i => () => this.setState({ step: i, playing: false });
+    return {
+      rosterActive: t === 'roster',
+      territoryActive: t === 'territory',
+      upgradesActive: t === 'upgrades',
+      goRoster: go('roster'), goTerritory: go('territory'), goUpgrades: go('upgrades'),
+      playing: this.state.playing, paused: !this.state.playing,
+      noVideo: !vid,
+      showFacade: !!vid && !this.state.videoOn,
+      showPlayer: !!vid && this.state.videoOn,
+      videoSrc: vid ? 'https://www.youtube-nocookie.com/embed/' + vid + '?autoplay=1&rel=0' : '',
+      playVideo: () => this.setState({ videoOn: true }),
+      togglePlay: () => this.setState(s => ({ playing: !s.playing })),
+      fillPct: Math.round(((n + 1) / 6) * 100) + '%',
+      off0: n < 0, off1: n < 1, off2: n < 2, off3: n < 3, off4: n < 4, off5: n < 5,
+      go0: jump(0), go1: jump(1), go2: jump(2), go3: jump(3), go4: jump(4), go5: jump(5)
+    };
+  }
+}
+</script>
 </body>
 </html>

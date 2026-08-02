@@ -1,344 +1,114 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>On The Blade — changelog</title>
-<meta name="description" content="What changed in each build of On The Blade, a roster and territory management mod for GTA V single player.">
-<style>
-  :root {
-    --asphalt:    #08070c;
-    --asphalt-2:  #13111c;
-    --asphalt-3:  #1c1927;
-    --hairline:   #2b2739;
-    --chalk:      #f3eef4;
-    --chalk-dim:  #a49fb1;
-    --chalk-faint:#6f6a7e;
-    --neon:       #ff2e88;
-    --neon-soft:  #ff2e8833;
-    --ice:        #3be0f0;
-    --sodium:     #ffb25c;
-    --sage:       #7fd18f;
-
-    --display: Impact, "Haettenschweiler", "Franklin Gothic Heavy", "Arial Narrow Bold", sans-serif;
-    --body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    --mono: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
-
-    --measure: 68ch;
-    --col: 820px;
-  }
-
-  @media (prefers-color-scheme: light) {
-    :root {
-      --asphalt:#faf7fa; --asphalt-2:#ffffff; --asphalt-3:#f1ecf2; --hairline:#e0d8e4;
-      --chalk:#16111d; --chalk-dim:#574f63; --chalk-faint:#8b8397;
-      --neon:#c4106a; --neon-soft:#c4106a1a; --ice:#0a7e96; --sodium:#a35c00; --sage:#2f7d3d;
-    }
-  }
-  :root[data-theme="light"] {
-    --asphalt:#faf7fa; --asphalt-2:#ffffff; --asphalt-3:#f1ecf2; --hairline:#e0d8e4;
-    --chalk:#16111d; --chalk-dim:#574f63; --chalk-faint:#8b8397;
-    --neon:#c4106a; --neon-soft:#c4106a1a; --ice:#0a7e96; --sodium:#a35c00; --sage:#2f7d3d;
-  }
-  :root[data-theme="dark"] {
-    --asphalt:#08070c; --asphalt-2:#13111c; --asphalt-3:#1c1927; --hairline:#2b2739;
-    --chalk:#f3eef4; --chalk-dim:#a49fb1; --chalk-faint:#6f6a7e;
-    --neon:#ff2e88; --neon-soft:#ff2e8833; --ice:#3be0f0; --sodium:#ffb25c; --sage:#7fd18f;
-  }
-
-  * { box-sizing: border-box; }
-
-  body {
-    margin: 0; background: var(--asphalt); color: var(--chalk);
-    font-family: var(--body); font-size: 17px; line-height: 1.65;
-    -webkit-font-smoothing: antialiased;
-  }
-  .col { width: min(var(--col), 100% - 44px); margin-inline: auto; }
-  p { max-width: var(--measure); }
-  a { color: var(--neon); text-underline-offset: 3px; }
-  a:focus-visible { outline: 2px solid var(--ice); outline-offset: 3px; border-radius: 2px; }
-
-  header {
-    padding: clamp(52px, 9vw, 92px) 0 clamp(32px, 5vw, 52px);
-    border-bottom: 1px solid var(--hairline);
-  }
-  .back {
-    font-family: var(--mono); font-size: 11.5px; letter-spacing: .18em;
-    text-transform: uppercase; text-decoration: none; color: var(--chalk-faint);
-  }
-  .back:hover { color: var(--neon); }
-  h1 {
-    font-family: var(--display); font-weight: 400;
-    font-size: clamp(2.6rem, 9vw, 4.6rem); line-height: .9;
-    text-transform: uppercase; letter-spacing: .01em;
-    margin: 20px 0 14px;
-  }
-  .sub { color: var(--chalk-dim); margin: 0; max-width: 56ch; }
-
-  /* --- releases --- */
-  .release { padding: clamp(40px, 6vw, 62px) 0; border-bottom: 1px solid var(--hairline); }
-  .release:last-of-type { border-bottom: none; }
-
-  .rel-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 14px; margin-bottom: 6px; }
-  .ver {
-    font-family: var(--display); font-weight: 400;
-    font-size: clamp(1.7rem, 4vw, 2.4rem); letter-spacing: .01em;
-    margin: 0; color: var(--neon);
-  }
-  .tag {
-    font-family: var(--mono); font-size: 11px; letter-spacing: .1em;
-    text-transform: uppercase; padding: 4px 10px; border-radius: 999px;
-    border: 1px solid var(--hairline); color: var(--chalk-dim); background: var(--asphalt-2);
-  }
-  .tag.now { color: var(--neon); border-color: var(--neon); }
-  .date { font-family: var(--mono); font-size: 12.5px; color: var(--chalk-faint); }
-  .headline { font-size: 1.12rem; color: var(--chalk-dim); margin: 0 0 8px; max-width: 60ch; }
-
-  h3 {
-    font-family: var(--mono); font-size: 11.5px; letter-spacing: .16em;
-    text-transform: uppercase; margin: 32px 0 12px; color: var(--chalk-faint);
-  }
-  h3.added   { color: var(--sage); }
-  h3.changed { color: var(--sodium); }
-  h3.fixed   { color: var(--ice); }
-
-  ul.entries { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
-  ul.entries > li {
-    padding-left: 16px; border-left: 2px solid var(--hairline);
-    color: var(--chalk-dim); font-size: .97rem; max-width: var(--measure);
-  }
-  ul.entries > li b { color: var(--chalk); font-weight: 650; }
-  .why { display: block; margin-top: 3px; color: var(--chalk-faint); font-size: .9rem; }
-
-  code {
-    font-family: var(--mono); font-size: .85em;
-    background: var(--asphalt-3); border: 1px solid var(--hairline);
-    border-radius: 3px; padding: 1px 5px; overflow-wrap: anywhere;
-  }
-
-  .note {
-    border: 1px solid var(--hairline); border-left: 2px solid var(--sodium);
-    background: var(--asphalt-2); border-radius: 3px; padding: 15px 17px; margin: 26px 0 0;
-    max-width: var(--measure);
-  }
-  .note p { margin: 0; font-size: .93rem; color: var(--chalk-dim); }
-  .note .lbl {
-    display: block; font-family: var(--mono); font-size: 10.5px;
-    letter-spacing: .14em; text-transform: uppercase; color: var(--sodium); margin-bottom: 5px;
-  }
-
-  footer { padding: 40px 0 68px; color: var(--chalk-faint); font-size: .87rem; }
-  footer p { margin: 0 0 8px; }
-</style>
+<script src="support.js"></script>
 </head>
 <body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  html, body { margin:0; padding:0; background:#0b0910; color:#f2efe9; font-family:Archivo, system-ui, sans-serif; -webkit-font-smoothing:antialiased; }
+  a { color:#ff3d8b; text-decoration:none; }
+  a:hover { color:#ff9ec4; }
+</style>
+</helmet>
 
-<header>
-  <div class="col">
-    <a class="back" href="index.html">&larr; On The Blade</a>
-    <h1>Changelog</h1>
-    <p class="sub">
-      What changed, and why. Entries say what a change was for, because a list of
-      features tells you nothing about whether the game got better.
-    </p>
-  </div>
-</header>
-
-<main>
-
-<section class="release">
-  <div class="col">
-    <div class="rel-head">
-      <p class="ver">0.2.0</p>
-      <span class="tag now">current</span>
-      <span class="date">2 August 2026</span>
-    </div>
-    <p class="headline">
-      Reputation, negotiable rivals, a map that shows your territory — and the
-      first build shaped by actually playing it.
-    </p>
-
-    <h3 class="added">Added</h3>
-    <ul class="entries">
-      <li>
-        <b>Street reputation.</b> Five ranks from Nobody to Untouchable, moved by every
-        incident you resolve or drop.
-        <span class="why">It gates tier-3 prospects, discounts protection and lifts the loyalty new signings arrive with — so it touches recruiting, combat and negotiation rather than sitting on the HUD as a number.</span>
-      </li>
-      <li>
-        <b>Protection deals.</b> Pay a crew and they leave your corners alone for a few days.
-        Price scales with their strength and aggression, and falls as they come to respect you.
-        <span class="why">Poaching from a crew you are paying voids the deal and they keep the money. Without that a truce is a purchase, not a commitment.</span>
-      </li>
-      <li>
-        <b>Demand events.</b> Concerts, conventions, paydays, police crackdowns and dead
-        nights move one zone between ×0.35 and ×1.9 for a few hours.
-        <span class="why">Demand used to be a constant, so the best arrangement of the roster was solved once and never revisited.</span>
-      </li>
-      <li>
-        <b>Territory on the map.</b> Every zone is now marked and coloured by who holds it,
-        with staffing and raid countdowns in the label.
-        <span class="why">You could own a corner, lose it and fight over it without the map ever showing where it was.</span>
-      </li>
-      <li>
-        <b>Worker traits.</b> Hustler, Camera-ready, Connected, Fragile, Loyal, Magnetic — nought
-        to two per person, every one a trade.
-        <span class="why">The roster was a spreadsheet where everyone sat on the same axes and only the magnitudes differed.</span>
-      </li>
-      <li>
-        <b>Shifts.</b> Always, days, nights or off, separate from where someone is posted.
-        <span class="why">Night-split was already the optimal strategy and the only way to express it was toggling every worker by hand twice a game day.</span>
-      </li>
-      <li>
-        <b>Zone saturation.</b> Each worker on a corner earns less than the last.
-        <span class="why">Stacking the roster on the highest-demand zone beat spreading it by 30%. It now loses by 9%, so holding ground matters again.</span>
-      </li>
-      <li>
-        <b>Debt and collapse.</b> Wages, bail and fines you can't cover become debt at 8% a day.
-        At $150,000 the people you owe come collecting.
-        <span class="why">Money only ever went up, so nothing could end a run.</span>
-      </li>
-      <li>
-        <b>Raids.</b> Past 95% heat a staffed corner gets turned over — everyone off the street,
-        the block shut for days, and a fine.
-        <span class="why">Heat was a soft tax with no ceiling, which made laundering and stash houses feel optional.</span>
-      </li>
-      <li>
-        <b>Bribes.</b> Pay heat down from the Territory menu, priced by how hot the corner
-        actually is. Cash only.
-      </li>
-      <li><b>Milestones.</b> Ten goals from your first signing to breaking every crew.</li>
-      <li><b>Vehicles.</b> One per region: +10% demand and 25% less stamina drain.</li>
-      <li>
-        <b>Muscle keeps rivals off your corners.</b> An enforcer covering a region turns away
-        27% to 45% of moves on turf there, depending on how good they are.
-        <span class="why">Handling the occasional bad client was convenience. Keeping a corner is the reason to pay somebody a daily wage — and the hire screen previously promised the opposite.</span>
-      </li>
-      <li>
-        <b>The recruit menu says why nobody qualifies.</b> "Forty people nearby, none of them a
-        match" rather than a bare "nobody".
-        <span class="why">On a crowded street the old readout gave the player nothing to act on. There is also a switch for signing women another script is managing, off by default.</span>
-      </li>
-      <li>
-        <b>Diagnostics menu.</b> Jump to any zone anchor and log a corrected one straight to
-        the log file.
-        <span class="why">Built to fix the guessed coordinates below, and left in because it will be needed again.</span>
-      </li>
-    </ul>
-
-    <h3 class="changed">Changed</h3>
-    <ul class="entries">
-      <li>
-        <b>Recruiting is far less sparse.</b> The eligible pool went from 7 models to 86, and
-        search radius from 20m to 35m — 70m on gang turf and around Vinewood.
-        <span class="why">Widened twice. Seven found nobody anywhere; thirty-one still failed on many streets, because ambient female models are region-locked — soucent only spawns in South Central, vinewood in Vinewood, ktown in Koreatown — so only a handful of any short list is plausible where you happen to be standing.</span>
-      </li>
-      <li>
-        <b>Objectives name the place and the person.</b> "Defend Sandy Shores" rather than
-        "defend your corner".
-        <span class="why">On a loaded install the on-screen line is often the only thing read, and the old wording never said which corner.</span>
-      </li>
-      <li>
-        <b>Default keys are now F5 and F1</b>, away from the F3/F4/F7/F8 block the common
-        modding stack already claims.
-      </li>
-      <li>
-        <b>Territory is drawn in pale colours</b>, pins only by default.
-        <span class="why">Filled circles covered roads and landmarks on an install already carrying three other turf overlays.</span>
-      </li>
-      <li><b>Every colour, radius and scale is config-driven</b> — no rebuild to retune.</li>
-    </ul>
-
-    <h3 class="fixed">Fixed</h3>
-    <ul class="entries">
-      <li>
-        <b>A takeover could not be won even after clearing the street.</b> You could kill every
-        rival, stand alone on the corner, and still be told it went bad when the timer ran out.
-        <span class="why">Winning required every spawned enforcer to register as dead. One who fled, fell through the map or was downed without dying blocked it permanently. Winning now means nobody hostile is still holding the ground — and a failure writes the state of every enforcer to the log so the next one explains itself.</span>
-      </li>
-      <li>
-        <b>Rival enforcers spawned at unverified coordinates.</b> Crew already stood on a
-        pavement-corrected anchor; turf battles still used the raw hand-written one, so a fight
-        could start with people on a roof or in the sea.
-        <span class="why">Incidents now resolve through the same corrected anchor, and every antagonist is placed by the game on ground a ped can actually stand on. That fixes all six corners at once rather than the three anyone had checked.</span>
-      </li>
-      <li>
-        <b>Config, saves and logs were written to the wrong folder.</b> They landed in
-        <code>scripts\scripts\</code>, so a config placed correctly was never read and the
-        mod silently ran on defaults.
-        <span class="why">The loader's base directory is already the scripts folder. A later attempt using the assembly's own path was worse — the game shadow-copies scripts, so it wrote into a temp cache that gets cleaned up.</span>
-      </li>
-      <li>
-        <b>New games started with no rivals and no territory.</b> Seeding only ran when loading
-        an existing save, so a first run had no crews, no ownership, no poaching and no turf war.
-      </li>
-      <li>
-        <b>Crew posted to the same zone stood inside each other.</b> Posts were spaced along the
-        kerb and then each snapped individually to the nearest pavement node, which collapsed
-        them onto one point.
-      </li>
-      <li>
-        <b>Incident timers ran during deaths and cutscenes.</b> You could be arrested mid-incident
-        and regain control to an already-failed objective.
-      </li>
-      <li>
-        <b>Vespucci Beach and Strawberry anchors were wrong.</b> Vespucci sat up to 12m off any
-        pavement; Strawberry sat about three metres below it.
-      </li>
-    </ul>
-
-    <div class="note">
-      <span class="lbl">Save compatibility</span>
-      <p>
-        Saves are versioned and migrate automatically. A 0.1.0 save loads into 0.2.0 with
-        its roster, territory and money intact, starting at zero reputation with no
-        events running.
-      </p>
+<div style="max-width:100%; overflow-x:hidden;">
+  <div style="position:sticky; top:0; z-index:20; display:flex; align-items:center; gap:18px; flex-wrap:wrap; padding:14px clamp(16px,4vw,56px); background:rgba(11,9,16,.86); backdrop-filter:blur(12px); border-bottom:1px solid rgba(255,255,255,.1);">
+    <a href="index.html" style="font-family:'Instrument Serif', serif; font-style:italic; font-size:26px; line-height:1; color:#f2efe9; margin-right:auto;">On The Blade</a>
+    <div style="display:flex; align-items:center; gap:clamp(10px,2vw,22px); font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.1em;">
+      <a href="features.html" style="color:#a6a09a;">FEATURES</a>
+      <a href="install.html" style="color:#a6a09a;">INSTALL</a>
+      <a href="changelog.html" style="color:#ff3d8b;">CHANGELOG</a>
+      <a href="faq.html" style="color:#a6a09a;">FAQ</a>
+      <a href="manual.html" style="color:#a6a09a;">MANUAL</a>
+      <a href="https://www.patreon.com/gtaontheblade" style="padding:9px 14px; background:#ff3d8b; color:#12080d; font-weight:600;">GET IT</a>
     </div>
   </div>
-</section>
 
-<section class="release">
-  <div class="col">
-    <div class="rel-head">
-      <p class="ver">0.1.0</p>
-      <span class="tag">first build</span>
-      <span class="date">1 August 2026</span>
+  <div style="padding:clamp(40px,7vw,84px) clamp(16px,4vw,56px) clamp(28px,4vw,44px); border-bottom:1px solid rgba(255,255,255,.1);">
+    <div style="max-width:860px; margin:0 auto; display:flex; flex-direction:column; gap:16px;">
+      <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.2em; color:#ff3d8b;">CHANGELOG</div>
+      <h1 style="margin:0; font-size:clamp(34px,7vw,64px); font-weight:800; letter-spacing:-.03em; line-height:1;">What moved, and when</h1>
+      <p style="margin:0; font-size:18px; line-height:1.55; color:#a6a09a; max-width:640px; text-wrap:pretty;">Balance changes land in <span style="font-family:'IBM Plex Mono', monospace; color:#8fd08a;">config.json</span> — you can pull them without waiting for a build.</p>
     </div>
-    <p class="headline">The first playable build — the whole loop, end to end.</p>
-
-    <h3 class="added">Added</h3>
-    <ul class="entries">
-      <li><b>Recruiting</b> from the street, with tiers and loyalty.</li>
-      <li><b>Six zones</b> to post crew to, gated by tier, each with its own demand and heat.</li>
-      <li>
-        <b>Distance-based streaming.</b> Workers are data; a real ped only exists within 150m.
-        <span class="why">Holding a permanent ped per worker tanks framerate and loses a constant fight with the engine's population culling.</span>
-      </li>
-      <li><b>An hourly economy</b> of payout, stamina, loyalty and heat.</li>
-      <li><b>Subscription deposits</b> — a second, safe revenue stream that only builds while a worker is off the street.</li>
-      <li><b>Incidents</b> — bad clients, vice stings, walk-offs, turf battles both ways.</li>
-      <li><b>Four rival crews</b> with strength and aggression, contesting turf you hold and staff.</li>
-      <li><b>Poaching and retaliation</b> — half the people worth signing already work for someone.</li>
-      <li><b>Upgrades, stash houses, hired muscle</b> and an in-game phone contact.</li>
-      <li><b>Atomic JSON saves</b> with no third-party serialiser, and one build for both GTA V editions.</li>
-    </ul>
   </div>
-</section>
 
-</main>
+  <div style="padding:clamp(32px,5vw,64px) clamp(16px,4vw,56px) clamp(48px,7vw,88px);">
+    <div style="max-width:860px; margin:0 auto; display:flex; flex-direction:column; gap:clamp(32px,5vw,52px);">
 
-<footer>
-  <div class="col">
-    <p>On The Blade — a single-player GTA V mod by TheGTAMod.</p>
-    <p>
-      <a href="index.html">Home</a> ·
-      <a href="manual.html">Full manual</a> ·
-      <a href="https://www.youtube.com/@TheGTAMod">YouTube</a> ·
-      <a href="https://www.patreon.com/gtaontheblade">Patreon</a>
-    </p>
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <div style="display:flex; flex-wrap:wrap; align-items:baseline; gap:14px; padding-bottom:12px; border-bottom:1px solid rgba(255,61,139,.4);">
+          <div style="font-size:clamp(24px,4vw,34px); font-weight:800; letter-spacing:-.02em;">v0.2.0</div>
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; padding:4px 9px; background:#ff3d8b; color:#12080d; letter-spacing:.1em;">CURRENT</div>
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; color:#6f6a65; letter-spacing:.08em; margin-left:auto;">2 AUGUST 2026</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:11px;">
+          <div style="display:flex; gap:14px; align-items:baseline;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.1em; color:#8fd08a; min-width:52px;">NEW</div><div style="font-size:16px; line-height:1.5; color:#c9c3bc; text-wrap:pretty;">Street reputation. Five ranks from Nobody to Untouchable, moved by every incident you resolve or drop. It gates tier-3 prospects, discounts protection and lifts the loyalty new signings arrive with.</div></div>
+          <div style="display:flex; gap:14px; align-items:baseline;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.1em; color:#8fd08a; min-width:52px;">NEW</div><div style="font-size:16px; line-height:1.5; color:#c9c3bc; text-wrap:pretty;">Protection deals. Pay a crew and they leave your corners alone for a few days. Poaching from a crew you are paying voids the deal — and they keep the money.</div></div>
+          <div style="display:flex; gap:14px; align-items:baseline;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.1em; color:#8fd08a; min-width:52px;">NEW</div><div style="font-size:16px; line-height:1.5; color:#c9c3bc; text-wrap:pretty;">Demand events. Concerts, conventions, paydays, crackdowns and dead nights move one zone between x0.35 and x1.9 for a few hours.</div></div>
+          <div style="display:flex; gap:14px; align-items:baseline;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.1em; color:#8fd08a; min-width:52px;">NEW</div><div style="font-size:16px; line-height:1.5; color:#c9c3bc; text-wrap:pretty;">Territory on the map. Every corner marked and coloured by who holds it, with staffing and raid countdowns in the label.</div></div>
+          <div style="display:flex; gap:14px; align-items:baseline;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.1em; color:#8fd08a; min-width:52px;">NEW</div><div style="font-size:16px; line-height:1.5; color:#c9c3bc; text-wrap:pretty;">Worker traits. Hustler, Camera-ready, Connected, Fragile, Loyal, Magnetic — nought to two each, every one a trade.</div></div>
+          <div style="display:flex; gap:14px; align-items:baseline;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.1em; color:#8fd08a; min-width:52px;">NEW</div><div style="font-size:16px; line-height:1.5; color:#c9c3bc; text-wrap:pretty;">Shifts. Always, days, nights or off, separate from where someone is posted. Off-shift hours build followers and stamina.</div></div>
+          <div style="display:flex; gap:14px; align-items:baseline;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.1em; color:#8fd08a; min-width:52px;">NEW</div><div style="font-size:16px; line-height:1.5; color:#c9c3bc; text-wrap:pretty;">Zone saturation. Each worker on a corner earns less than the last, so spreading out now beats stacking the best zone.</div></div>
+          <div style="display:flex; gap:14px; align-items:baseline;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.1em; color:#8fd08a; min-width:52px;">NEW</div><div style="font-size:16px; line-height:1.5; color:#c9c3bc; text-wrap:pretty;">Debt and collapse. Wages, bail and fines you cannot cover compound at 8% a day. At $150,000 the people you owe come collecting.</div></div>
+          <div style="display:flex; gap:14px; align-items:baseline;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.1em; color:#8fd08a; min-width:52px;">NEW</div><div style="font-size:16px; line-height:1.5; color:#c9c3bc; text-wrap:pretty;">Raids. Past 95% heat a staffed corner gets turned over — everyone off the street, the block shut for days, and a fine.</div></div>
+          <div style="display:flex; gap:14px; align-items:baseline;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.1em; color:#8fd08a; min-width:52px;">NEW</div><div style="font-size:16px; line-height:1.5; color:#c9c3bc; text-wrap:pretty;">Bribes, milestones, and a vehicle per region. Ten goals from your first signing to breaking every crew.</div></div>
+          <div style="display:flex; gap:14px; align-items:baseline;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.1em; color:#8fd08a; min-width:52px;">NEW</div><div style="font-size:16px; line-height:1.5; color:#c9c3bc; text-wrap:pretty;">Muscle keeps rivals off your corners. An enforcer turns away 27% to 45% of moves on turf they cover.</div></div>
+          <div style="display:flex; gap:14px; align-items:baseline;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.1em; color:#e8a33d; min-width:52px;">CHANGE</div><div style="font-size:16px; line-height:1.5; color:#c9c3bc; text-wrap:pretty;">Recruiting is far less sparse. The eligible pool went from 7 models to 86 and the search radius from 20m to 35m, or 70m on gang turf and around Vinewood.</div></div>
+          <div style="display:flex; gap:14px; align-items:baseline;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.1em; color:#e8a33d; min-width:52px;">CHANGE</div><div style="font-size:16px; line-height:1.5; color:#c9c3bc; text-wrap:pretty;">Objectives name the place and the person. "Defend Sandy Shores" rather than "defend your corner".</div></div>
+          <div style="display:flex; gap:14px; align-items:baseline;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.1em; color:#e8a33d; min-width:52px;">CHANGE</div><div style="font-size:16px; line-height:1.5; color:#c9c3bc; text-wrap:pretty;">Default keys are F5 and F1, clear of the block the common modding stack already claims.</div></div>
+          <div style="display:flex; gap:14px; align-items:baseline;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.1em; color:#e8a33d; min-width:52px;">CHANGE</div><div style="font-size:16px; line-height:1.5; color:#c9c3bc; text-wrap:pretty;">The recruit menu says why nobody qualifies instead of a bare "nobody".</div></div>
+          <div style="display:flex; gap:14px; align-items:baseline;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.1em; color:#d9694f; min-width:52px;">FIX</div><div style="font-size:16px; line-height:1.5; color:#c9c3bc; text-wrap:pretty;">A takeover could not be won even after clearing the street. Winning required every enforcer to register as dead, so one who fled or fell through the map blocked it forever.</div></div>
+          <div style="display:flex; gap:14px; align-items:baseline;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.1em; color:#d9694f; min-width:52px;">FIX</div><div style="font-size:16px; line-height:1.5; color:#c9c3bc; text-wrap:pretty;">Config, saves and logs were written to the wrong folder, so a correctly placed config was never read and the mod silently ran on defaults.</div></div>
+          <div style="display:flex; gap:14px; align-items:baseline;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.1em; color:#d9694f; min-width:52px;">FIX</div><div style="font-size:16px; line-height:1.5; color:#c9c3bc; text-wrap:pretty;">New games started with no rivals and no territory — a first run had no crews, no poaching and no turf war.</div></div>
+          <div style="display:flex; gap:14px; align-items:baseline;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.1em; color:#d9694f; min-width:52px;">FIX</div><div style="font-size:16px; line-height:1.5; color:#c9c3bc; text-wrap:pretty;">Crew posted to the same corner stood inside each other.</div></div>
+          <div style="display:flex; gap:14px; align-items:baseline;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.1em; color:#d9694f; min-width:52px;">FIX</div><div style="font-size:16px; line-height:1.5; color:#c9c3bc; text-wrap:pretty;">Incident timers ran during deaths and cutscenes, so you could regain control to an already-failed objective.</div></div>
+          <div style="display:flex; gap:14px; align-items:baseline;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.1em; color:#d9694f; min-width:52px;">FIX</div><div style="font-size:16px; line-height:1.5; color:#c9c3bc; text-wrap:pretty;">Rival enforcers spawned at unverified coordinates, and the Vespucci and Strawberry corners were in the wrong place.</div></div>
+          <div style="display:flex; gap:14px; align-items:baseline;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.1em; color:#6f9fd8; min-width:52px;">BUILD</div><div style="font-size:16px; line-height:1.5; color:#c9c3bc; text-wrap:pretty;">Saves are versioned and migrate automatically. A 0.1.0 save loads into 0.2.0 with roster, territory and money intact.</div></div>
+        </div>
+        <div style="margin-top:6px; padding:16px 18px; background:#0d0b13; border:1px solid rgba(232,163,61,.35); font-size:15px; line-height:1.55; color:#d9c9a8; text-wrap:pretty;">Known: corner placement in Mirror Park, Del Perro and Vinewood is still unverified, and balance is tuned by simulation rather than by enough real play. Both are being worked through.</div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:16px; opacity:.9;">
+        <div style="display:flex; flex-wrap:wrap; align-items:baseline; gap:14px; padding-bottom:12px; border-bottom:1px solid rgba(255,255,255,.14);">
+          <div style="font-size:clamp(22px,3.4vw,28px); font-weight:800; letter-spacing:-.02em; color:#c9c3bc;">v0.1.0</div>
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; color:#6f6a65; letter-spacing:.1em;">FIRST BUILD</div>
+          <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; color:#6f6a65; letter-spacing:.08em; margin-left:auto;">1 AUGUST 2026</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:11px;">
+          <div style="display:flex; gap:14px; align-items:baseline;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.1em; color:#8fd08a; min-width:52px;">NEW</div><div style="font-size:16px; line-height:1.5; color:#a6a09a; text-wrap:pretty;">Recruiting, six corners, and distance-based streaming — crew are data, a real ped only exists within 150m.</div></div>
+          <div style="display:flex; gap:14px; align-items:baseline;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.1em; color:#8fd08a; min-width:52px;">NEW</div><div style="font-size:16px; line-height:1.5; color:#a6a09a; text-wrap:pretty;">An hourly economy of payout, stamina, loyalty and heat, plus subscription deposits as a second, safe stream.</div></div>
+          <div style="display:flex; gap:14px; align-items:baseline;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.1em; color:#8fd08a; min-width:52px;">NEW</div><div style="font-size:16px; line-height:1.5; color:#a6a09a; text-wrap:pretty;">Incidents: bad clients, vice stings, walk-offs and turf battles both ways.</div></div>
+          <div style="display:flex; gap:14px; align-items:baseline;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.1em; color:#8fd08a; min-width:52px;">NEW</div><div style="font-size:16px; line-height:1.5; color:#a6a09a; text-wrap:pretty;">Four rival crews, poaching and retaliation, upgrades, stash houses, hired muscle and a phone contact.</div></div>
+          <div style="display:flex; gap:14px; align-items:baseline;"><div style="font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.1em; color:#6f9fd8; min-width:52px;">BUILD</div><div style="font-size:16px; line-height:1.5; color:#a6a09a; text-wrap:pretty;">Atomic JSON saves with no third-party serialiser, and one build for both GTA V editions.</div></div>
+        </div>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:12px; padding-top:8px;">
+        <a href="https://www.patreon.com/gtaontheblade" style="padding:15px 26px; background:#ff3d8b; color:#12080d; font-size:16px; font-weight:700;">Get the latest build</a>
+      </div>
+    </div>
   </div>
-</footer>
 
+  <div style="padding:clamp(32px,5vw,56px) clamp(16px,4vw,56px); border-top:1px solid rgba(255,255,255,.1); background:#08070c;">
+    <div style="max-width:860px; margin:0 auto; display:flex; flex-wrap:wrap; gap:20px; align-items:center; justify-content:space-between;">
+      <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#6f6a65; letter-spacing:.08em;">v0.2.0 — A SINGLE-PLAYER GTA V MOD BY THEGTAMOD</div>
+      <div style="display:flex; flex-wrap:wrap; gap:22px; font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.08em;">
+        <a href="index.html" style="color:#a6a09a;">HOME</a>
+        <a href="features.html" style="color:#a6a09a;">FEATURES</a>
+      <a href="install.html" style="color:#a6a09a;">INSTALL</a>
+        <a href="faq.html" style="color:#a6a09a;">FAQ</a>
+        <a href="https://www.patreon.com/gtaontheblade" style="color:#ff3d8b;">PATREON</a>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
 </body>
 </html>
