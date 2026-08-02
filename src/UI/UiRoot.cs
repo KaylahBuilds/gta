@@ -128,7 +128,10 @@ namespace OnTheBlade.UI
             };
             _main.Add(save);
 
-            _roster.AddSubMenu(_detail);
+            // Parented rather than added as an item: the detail menu is reached by
+            // picking a worker, so a "detail >>>" row in the roster would open it
+            // with nobody bound. Parent still gives Back the right destination.
+            _detail.Parent = _roster;
         }
 
         private void RefreshStatus()
@@ -180,7 +183,6 @@ namespace OnTheBlade.UI
         private void RebuildRoster()
         {
             _roster.Clear();
-            _roster.AddSubMenu(_detail);
 
             var state = GameState.Current;
             if (state.Roster.Count == 0)
@@ -214,6 +216,11 @@ namespace OnTheBlade.UI
                 item.Activated += (s, e) =>
                 {
                     BindWorker(id);
+
+                    // Hide the roster first. Opening a menu without closing its
+                    // parent leaves both drawing at the same coordinates, which
+                    // reads as garbled overlapping text rather than as two menus.
+                    _roster.Visible = false;
                     _detail.Visible = true;
                 };
 
