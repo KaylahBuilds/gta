@@ -108,6 +108,11 @@
   "LogSpawnDiagnostics": true,
   "ShowDiagnosticsMenu": true,
 
+  "ProtectionBaseCost": 15000,
+  "ProtectionDays": 2,
+  "ReputationEnabled": true,
+  "DemandEventChance": 0.5,
+
   "ShowZoneBlips": true,
   "ZoneBlipAlpha": 80,
   "ZoneBlipRefreshMs": 3000,

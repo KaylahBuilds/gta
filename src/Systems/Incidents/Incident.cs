@@ -65,6 +65,13 @@ namespace OnTheBlade.Systems.Incidents
         protected virtual BlipColor Colour => BlipColor.Red;
 
         /// <summary>
+        /// Reputation moved by the outcome. Turning up is what builds a name;
+        /// letting things happen without you is what costs one.
+        /// </summary>
+        protected virtual int ReputationReward => 8;
+        protected virtual int ReputationPenalty => 10;
+
+        /// <summary>
         /// Where the blip sits and what "arrived" is measured against. Defaults to
         /// the worker's post; zone-scoped incidents override it.
         /// </summary>
@@ -185,6 +192,9 @@ namespace OnTheBlade.Systems.Incidents
         {
             Succeeded = succeeded;
             Finished = true;
+
+            if (Config.Current.ReputationEnabled)
+                Reputation.Award(succeeded ? ReputationReward : -ReputationPenalty);
 
             var worker = Worker;
             if (worker != null && worker.State == WorkerState.InTrouble)

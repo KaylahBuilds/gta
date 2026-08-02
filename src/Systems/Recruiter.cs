@@ -135,7 +135,8 @@ namespace OnTheBlade.Systems
                 .FirstOrDefault(m => new Model(m).Hash == hash);
 
             worker.TraitSet = Traits.Roll(Rng);
-            worker.Loyalty = 45f + (float)Rng.NextDouble() * 25f;
+            worker.Loyalty = 45f + (float)Rng.NextDouble() * 25f
+                             + Reputation.LoyaltyBonus(GameState.Current.Reputation);
             worker.Clamp();
 
             prospect.MarkAsNoLongerNeeded();

@@ -82,6 +82,19 @@ namespace OnTheBlade.Core
         /// </summary>
         public static int RollTier(RecruitArea area, Random rng)
         {
+            int tier = RollRawTier(area, rng);
+
+            // The best prospects will not sign for a nobody. Without this,
+            // reputation is a number that never touches anything the player does.
+            if (tier >= 3 && Config.Current.ReputationEnabled &&
+                GameState.Current.Reputation < Reputation.TierThreeThreshold)
+                tier = 2;
+
+            return tier;
+        }
+
+        private static int RollRawTier(RecruitArea area, Random rng)
+        {
             double roll = rng.NextDouble();
 
             switch (area)

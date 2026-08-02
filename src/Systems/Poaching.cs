@@ -67,6 +67,16 @@ namespace OnTheBlade.Systems
 
             worker.ClaimedFrom = owner.Id;
 
+            // Taking someone off a crew you are paying for peace ends the
+            // arrangement, and they keep the money.
+            if (state.HasTruce(owner.Id))
+            {
+                state.BreakTruce(owner.Id);
+                Notify.Show(
+                    $"~r~{owner.Name} are done talking.~s~ You took one of theirs while paying " +
+                    "for peace — that deal's over.", true);
+            }
+
             // Experienced — she has done this before.
             worker.Tier = Math.Min(3, worker.Tier + 1);
             worker.Loyalty -= cfg.PoachLoyaltyPenalty;

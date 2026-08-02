@@ -143,6 +143,18 @@ namespace OnTheBlade.Core
         /// <summary>She has been through something and does not trust you yet.</summary>
         [DataMember] public float PoachLoyaltyPenalty = 15f;
 
+        // --- Protection deals -----------------------------------------------
+        /// <summary>Base price of peace, before strength, aggression and reputation.</summary>
+        [DataMember] public int ProtectionBaseCost = 15000;
+        [DataMember] public int ProtectionDays = 5;
+
+        // --- Reputation -------------------------------------------------------
+        [DataMember] public bool ReputationEnabled = true;
+
+        // --- Demand events ----------------------------------------------------
+        /// <summary>Chance per in-game hour of a new event when none is running.</summary>
+        [DataMember] public float DemandEventChance = 0.04f;
+
         // --- Zone blips -----------------------------------------------------
         /// <summary>Draw territory on the map: green yours, red rival, grey neutral, yellow raided.</summary>
         [DataMember] public bool ShowZoneBlips = true;

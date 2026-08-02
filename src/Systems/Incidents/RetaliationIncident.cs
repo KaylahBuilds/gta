@@ -43,6 +43,9 @@ namespace OnTheBlade.Systems.Incidents
 
         protected override Vector3? TargetPosition => _anchor;
 
+        protected override int ReputationReward => 18;
+        protected override int ReputationPenalty => 22;
+
         protected override string BlipLabel => $"{Title}: {Rival?.Name}";
 
         protected override string StartMessage =>

@@ -16,6 +16,7 @@ namespace OnTheBlade.Systems
     public class EconomyTick
     {
         private readonly IncidentRoller _incidents;
+        private readonly Random _rng = new Random();
 
         public EconomyTick(IncidentRoller incidents)
         {
@@ -62,6 +63,7 @@ namespace OnTheBlade.Systems
 
                 float payout = cfg.BaseRateFor(worker.Tier)
                                * zone.Demand
+                               * DemandEvents.MultiplierFor(zone.Id)
                                * (worker.Loyalty / 100f)
                                * (1f - state.GetHeat(zone.Id))
                                * (worker.Stamina / 100f)
@@ -84,7 +86,9 @@ namespace OnTheBlade.Systems
                 if (state.ZoneHasVehicle(zone.Id)) drain *= cfg.VehicleStaminaRelief;
                 worker.Stamina -= drain;
 
-                state.AddHeat(zone.Id, zone.HeatGain * Traits.HeatMultiplier(worker.TraitSet));
+                state.AddHeat(zone.Id,
+                    zone.HeatGain * Traits.HeatMultiplier(worker.TraitSet)
+                    + DemandEvents.HeatFor(zone.Id));
 
                 // Working someone into the ground is what actually costs you the
                 // roster — this is the tension the management loop runs on.
@@ -105,6 +109,11 @@ namespace OnTheBlade.Systems
             }
 
             CheckRaids();
+
+            // Rolled after the take so a new event affects the next hour, not the
+            // one the player was just paid for.
+            string news = DemandEvents.Tick(_rng);
+            if (news != null) Notify.Show(news, true);
 
             // Midnight is payday, interest day, and where the weekly deposit is
             // checked. EconomyTick only fires on an hour change, so hour 0 comes

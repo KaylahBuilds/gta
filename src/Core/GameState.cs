@@ -16,7 +16,7 @@ namespace OnTheBlade.Core
         /// <see cref="Migrate"/>. Without this, a reshaped save fails silently
         /// and half-populated rather than loudly.
         /// </summary>
-        public const int CurrentSaveVersion = 3;
+        public const int CurrentSaveVersion = 4;
 
         [DataMember] public int SaveVersion;
 
@@ -62,6 +62,18 @@ namespace OnTheBlade.Core
         /// <summary>Zone id -> absolute day number the raid lockout expires.</summary>
         [DataMember] public Dictionary<string, int> ZoneLockedUntilDay = new Dictionary<string, int>();
 
+        /// <summary>Rival id -> absolute day a paid truce runs out.</summary>
+        [DataMember] public Dictionary<string, int> TruceUntilDay = new Dictionary<string, int>();
+
+        /// <summary>0-1000. See <see cref="Reputation"/>.</summary>
+        [DataMember] public int Reputation;
+
+        // --- the running demand event, flattened so it serialises plainly ---
+        [DataMember] public string EventKind;
+        [DataMember] public string EventZoneId;
+        [DataMember] public float EventMultiplier = 1f;
+        [DataMember] public int EventEndsAtHour;
+
         /// <summary>
         /// Distinguishes a fresh save from one where the player has genuinely
         /// neutralised every zone — without it, clearing the board would reseed it.
@@ -102,6 +114,7 @@ namespace OnTheBlade.Core
             if (Vehicles == null) Vehicles = new List<string>();
             if (Milestones == null) Milestones = new List<string>();
             if (ZoneLockedUntilDay == null) ZoneLockedUntilDay = new Dictionary<string, int>();
+            if (TruceUntilDay == null) TruceUntilDay = new Dictionary<string, int>();
 
             Migrate();
 
@@ -189,6 +202,18 @@ namespace OnTheBlade.Core
                 SaveVersion = 3;
             }
 
+            if (SaveVersion < 4)
+            {
+                // Reputation, truces and demand events arrived. A save from before
+                // them starts at zero rep with nothing running, which is correct —
+                // but the event multiplier must not deserialise as 0 and silently
+                // zero every payout.
+                if (EventMultiplier <= 0f) EventMultiplier = 1f;
+                EventKind = null;
+                EventZoneId = null;
+                SaveVersion = 4;
+            }
+
             Persistence.SaveManager.Log($"Save migrated from version {from} to {SaveVersion}.");
         }
 
@@ -218,6 +243,39 @@ namespace OnTheBlade.Core
             if (!ZoneLockedUntilDay.TryGetValue(zoneId, out until)) return 0;
             int left = until - AbsoluteDay();
             return left < 0 ? 0 : left;
+        }
+
+        /// <summary>Monotonic hour, for anything shorter-lived than a day.</summary>
+        public static int AbsoluteHour() => AbsoluteDay() * 24 + GTA.Chrono.GameClock.Hour;
+
+        // --- truces -------------------------------------------------------
+
+        public bool HasTruce(string rivalId)
+        {
+            if (string.IsNullOrEmpty(rivalId)) return false;
+            int until;
+            if (!TruceUntilDay.TryGetValue(rivalId, out until)) return false;
+            return AbsoluteDay() < until;
+        }
+
+        public int TruceDaysLeft(string rivalId)
+        {
+            int until;
+            if (string.IsNullOrEmpty(rivalId) || !TruceUntilDay.TryGetValue(rivalId, out until)) return 0;
+            int left = until - AbsoluteDay();
+            return left < 0 ? 0 : left;
+        }
+
+        public void SetTruce(string rivalId, int days)
+        {
+            if (string.IsNullOrEmpty(rivalId)) return;
+            TruceUntilDay[rivalId] = AbsoluteDay() + days;
+        }
+
+        /// <summary>Taking someone off a crew you are paying for peace ends the arrangement.</summary>
+        public void BreakTruce(string rivalId)
+        {
+            if (!string.IsNullOrEmpty(rivalId)) TruceUntilDay.Remove(rivalId);
         }
 
         // --- territory ----------------------------------------------------

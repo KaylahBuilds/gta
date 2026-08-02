@@ -53,6 +53,7 @@ namespace OnTheBlade.UI
 
             BuildMain();
             BuildBusinessMenus();
+            BuildRivalsMenu();
             BuildDiagnosticsMenu();
 
             _main.Shown += (s, e) => RefreshStatus();
@@ -133,7 +134,20 @@ namespace OnTheBlade.UI
         private void RefreshStatus()
         {
             if (_status != null)
-                _status.AltTitle = _missions.Busy ? $"~r~{_missions.ActiveTitle}" : "~g~Quiet";
+            {
+                // A running demand event outranks "quiet" — it is the thing most
+                // likely to change what the player does next.
+                string live = DemandEvents.Describe(GameState.Current);
+
+                _status.AltTitle = _missions.Busy
+                    ? $"~r~{_missions.ActiveTitle}"
+                    : live != null ? "~y~something's on" : "~g~Quiet";
+
+                _status.Description = live
+                    ?? "Anything currently going wrong. Reputation: "
+                       + $"{Reputation.Rank(GameState.Current.Reputation)} "
+                       + $"({GameState.Current.Reputation}).";
+            }
 
             if (_recruit == null) return;
 

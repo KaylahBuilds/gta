@@ -113,7 +113,11 @@ namespace OnTheBlade.Systems
 
             if (held.Count == 0) return false;
 
-            foreach (var rival in state.Rivals.Where(r => !r.IsBroken).OrderBy(_ => _rng.Next()))
+            // A crew you are paying for peace does not come for your corners.
+            // That is the whole product.
+            foreach (var rival in state.Rivals
+                         .Where(r => !r.IsBroken && !state.HasTruce(r.Id))
+                         .OrderBy(_ => _rng.Next()))
             {
                 if (_rng.NextDouble() >= rival.Aggression * cfg.RivalContestChance) continue;
 

@@ -25,6 +25,8 @@ namespace OnTheBlade.Systems.Incidents
         protected override float ResolveDistance => 8f;
         protected override BlipSprite Sprite => BlipSprite.Friend;
         protected override BlipColor Colour => BlipColor.Yellow;
+        protected override int ReputationReward => 10;
+        protected override int ReputationPenalty => 18;
 
         private int RetentionCost => 400 * (Worker?.Tier ?? 1);
 

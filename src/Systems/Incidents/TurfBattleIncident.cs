@@ -55,6 +55,9 @@ namespace OnTheBlade.Systems.Incidents
 
         protected override Vector3? TargetPosition => Zone?.Anchor;
 
+        protected override int ReputationReward => _attacking ? 30 : 22;
+        protected override int ReputationPenalty => _attacking ? 8 : 28;
+
         protected override string BlipLabel => $"{Title}: {Zone?.Display}";
 
         protected override string StartMessage => _attacking
