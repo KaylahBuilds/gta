@@ -49,6 +49,13 @@ namespace OnTheBlade.Runtime
         /// to the raw anchor if the game finds nothing walkable nearby — a bad
         /// coordinate should place someone awkwardly, not nowhere.
         /// </summary>
+        /// <summary>
+        /// The zone's working anchor — snapped to pavement and cached. Public so
+        /// incidents spawn and blip against the same corrected point workers stand
+        /// on, rather than the raw hand-written coordinate.
+        /// </summary>
+        public Vector3 AnchorFor(ZoneDef zone) => zone == null ? Vector3.Zero : SnappedAnchor(zone);
+
         private Vector3 SnappedAnchor(ZoneDef zone)
         {
             Vector3 cached;

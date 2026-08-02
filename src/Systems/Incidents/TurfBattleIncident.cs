@@ -56,7 +56,10 @@ namespace OnTheBlade.Systems.Incidents
         protected override BlipSprite Sprite => BlipSprite.Deathmatch;
         protected override BlipColor Colour => _attacking ? BlipColor.Red : BlipColor.Yellow;
 
-        protected override Vector3? TargetPosition => Zone?.Anchor;
+        /// <summary>The corrected anchor, so the blip and the fight agree on where the corner is.</summary>
+        private Vector3 Ground => Spawner.AnchorFor(Zone);
+
+        protected override Vector3? TargetPosition => Zone == null ? (Vector3?)null : Ground;
 
         protected override int ReputationReward => _attacking ? 30 : 22;
         protected override int ReputationPenalty => _attacking ? 8 : 28;
@@ -92,7 +95,7 @@ namespace OnTheBlade.Systems.Incidents
                 return;
             }
 
-            bool cleared = !_enforcers.Any(p => StillContesting(p, zone.Anchor, HoldRadius));
+            bool cleared = !_enforcers.Any(p => StillContesting(p, Ground, HoldRadius));
             if (cleared)
             {
                 Succeed(null, _attacking
@@ -108,7 +111,7 @@ namespace OnTheBlade.Systems.Incidents
 
             for (int i = 0; i < rival.EnforcerCount; i++)
             {
-                Ped ped = SpawnAntagonist(rival.PedModel, zone.Anchor, zone.Heading, 9f);
+                Ped ped = SpawnAntagonist(rival.PedModel, Ground, zone.Heading, 9f);
                 if (ped == null) continue;
 
                 ped.RelationshipGroup = hostile;
@@ -194,8 +197,8 @@ namespace OnTheBlade.Systems.Incidents
                 if (!p.Exists()) { lines.Add("gone"); continue; }
 
                 lines.Add($"hp={p.Health} dead={p.IsDead} " +
-                          $"dist={p.Position.DistanceTo(zone.Anchor):0}m " +
-                          $"contesting={StillContesting(p, zone.Anchor, HoldRadius)}");
+                          $"dist={p.Position.DistanceTo(Ground):0}m " +
+                          $"contesting={StillContesting(p, Ground, HoldRadius)}");
             }
 
             Persistence.SaveManager.Log(

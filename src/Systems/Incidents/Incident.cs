@@ -244,8 +244,7 @@ namespace OnTheBlade.Systems.Incidents
             model.Request(0);
             if (!model.IsLoaded) return null;
 
-            Vector3 spot = near.Around(scatter);
-            Ped ped = World.CreatePed(model, spot, heading);
+            Ped ped = World.CreatePed(model, SafeSpot(near.Around(scatter)), heading);
             model.MarkAsNoLongerNeeded();
 
             if (ped == null || !ped.Exists()) return null;
@@ -274,6 +273,29 @@ namespace OnTheBlade.Systems.Incidents
 
             // Ran off. Whatever they are doing, they are not holding this corner.
             return ped.Position.DistanceTo(ground) <= radius;
+        }
+
+        /// <summary>
+        /// Nudges a spawn point onto ground a ped can actually stand on.
+        ///
+        /// Zone anchors are hand-written coordinates and most have never been
+        /// checked in-game, so spawning at one raw can put an enforcer on a roof,
+        /// inside geometry or in the sea — where they are alive, unreachable, and
+        /// able to keep a turf battle unwinnable forever. Asking the game for a
+        /// safe position makes every corner behave regardless of how good the
+        /// coordinate behind it is.
+        /// </summary>
+        protected static Vector3 SafeSpot(Vector3 wanted)
+        {
+            Vector3 safe;
+            if (World.GetSafePositionForPed(wanted, out safe,
+                    GetSafePositionFlags.NotWater | GetSafePositionFlags.NotInterior) &&
+                safe != Vector3.Zero)
+                return safe;
+
+            // Nothing safe nearby — fall back to the requested point rather than
+            // silently refusing to spawn.
+            return wanted;
         }
 
         protected static void ReleasePed(ref Ped ped)
