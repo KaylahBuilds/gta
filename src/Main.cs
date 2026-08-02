@@ -20,6 +20,7 @@ namespace OnTheBlade
 
         private SpawnManager _spawner;
         private ProspectSpotter _spotter;
+        private ZoneBlips _zoneBlips;
         private MissionController _missions;
         private EconomyTick _economy;
         private UiRoot _ui;
@@ -57,6 +58,7 @@ namespace OnTheBlade
 
             _spawner = new SpawnManager();
             _spotter = new ProspectSpotter(_spawner);
+            _zoneBlips = new ZoneBlips();
             _missions = new MissionController();
             _economy = new EconomyTick(new IncidentRoller(_missions, _spawner));
             _ui = new UiRoot(_pool, _spawner, _missions, _spotter);
@@ -91,6 +93,7 @@ namespace OnTheBlade
             // worker's runtime on the same tick the player arrives.
             _spawner.Update();
             _spotter.Update();
+            _zoneBlips.Update();
             _missions.Update();
             _economy.Update();
             _phone.Update();
@@ -126,6 +129,7 @@ namespace OnTheBlade
             // Prospect blips sit on peds the mod does not own — leaking one leaves
             // a marker stuck on the map after the ped is gone.
             _spotter?.Clear();
+            _zoneBlips?.Clear();
             _spawner?.DespawnAll();
             SaveManager.Save(GameState.Current);
         }

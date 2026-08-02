@@ -143,6 +143,15 @@ namespace OnTheBlade.Core
         /// <summary>She has been through something and does not trust you yet.</summary>
         [DataMember] public float PoachLoyaltyPenalty = 15f;
 
+        // --- Zone blips -----------------------------------------------------
+        /// <summary>Draw territory on the map: green yours, red rival, grey neutral, yellow raided.</summary>
+        [DataMember] public bool ShowZoneBlips = true;
+
+        /// <summary>0-255. The shaded ground, not the pin.</summary>
+        [DataMember] public int ZoneBlipAlpha = 80;
+
+        [DataMember] public int ZoneBlipRefreshMs = 3000;
+
         // --- Blip colours -------------------------------------------------
         // Any GTA.BlipColor name. Crew and prospects are told apart by blip size
         // and label rather than colour, so both can share one.

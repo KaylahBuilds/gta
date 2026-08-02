@@ -108,5 +108,9 @@
   "LogSpawnDiagnostics": true,
   "ShowDiagnosticsMenu": true,
 
+  "ShowZoneBlips": true,
+  "ZoneBlipAlpha": 80,
+  "ZoneBlipRefreshMs": 3000,
+
   "AutoSaveIntervalMs": 30000
 }
