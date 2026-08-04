@@ -29,6 +29,7 @@ namespace OnTheBlade.Systems.Incidents
         private readonly bool _attacking;
 
         private readonly List<Ped> _enforcers = new List<Ped>();
+        private readonly List<Ped> _allies = new List<Ped>();
         private bool _spawned;
 
         public TurfBattleIncident(string zoneId, string rivalId, bool attacking, SpawnManager spawner)
@@ -92,6 +93,9 @@ namespace OnTheBlade.Systems.Incidents
             {
                 if (PlayerDistance() > SpawnRange) return;
                 SpawnEnforcers(zone, rival);
+
+                // Your own man arrives with them, not after the shooting stops.
+                TrySpawnMuscle(_zoneId, Ground, zone.Heading);
                 return;
             }
 
@@ -128,7 +132,46 @@ namespace OnTheBlade.Systems.Incidents
             if (_enforcers.Count == 0) return;
 
             _spawned = true;
-            Notify.Show($"~r~{rival.Name}~s~ — {_enforcers.Count} of them.");
+
+            Notify.Show(rival.IsAtWar
+                ? $"~r~{rival.Name}~s~ — {_enforcers.Count} of them, and they are at war with you."
+                : $"~r~{rival.Name}~s~ — {_enforcers.Count} of them.");
+
+            SpawnAllies(zone);
+        }
+
+        /// <summary>
+        /// A crew you are paying to stand with you turns up when you take somebody
+        /// else's ground. Deliberately only on the attack — an ally who materialised
+        /// every time your own corner was contested would make defending free.
+        /// </summary>
+        private void SpawnAllies(ZoneDef zone)
+        {
+            if (!_attacking) return;
+
+            var ally = Systems.Rivals.CurrentAlly();
+            if (ally == null || ally.Id == _rivalId) return;
+
+            var allied = Factions.Allied(Spawner.Crew);
+            int count = Config.Current.AllySpawnCount;
+
+            for (int i = 0; i < count; i++)
+            {
+                Ped ped = SpawnAntagonist(ally.PedModel, Ground, zone.Heading, 11f);
+                if (ped == null) continue;
+
+                ped.RelationshipGroup = allied;
+                ped.Armor = 25;
+                ped.Accuracy = 30;
+                ped.Weapons.Give(WeaponHash.Pistol, 250, true, true);
+                ped.Task.CombatHatedTargetsAroundPed(80f, TaskCombatFlags.None);
+
+                _allies.Add(ped);
+            }
+
+            if (_allies.Count == 0) return;
+
+            Notify.Show($"~b~{ally.Name} came.~s~ {_allies.Count} of them, on your side.");
         }
 
         // ------------------------------------------------------------------
@@ -209,6 +252,22 @@ namespace OnTheBlade.Systems.Incidents
 
         public override void Cleanup()
         {
+            foreach (Ped ped in _allies)
+            {
+                if (ped == null || !ped.Exists()) continue;
+
+                if (ped.IsDead)
+                {
+                    ped.MarkAsNoLongerNeeded();
+                }
+                else
+                {
+                    Ped alive = ped;
+                    ReleasePed(ref alive);
+                }
+            }
+            _allies.Clear();
+
             foreach (Ped ped in _enforcers)
             {
                 if (ped == null || !ped.Exists()) continue;

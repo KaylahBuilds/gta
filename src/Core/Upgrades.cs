@@ -31,6 +31,7 @@ namespace OnTheBlade.Core
         public const string Creator = "creator";
         public const string Burner = "burner";
         public const string BailFund = "bail_fund";
+        public const string Screening = "screening";
 
         public static readonly List<UpgradeDef> All = new List<UpgradeDef>
         {
@@ -49,6 +50,12 @@ namespace OnTheBlade.Core
             {
                 Id = BailFund, Name = "Bail fund", Cost = 6000,
                 Description = "Anyone picked up comes back the same night instead of costing you two."
+            },
+            new UpgradeDef
+            {
+                Id = Screening, Name = "Somebody who checks", Cost = 11000,
+                Description = "A name run before anyone is booked. You see how bad a " +
+                              "client is likely to be before you say yes, instead of after."
             },
             new UpgradeDef
             {

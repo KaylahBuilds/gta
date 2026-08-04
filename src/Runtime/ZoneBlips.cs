@@ -49,6 +49,62 @@ namespace OnTheBlade.Runtime
                 _drawn[zone.Id] = signature;
                 Redraw(zone);
             }
+
+            DrawHouses();
+        }
+
+        /// <summary>
+        /// Houses you own, pinned at their door.
+        ///
+        /// Keys are prefixed because a house id and a zone id share these
+        /// dictionaries and are not guaranteed to be distinct.
+        /// </summary>
+        private void DrawHouses()
+        {
+            var state = GameState.Current;
+
+            foreach (var house in Houses.All)
+            {
+                string key = "house:" + house.Id;
+
+                if (!state.OwnsHouse(house.Id))
+                {
+                    if (_pin.ContainsKey(key)) { Remove(key); _drawn.Remove(key); }
+                    continue;
+                }
+
+                if (!Config.Current.ShowHouseBlips)
+                {
+                    if (_pin.ContainsKey(key)) { Remove(key); _drawn.Remove(key); }
+                    continue;
+                }
+
+                bool shut = state.IsHouseLocked(house.Id);
+                int used = state.WorkersInHouse(house.Id).Count();
+
+                string signature = string.Join("|",
+                    shut ? "shut" + state.HouseLockDaysLeft(house.Id) : "open",
+                    used.ToString());
+
+                string previous;
+                if (_drawn.TryGetValue(key, out previous) && previous == signature) continue;
+                _drawn[key] = signature;
+
+                Remove(key);
+
+                Blip pin = World.CreateBlip(house.Door);
+                if (pin == null || !pin.Exists()) continue;
+
+                pin.Sprite = BlipSprite.Health;
+                pin.Color = shut ? Config.Current.ZoneRaided : Config.Current.HouseBlipColour;
+                pin.Scale = Config.Current.ZoneBlipScale;
+                pin.IsShortRange = false;
+                pin.Name = shut
+                    ? $"{house.Display} — shut, {state.HouseLockDaysLeft(house.Id)}d"
+                    : $"{house.Display} — {used}/{house.Rooms} working";
+
+                _pin[key] = pin;
+            }
         }
 
         /// <summary>Everything the blip's appearance depends on, as one comparable string.</summary>
@@ -127,6 +183,7 @@ namespace OnTheBlade.Runtime
             _pin[zone.Id] = pin;
         }
 
+        /// <param name="zoneId">A zone id, or a "house:" prefixed house id.</param>
         private void Remove(string zoneId)
         {
             Blip b;

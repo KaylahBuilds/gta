@@ -16,7 +16,7 @@ namespace OnTheBlade.Core
         /// <see cref="Migrate"/>. Without this, a reshaped save fails silently
         /// and half-populated rather than loudly.
         /// </summary>
-        public const int CurrentSaveVersion = 4;
+        public const int CurrentSaveVersion = 12;
 
         [DataMember] public int SaveVersion;
 
@@ -38,6 +38,94 @@ namespace OnTheBlade.Core
 
         /// <summary>Region ids where a stash house has been bought.</summary>
         [DataMember] public List<string> StashHouses = new List<string>();
+
+        /// <summary>Ids from <see cref="Houses"/> that have been bought.</summary>
+        [DataMember] public List<string> OwnedHouses = new List<string>();
+
+        /// <summary>House id -> heat, 0..1. Kept apart from zone heat: a house is
+        /// not on anyone's corner and must not inherit the street's temperature.</summary>
+        [DataMember] public Dictionary<string, float> HouseHeat = new Dictionary<string, float>();
+
+        /// <summary>House id -> absolute day the raid shutdown expires.</summary>
+        [DataMember] public Dictionary<string, int> HouseLockedUntilDay = new Dictionary<string, int>();
+
+        /// <summary>Lifetime take earned indoors.</summary>
+        [DataMember] public int LifetimeHouseTake;
+
+        // --- the client currently asking, flattened so it serialises plainly ---
+        // Only ever one at a time, same as the running demand event. Two offers
+        // competing for the same worker would need a queue and a queue would make
+        // this a to-do list, which is the thing the mod is trying not to be.
+        [DataMember] public int OfferKind;
+        [DataMember] public int OfferWorkerId = -1;
+        [DataMember] public string OfferClientName;
+        [DataMember] public int OfferPayout;
+        [DataMember] public float OfferRisk;
+        [DataMember] public int OfferLeverage;
+        [DataMember] public int OfferHours;
+        [DataMember] public int OfferExpiresAtHour;
+
+        [IgnoreDataMember]
+        public bool HasOffer => OfferKind != (int)ClientKind.None && OfferWorkerId >= 0;
+
+        /// <summary>Lifetime take from bookings.</summary>
+        [DataMember] public int LifetimeBookingTake;
+
+        /// <summary>
+        /// Signings owed to you by people who left on good terms. Consumed one at
+        /// a time by the next recruit, who arrives already trusting you.
+        /// </summary>
+        [DataMember] public int PendingReferrals;
+
+        // --- the law ---
+        /// <summary>Absolute day the police retainer runs out.</summary>
+        [DataMember] public int CopPaidUntilDay;
+
+        /// <summary>How many times you have let him go. He charges more each time.</summary>
+        [DataMember] public int CopBurnedCount;
+
+        /// <summary>Zone he has warned you about, and how long the notice lasts.</summary>
+        [DataMember] public string WarnedZoneId;
+        [DataMember] public int WarningExpiresAtHour;
+
+        /// <summary>Worker quietly talking to the police. -1 for nobody.</summary>
+        [DataMember] public int InformantWorkerId = -1;
+        [DataMember] public int InformantSinceDay;
+
+        /// <summary>Whether you have been told somebody is talking.</summary>
+        [DataMember] public bool InformantHinted;
+
+        /// <summary>Whether a sweep has actually named her.</summary>
+        [DataMember] public bool InformantKnown;
+
+        // --- money ---
+        /// <summary>Zone id -> <see cref="PriceLevel"/>. Missing means the going rate.</summary>
+        [DataMember] public Dictionary<string, int> ZonePrices = new Dictionary<string, int>();
+
+        /// <summary>Cash borrowed over the run, before interest.</summary>
+        [DataMember] public int LifetimeBorrowed;
+
+        /// <summary>Absolute day collectors will leave you alone until.</summary>
+        [DataMember] public int CollectorsGraceUntilDay;
+
+        /// <summary>
+        /// Somebody is on their way. Set by the daily roll and consumed by the
+        /// incident roller, because the daily tick runs at midnight and an
+        /// incident has to start on an hour the player is actually playing.
+        /// </summary>
+        [DataMember] public bool CollectorsPending;
+
+        public void ClearOffer()
+        {
+            OfferKind = (int)ClientKind.None;
+            OfferWorkerId = -1;
+            OfferClientName = null;
+            OfferPayout = 0;
+            OfferRisk = 0f;
+            OfferLeverage = (int)LeverageKind.None;
+            OfferHours = 0;
+            OfferExpiresAtHour = 0;
+        }
 
         [DataMember] public List<EnforcerData> Enforcers = new List<EnforcerData>();
         [DataMember] public int NextEnforcerId = 1;
@@ -115,6 +203,10 @@ namespace OnTheBlade.Core
             if (Milestones == null) Milestones = new List<string>();
             if (ZoneLockedUntilDay == null) ZoneLockedUntilDay = new Dictionary<string, int>();
             if (TruceUntilDay == null) TruceUntilDay = new Dictionary<string, int>();
+            if (OwnedHouses == null) OwnedHouses = new List<string>();
+            if (HouseHeat == null) HouseHeat = new Dictionary<string, float>();
+            if (HouseLockedUntilDay == null) HouseLockedUntilDay = new Dictionary<string, int>();
+            if (ZonePrices == null) ZonePrices = new Dictionary<string, int>();
 
             Migrate();
 
@@ -212,6 +304,137 @@ namespace OnTheBlade.Core
                 EventKind = null;
                 EventZoneId = null;
                 SaveVersion = 4;
+            }
+
+            if (SaveVersion < 5)
+            {
+                // Tier progression and per-worker investment arrived. Both new
+                // worker fields are deliberately shaped so their zero value is the
+                // correct one — HoursWorked 0 means she starts earning experience
+                // from now, HasStudio false means nothing was bought for her. So
+                // there is nothing to back-fill, only a version to record.
+                SaveVersion = 5;
+            }
+
+            if (SaveVersion < 6)
+            {
+                // Armed muscle arrived. Enforcers hired before it have no weapon
+                // and no ped model — WeaponId deserialises as null, which IsArmed
+                // already reads as unarmed, but the model has to be filled in or
+                // they can never be spawned once you do arm them.
+                var models = Config.Current.EnforcerModels;
+                var rng = new System.Random();
+
+                foreach (var e in Enforcers)
+                {
+                    if (string.IsNullOrEmpty(e.WeaponId)) e.WeaponId = Armoury.Unarmed;
+
+                    if (string.IsNullOrEmpty(e.ModelName))
+                        e.ModelName = models != null && models.Length > 0
+                            ? models[rng.Next(models.Length)]
+                            : "g_m_y_famca_01";
+                }
+
+                SaveVersion = 6;
+            }
+
+            if (SaveVersion < 7)
+            {
+                // Houses arrived. Nobody can already be indoors, and every new
+                // collection defaults empty, so there is nothing to back-fill —
+                // but HouseId must be cleared explicitly rather than trusted,
+                // because a null string field and an empty one behave differently
+                // in IsIndoors and this is cheaper than finding that out in play.
+                foreach (var w in Roster) w.HouseId = null;
+                SaveVersion = 7;
+            }
+
+            if (SaveVersion < 8)
+            {
+                // Clients arrived. OfferWorkerId defaults to -1 in a fresh object
+                // but deserialises as 0 from a save that predates it, and 0 is a
+                // plausible worker id — that would have the phone offering a
+                // booking to whoever happened to be first on the books.
+                ClearOffer();
+
+                foreach (var w in Roster)
+                {
+                    w.BookingEndsAtHour = 0;
+                    w.BookingPayout = 0;
+                    w.BookingRisk = 0f;
+                    w.BookingClientName = null;
+                    w.BookingLeverage = (int)LeverageKind.None;
+                }
+
+                SaveVersion = 8;
+            }
+
+            if (SaveVersion < 9)
+            {
+                // Managers, mentors and leaving arrived. Seed LifetimeHours from
+                // the hours already banked toward the current tier rather than
+                // starting everyone at zero — an existing crew has visibly been
+                // working, and resetting that would put burnout further away for
+                // veterans than for someone signed this morning.
+                foreach (var w in Roster)
+                {
+                    if (w.LifetimeHours <= 0) w.LifetimeHours = w.HoursWorked;
+                    w.ManagesZoneId = null;
+                    w.WantsOutReason = 0;
+                    w.WantsOutSinceDay = 0;
+                }
+
+                SaveVersion = 9;
+            }
+
+            if (SaveVersion < 10)
+            {
+                // The law arrived. InformantWorkerId is the trap here: it defaults
+                // to -1 on a fresh object but deserialises as 0 from an older save,
+                // and 0 is a plausible worker id — the mod would have quietly
+                // decided whoever was first on the books had been informing all
+                // along, and doubled the heat they generate.
+                InformantWorkerId = -1;
+                InformantSinceDay = 0;
+                InformantHinted = false;
+                InformantKnown = false;
+
+                CopPaidUntilDay = 0;
+                CopBurnedCount = 0;
+                WarnedZoneId = null;
+                WarningExpiresAtHour = 0;
+
+                foreach (var w in Roster) w.JailedUntilDay = 0;
+
+                SaveVersion = 10;
+            }
+
+            if (SaveVersion < 11)
+            {
+                // War and alliances arrived. Both new crew fields are day numbers
+                // where zero already means "not happening", so there is nothing to
+                // back-fill — but an existing save can easily be carrying a crew
+                // sitting above the war threshold, and they should have to cross
+                // it in play rather than be at war the moment the save loads.
+                foreach (var r in Rivals)
+                {
+                    r.WarSinceDay = 0;
+                    r.AlliedUntilDay = 0;
+
+                    if (r.Aggression >= Config.Current.WarAggressionThreshold)
+                        r.Aggression = Config.Current.WarAggressionThreshold - 0.05f;
+                }
+
+                SaveVersion = 11;
+            }
+
+            if (SaveVersion < 12)
+            {
+                // Borrowing, pricing and collectors arrived. Every corner starts at
+                // the going rate, which is what a missing entry already means, so
+                // the dictionary is deliberately left empty rather than seeded.
+                CollectorsGraceUntilDay = 0;
+                SaveVersion = 12;
             }
 
             Persistence.SaveManager.Log($"Save migrated from version {from} to {SaveVersion}.");
@@ -339,6 +562,71 @@ namespace OnTheBlade.Core
             ZoneHeat[zoneId] = v < 0f ? 0f : (v > 1f ? 1f : v);
         }
 
+        // --- houses --------------------------------------------------------
+
+        public bool OwnsHouse(string houseId) =>
+            !string.IsNullOrEmpty(houseId) && OwnedHouses.Contains(houseId);
+
+        public IEnumerable<WorkerData> WorkersInHouse(string houseId)
+        {
+            return Roster.Where(w => w.HouseId == houseId);
+        }
+
+        /// <summary>Rooms still free, or 0 if the house is not owned.</summary>
+        public int RoomsFree(HouseDef house)
+        {
+            if (house == null || !OwnsHouse(house.Id)) return 0;
+            int used = WorkersInHouse(house.Id).Count();
+            int free = house.Rooms - used;
+            return free < 0 ? 0 : free;
+        }
+
+        public float GetHouseHeat(string houseId)
+        {
+            if (string.IsNullOrEmpty(houseId)) return 0f;
+            float v;
+            return HouseHeat.TryGetValue(houseId, out v) ? v : 0f;
+        }
+
+        public void AddHouseHeat(string houseId, float delta)
+        {
+            if (string.IsNullOrEmpty(houseId)) return;
+            float v = GetHouseHeat(houseId) + delta;
+            HouseHeat[houseId] = v < 0f ? 0f : (v > 1f ? 1f : v);
+        }
+
+        public bool IsHouseLocked(string houseId)
+        {
+            if (string.IsNullOrEmpty(houseId)) return false;
+            int until;
+            if (!HouseLockedUntilDay.TryGetValue(houseId, out until)) return false;
+            return AbsoluteDay() < until;
+        }
+
+        public int HouseLockDaysLeft(string houseId)
+        {
+            int until;
+            if (string.IsNullOrEmpty(houseId) ||
+                !HouseLockedUntilDay.TryGetValue(houseId, out until)) return 0;
+            int left = until - AbsoluteDay();
+            return left < 0 ? 0 : left;
+        }
+
+        /// <summary>Empties a house — used when it is raided.</summary>
+        public void ClearHouse(string houseId)
+        {
+            foreach (var worker in WorkersInHouse(houseId).ToList())
+            {
+                worker.HouseId = null;
+                worker.State = WorkerState.OffDuty;
+            }
+        }
+
+        /// <summary>Total rent due at midnight across every house owned.</summary>
+        [IgnoreDataMember]
+        public int DailyRentBill =>
+            Houses.All.Where(h => OwnsHouse(h.Id)).Sum(h => h.DailyRent);
+
         public WorkerData GetWorker(int id) => Roster.FirstOrDefault(w => w.Id == id);
 
         public IEnumerable<WorkerData> WorkersIn(string zoneId)
@@ -369,6 +657,19 @@ namespace OnTheBlade.Core
                 ModelHash = modelHash,
                 Tier = tier
             };
+
+            // Every recruitment path funnels through here, so this is the one
+            // place a referral can be spent without each caller having to know
+            // referrals exist.
+            if (PendingReferrals > 0)
+            {
+                PendingReferrals--;
+                worker.Loyalty += Config.Current.ReferralLoyaltyBonus;
+
+                Notify.Show(
+                    $"~g~{name} came recommended.~s~ She has heard how you treat people.");
+            }
+
             worker.Clamp();
             Roster.Add(worker);
             return worker;

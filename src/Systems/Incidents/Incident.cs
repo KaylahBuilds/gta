@@ -1,3 +1,4 @@
+using System.Linq;
 using GTA;
 using GTA.Math;
 using OnTheBlade.Core;
@@ -154,6 +155,8 @@ namespace OnTheBlade.Systems.Incidents
 
             DrawObjective(_remainingMs);
 
+            UpdateMuscle();
+
             OnUpdate(worker, live ? runtime : null);
             if (Finished) return;
 
@@ -206,7 +209,9 @@ namespace OnTheBlade.Systems.Incidents
             if (worker != null && worker.State == WorkerState.InTrouble)
             {
                 // Subclasses that pull someone off the street set ZoneId to null.
-                worker.State = string.IsNullOrEmpty(worker.ZoneId)
+                // A house posting counts as a post too, or anyone moved indoors
+                // mid-incident would come out of it benched.
+                worker.State = string.IsNullOrEmpty(worker.ZoneId) && !worker.IsIndoors
                     ? WorkerState.OffDuty
                     : WorkerState.Working;
             }
@@ -220,11 +225,174 @@ namespace OnTheBlade.Systems.Incidents
         /// </summary>
         public virtual void Cleanup()
         {
+            ResolveMuscle();
+
             if (_blip != null && _blip.Exists())
             {
                 _blip.Delete();
                 _blip = null;
             }
+        }
+
+        // ------------------------------------------------------------------
+        // Hired muscle
+        //
+        // An armed enforcer covering this ground turns up and fights. He is
+        // deliberately spawned by the same deferral the antagonists use, so he
+        // arrives with them rather than standing on an empty street waiting.
+        // ------------------------------------------------------------------
+
+        private Ped _muscle;
+        private Blip _muscleBlip;
+        private int _muscleEnforcerId = -1;
+        private int _lastFightOrderAt;
+
+        /// <summary>The armed, fit enforcer covering a zone, or null.</summary>
+        protected static EnforcerData AvailableMuscle(string zoneId)
+        {
+            if (!Config.Current.MuscleTurnsUp) return null;
+
+            var enforcer = GameState.Current.EnforcerFor(zoneId);
+            if (enforcer == null) return null;
+            if (!enforcer.IsArmed || enforcer.IsInjured()) return null;
+
+            return enforcer;
+        }
+
+        /// <summary>
+        /// Brings in whoever covers this ground. Safe to call every tick — it
+        /// returns immediately once he is out, or if there is nobody to send.
+        /// </summary>
+        protected void TrySpawnMuscle(string zoneId, Vector3 near, float heading)
+        {
+            if (_muscle != null) return;
+
+            var enforcer = AvailableMuscle(zoneId);
+            if (enforcer == null) return;
+
+            var loadout = enforcer.Loadout;
+            if (loadout == null) return;
+
+            Ped ped = SpawnAntagonist(enforcer.ModelName, near, heading, 6f);
+            if (ped == null) return;
+
+            ped.RelationshipGroup = Factions.Allied(Spawner.Crew);
+            ped.Armor = loadout.Armour;
+            ped.Accuracy = loadout.Accuracy;
+            ped.Weapons.Give(loadout.Weapon, loadout.Ammo, true, true);
+
+            // He is here to fight, not to be dragged off by whatever the ambient
+            // world throws at him.
+            ped.CanSwitchWeapons = true;
+            ped.CanWrithe = false;
+
+            _muscle = ped;
+            _muscleEnforcerId = enforcer.Id;
+
+            if (Config.Current.ShowMuscleBlip)
+            {
+                _muscleBlip = ped.AddBlip();
+                if (_muscleBlip != null && _muscleBlip.Exists())
+                {
+                    _muscleBlip.Color = Config.Current.MuscleBlipColour;
+                    _muscleBlip.Scale = 0.7f;
+                    _muscleBlip.Name = enforcer.Name;
+                }
+            }
+
+            OrderFight();
+
+            Notify.Show(
+                $"~b~{enforcer.Name} is here.~s~ {Armoury.NameOf(enforcer.WeaponId)}, " +
+                "and he is not waiting for you.");
+        }
+
+        /// <summary>
+        /// Re-issues the fight order periodically. A ped given one combat task
+        /// goes idle the moment its target dies, which left muscle standing in the
+        /// open halfway through a turf battle.
+        /// </summary>
+        private void UpdateMuscle()
+        {
+            if (_muscle == null || !_muscle.Exists()) return;
+            if (_muscle.IsDead || !_muscle.IsAlive) return;
+
+            int now = Game.GameTime;
+            if (now - _lastFightOrderAt < 3000) return;
+
+            if (!_muscle.IsInCombat) OrderFight();
+            _lastFightOrderAt = now;
+        }
+
+        private void OrderFight()
+        {
+            if (_muscle == null || !_muscle.Exists()) return;
+            _muscle.Task.CombatHatedTargetsAroundPed(
+                Config.Current.MuscleFightRadius, TaskCombatFlags.None);
+            _lastFightOrderAt = Game.GameTime;
+        }
+
+        /// <summary>
+        /// Settles what the fight cost him, then releases the ped. Losing muscle
+        /// does not end the contract — he is laid up and still drawing his wage,
+        /// which is the whole reason arming him properly is worth the money.
+        /// </summary>
+        private void ResolveMuscle()
+        {
+            if (_muscleBlip != null && _muscleBlip.Exists())
+            {
+                _muscleBlip.Delete();
+                _muscleBlip = null;
+            }
+
+            if (_muscle == null) return;
+
+            // Deliberately not "the ped is gone". A handle that no longer resolves
+            // means the engine cleaned it up, which is not the same as him being
+            // carried out — and charging the player two days of wages for a
+            // streaming quirk is the kind of thing that reads as a broken mod.
+            bool exists = _muscle.Exists();
+            bool wentDown = exists && (_muscle.IsDead || !_muscle.IsAlive);
+
+            var enforcer = _muscleEnforcerId >= 0
+                ? GameState.Current.Enforcers.FirstOrDefault(e => e.Id == _muscleEnforcerId)
+                : null;
+
+            if (wentDown)
+            {
+                if (enforcer != null)
+                {
+                    int days = Config.Current.MuscleInjuryDays;
+                    enforcer.InjuredUntilDay = GameState.AbsoluteDay() + days;
+                    enforcer.TimesHurt++;
+                    enforcer.Clamp();
+
+                    Notify.Show(
+                        $"~r~{enforcer.Name} got carried out of that.~s~ " +
+                        $"Off the corner for {days} day(s), still on the wage.", true);
+
+                    Persistence.SaveManager.Log(
+                        $"{enforcer.Name} injured in an incident; out until day {enforcer.InjuredUntilDay}.");
+                }
+
+                // Leave the body; deleting it mid-scene looks wrong. Releasing
+                // ownership lets the engine clear it normally.
+                _muscle.MarkAsNoLongerNeeded();
+            }
+            else
+            {
+                // He walked away from it. Turning out is the job.
+                if (exists && enforcer != null) enforcer.Handled++;
+
+                if (exists)
+                {
+                    Ped alive = _muscle;
+                    ReleasePed(ref alive);
+                }
+            }
+
+            _muscle = null;
+            _muscleEnforcerId = -1;
         }
 
         // ------------------------------------------------------------------

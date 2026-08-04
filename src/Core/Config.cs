@@ -1,7 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Runtime.Serialization;
+using System.Runtime.Serialization.Json;
 using System.Windows.Forms;
+using System.Xml;
 using GTA;
 using OnTheBlade.Persistence;
 
@@ -78,6 +82,387 @@ namespace OnTheBlade.Core
         // split ~$20.3k/wk — the mixed strategy wins, which is the point.
         [DataMember] public float RevenuePerFollowerWeekly = 0.5f;
         [DataMember] public float MaxFollowers = 25000f;
+
+        // --- Tier progression ---------------------------------------------
+        // Tier is the largest single term in the payout formula and it used to be
+        // decided by one roll at recruit that the player could never touch. These
+        // are the two ways to move it: work the hours, or pay for the step up.
+        //
+        // An in-game hour is roughly two real minutes at the default timescale.
+        // On nights-only — the shift the mod nudges you toward — 30 hours is about
+        // 2 real hours, so a first promotion lands inside a decent session. Tier 3
+        // at 90 is a genuine long haul, which is what the wardrobe is there to
+        // shortcut. Both were halved after simulating: the first pass put tier 3
+        // at nearly 11 real hours of night shifts, which made the earned path
+        // decorative rather than reachable.
+        [DataMember] public int TierUpHours2 = 30;
+        [DataMember] public int TierUpHours3 = 90;
+
+        /// <summary>She has to want the step up. Below this, hours alone will not do it.</summary>
+        [DataMember] public float TierUpLoyalty = 65f;
+
+        // --- Per-worker investment -----------------------------------------
+        // The money sink the mod was missing. Everything else you can buy is
+        // global; these attach to one person and are lost if she leaves, which is
+        // the point — it makes the roster something you own rather than cycle.
+        //
+        // Priced against the earned path rather than against the payout, because
+        // an upgrade you can simply wait out for free is not a decision. At the
+        // first pass $12,000 bought a tier that paid back over 60 street hours
+        // while working 48 got it for nothing — strictly worse than doing nothing.
+        // These land both steps at roughly break-even: short on time, you buy;
+        // short on cash, you wait.
+        [DataMember] public int WardrobeCost2 = 6000;
+        [DataMember] public int WardrobeCost3 = 35000;
+
+        /// <summary>You cannot buy a stranger to the top. Loyalty has to be there first.</summary>
+        [DataMember] public float WardrobeMinLoyalty = 60f;
+
+        // More loyalty than a plain bonus and a full night's rest with it, at
+        // three times the price. Without the extra loyalty the bonus was simply
+        // the better buy and this was never worth opening.
+        [DataMember] public int ClinicCost = 1500;
+        [DataMember] public float ClinicLoyalty = 15f;
+
+        // Pays for itself in under two game weeks on a worker near the follower
+        // cap. At $9,000 for +25% it took nearly thirty real hours, which is not
+        // an investment so much as a donation.
+        [DataMember] public int StudioCost = 4500;
+        [DataMember] public float StudioFollowerBonus = 1.35f;
+
+        /// <summary>Buys the Connected trait for one worker — she stops drawing heat.</summary>
+        [DataMember] public int PapersCost = 6500;
+
+        // --- Money: borrowing, pricing and collectors -------------------------
+        /// <summary>
+        /// What you owe for every dollar borrowed. Deliberately brutal — this is
+        /// not a bank, and the money goes straight onto the debt the collapse
+        /// system already watches.
+        /// </summary>
+        [DataMember] public float LoanMultiplier = 1.45f;
+
+        /// <summary>Smallest and largest sums anyone will lend you.</summary>
+        [DataMember] public int LoanMin = 10000;
+        [DataMember] public int LoanMax = 120000;
+
+        /// <summary>
+        /// Ceiling on borrowing, as a share of the collapse threshold. Nobody will
+        /// hand you enough rope to end the run in a single transaction.
+        /// </summary>
+        [DataMember] public float LoanDebtCeiling = 0.6f;
+
+        // Pricing. Standard is 1x everything; the two ends trade income now
+        // against a client base later, and shift how many people a corner can
+        // usefully carry.
+        //
+        // The saturation figures are what make this a choice at all. At the first
+        // pass premium out-earned the going rate at every headcount while also
+        // cutting heat and trouble — the only thing it cost was regulars, which
+        // made it very nearly a free upgrade. These are tuned so the two ends
+        // cross over: premium wins a thin corner, cut price wins a full one.
+        //
+        //   workers      1     2     3     4      (relative corner yield)
+        //   cut       0.80  1.38  1.83  2.17
+        //   going     1.00  1.48  1.76  1.95
+        //   premium   1.30  1.53  1.62  1.68
+        [DataMember] public float CutPricePayout = 0.80f;
+        [DataMember] public float CutPriceHeat = 1.40f;
+        [DataMember] public float CutPriceRegulars = 2.00f;
+        [DataMember] public float CutPriceSaturation = 0.45f;
+        [DataMember] public float CutPriceTrouble = 1.35f;
+
+        [DataMember] public float PremiumPayout = 1.30f;
+        [DataMember] public float PremiumHeat = 0.70f;
+        [DataMember] public float PremiumRegulars = 0.40f;
+        [DataMember] public float PremiumSaturation = 2.00f;
+        [DataMember] public float PremiumTrouble = 0.85f;
+
+        // Collectors
+        /// <summary>Share of the collapse threshold at which people start coming for it.</summary>
+        [DataMember] public float CollectorsDebtShare = 0.55f;
+
+        [DataMember] public float CollectorsChancePerDay = 0.35f;
+
+        /// <summary>Days of interest they waive if you see them off.</summary>
+        [DataMember] public int CollectorsGraceDays = 3;
+
+        /// <summary>Share of the debt written off when they take somebody instead.</summary>
+        [DataMember] public float CollectorsTakeShare = 0.35f;
+
+        // --- Rivals: poaching back, war and alliances -------------------------
+        /// <summary>
+        /// Daily chance a crew tries to take somebody off you. Poaching was
+        /// entirely one-directional until now, which made loyalty a payout
+        /// multiplier and nothing else.
+        /// </summary>
+        [DataMember] public float RivalPoachChancePerDay = 0.05f;
+
+        /// <summary>Loyalty at or above which nobody is going anywhere.</summary>
+        [DataMember] public float RivalPoachSafeLoyalty = 70f;
+
+        /// <summary>Loyalty she gains for turning them down.</summary>
+        [DataMember] public float RivalPoachRefusedLoyalty = 10f;
+
+        /// <summary>Strength a crew gains for taking one of yours.</summary>
+        [DataMember] public float RivalPoachStrengthGain = 8f;
+
+        /// <summary>How much armed muscle covering her ground puts them off.</summary>
+        [DataMember] public float RivalPoachMuscleDeterrence = 0.6f;
+
+        // War
+        /// <summary>Aggression at which a crew stops contesting and starts a war.</summary>
+        [DataMember] public float WarAggressionThreshold = 0.85f;
+
+        /// <summary>Contest odds multiplier while at war.</summary>
+        [DataMember] public float WarContestMultiplier = 2.2f;
+
+        /// <summary>Extra bodies they bring to a turf battle while at war.</summary>
+        [DataMember] public int WarExtraEnforcers = 2;
+
+        /// <summary>Strength at which they give it up and sue for peace.</summary>
+        [DataMember] public float WarEndStrength = 18f;
+
+        /// <summary>
+        /// Days after which a war burns out regardless of who is winning.
+        ///
+        /// Without this a war has exactly one exit that does not require winning:
+        /// paying the premium. But losing a defence <em>raises</em> their strength,
+        /// so a player who cannot win turf battles and cannot afford the buyout
+        /// would be stuck being attacked every few minutes indefinitely, with the
+        /// condition that ends it moving further away every time they lose.
+        /// </summary>
+        [DataMember] public int WarMaxDays = 14;
+
+        /// <summary>Buying out of a war costs this many times the ordinary price.</summary>
+        [DataMember] public float WarTrucePremium = 3.0f;
+
+        // Alliances
+        /// <summary>Reputation before a crew will stand with you rather than merely leave you alone.</summary>
+        [DataMember] public int AllianceMinReputation = 400;
+
+        /// <summary>Alliance price, as a multiple of the protection price.</summary>
+        [DataMember] public float AllianceCostMultiplier = 3.5f;
+
+        [DataMember] public int AllianceDays = 10;
+
+        /// <summary>Bodies an allied crew sends to a turf battle on your side.</summary>
+        [DataMember] public int AllySpawnCount = 3;
+
+        // --- The law ----------------------------------------------------------
+        /// <summary>A man at the station, bought a week at a time.</summary>
+        [DataMember] public int CopRetainerDailyCost = 2500;
+        [DataMember] public int CopRetainerDays = 7;
+
+        /// <summary>In-game hours of notice before a raid he could not stop.</summary>
+        [DataMember] public int CopWarningHours = 6;
+
+        /// <summary>Roster size before anyone is worth turning.</summary>
+        [DataMember] public int InformantMinRoster = 4;
+
+        /// <summary>Nobody loyal is talking to the police.</summary>
+        [DataMember] public float InformantMaxLoyalty = 55f;
+
+        [DataMember] public float InformantChancePerDay = 0.012f;
+
+        /// <summary>
+        /// Heat she generates, multiplied. This is the only tell before the hint.
+        ///
+        /// Cut from 2.2 after simulating against the hottest corner: on Strawberry
+        /// a single informant took the zone from cold to raided in 26 in-game
+        /// hours, while the hint did not arrive until 48. The corner was gone
+        /// before the player was told there was anything to find, which is not a
+        /// mystery, it is an ambush. At 1.6 the same corner takes about 53 hours
+        /// and the tell lands at 24.
+        /// </summary>
+        [DataMember] public float InformantHeatMultiplier = 1.6f;
+
+        /// <summary>
+        /// Retired. You are told the moment somebody starts talking — see
+        /// <see cref="Systems.Law.RollInformant"/> for why the delay had to go.
+        /// Kept so an existing config.json does not lose a key it already has.
+        /// </summary>
+        [DataMember] public int InformantHintDays;
+
+        /// <summary>Cost of finding out who. Halved by the legal retainer.</summary>
+        [DataMember] public int InformantSweepCost = 14000;
+
+        [DataMember] public float AccusationWrongLoyaltyHit = 20f;
+        [DataMember] public int AccusationRightReputation = 25;
+        [DataMember] public int AccusationWrongReputation = 35;
+
+        // --- Custody ----------------------------------------------------------
+        // A bust used to be a fine and nothing else. Now she goes away, which is
+        // the only thing that makes vice frightening rather than expensive.
+        [DataMember] public int CustodyDaysMin = 2;
+        [DataMember] public int CustodyDaysMax = 6;
+        [DataMember] public int CourtFine = 4000;
+
+        /// <summary>Per remaining day. Halved by the legal retainer.</summary>
+        [DataMember] public int LawyerCostPerDay = 2200;
+
+        [DataMember] public float LawyerLoyaltyReward = 18f;
+        [DataMember] public float CustodyLoyaltyHit = 20f;
+
+        // --- Crew: managers, mentors and leaving ------------------------------
+        /// <summary>
+        /// Tier needed to run a corner instead of working it. Set to 3 because
+        /// tier 3 previously had nowhere left to go — promotion topped out and the
+        /// stat stopped meaning anything.
+        /// </summary>
+        [DataMember] public int ManagerMinTier = 3;
+
+        /// <summary>
+        /// Payout multiplier for everyone else working a managed corner.
+        ///
+        /// Raised from 1.30 after simulating the actual trade. A tier-3 gives up a
+        /// large personal income to run a corner, and at 30% the three juniors
+        /// left on it never made that back — running it lost to working it at
+        /// every loyalty level, which made the whole promotion a trap.
+        ///
+        /// At 1.75 it turns over: clearly worth it with a loyal manager, roughly
+        /// even in the middle, and a loss if she has checked out. Which is the
+        /// decision it was supposed to be.
+        /// </summary>
+        [DataMember] public float ManagerPayoutBonus = 1.75f;
+
+        /// <summary>Heat multiplier on a managed corner. Someone is watching the door.</summary>
+        [DataMember] public float ManagerHeatReduction = 0.65f;
+
+        /// <summary>
+        /// Extra experience hours a junior gains per hour worked alongside someone
+        /// of a higher tier. Makes who you post together a decision rather than a
+        /// sum of individual stats.
+        /// </summary>
+        [DataMember] public int MentorBonusHours = 1;
+
+        /// <summary>Lifetime hours before she starts thinking about getting out.</summary>
+        [DataMember] public int BurnoutHours = 400;
+
+        /// <summary>Daily chance of asking to leave, once past that.</summary>
+        [DataMember] public float BurnoutChancePerDay = 0.12f;
+
+        /// <summary>
+        /// Daily chance of wanting out for reasons that have nothing to do with
+        /// you. Per worker, so it multiplies across the roster — at 1.5% a book of
+        /// nine produced somebody resigning every week, which turns a moment into
+        /// paperwork.
+        /// </summary>
+        [DataMember] public float PersonalExitChancePerDay = 0.008f;
+
+        /// <summary>Days to answer before she goes on her own and takes your name with her.</summary>
+        [DataMember] public int ExitDecisionDays = 3;
+
+        /// <summary>Cost to talk her round, per tier.</summary>
+        [DataMember] public int RetentionCostPerTier = 9000;
+
+        /// <summary>Loyalty restored when you pay her to stay.</summary>
+        [DataMember] public float RetentionLoyalty = 25f;
+
+        /// <summary>Loyalty lost when you simply refuse.</summary>
+        [DataMember] public float RefusalLoyaltyHit = 30f;
+
+        /// <summary>Reputation for letting someone go properly, and for not.</summary>
+        [DataMember] public int ExitGoodReputation = 20;
+        [DataMember] public int ExitBadReputation = 25;
+
+        /// <summary>Chance a good exit sends somebody your way.</summary>
+        [DataMember] public float ReferralChance = 0.6f;
+
+        /// <summary>Loyalty a referred recruit starts with on top of the usual.</summary>
+        [DataMember] public float ReferralLoyaltyBonus = 20f;
+
+        // --- Clients ----------------------------------------------------------
+        /// <summary>Regulars a worker can hold. Past this nobody new sticks.</summary>
+        [DataMember] public int MaxRegulars = 12;
+
+        /// <summary>Added per worked hour, per regular. Small on purpose — it stacks.</summary>
+        [DataMember] public float RegularValuePerHour = 9f;
+
+        /// <summary>Chance per worked hour that one more client starts coming back.</summary>
+        [DataMember] public float RegularGainChance = 0.05f;
+
+        /// <summary>
+        /// Chance per game day that a benched worker loses a regular. A regular
+        /// who turns up twice to nobody stops being one, and this is what stops
+        /// the roster being freely reshuffled once it is built.
+        /// </summary>
+        [DataMember] public float RegularDecayChance = 0.30f;
+
+        /// <summary>Chance per in-game hour that somebody asks for one of your crew.</summary>
+        [DataMember] public float BookingOfferChance = 0.035f;
+
+        /// <summary>Share of offers that come from somebody connected rather than rich.</summary>
+        [DataMember] public float ConnectedOfferShare = 0.30f;
+
+        /// <summary>An offer left unanswered this many in-game hours is withdrawn.</summary>
+        [DataMember] public int BookingOfferExpiryHours = 6;
+
+        /// <summary>How long she is unavailable once a booking is accepted.</summary>
+        [DataMember] public int BookingHoursMin = 4;
+        [DataMember] public int BookingHoursMax = 9;
+
+        /// <summary>Payout is this many hours of her street rate, times appeal.</summary>
+        [DataMember] public float BookingPayoutHours = 14f;
+
+        /// <summary>Floor on how badly a booking can go, before money and traits.</summary>
+        [DataMember] public float BookingBaseRisk = 0.10f;
+
+        /// <summary>
+        /// Every this many dollars of payout adds one full point of risk.
+        ///
+        /// Raised from 30,000 after simulating: at that value a tier-3 worker's
+        /// booking priced out past the 85% clamp, so the appeal that made your
+        /// best earners worth asking for also guaranteed the night went wrong —
+        /// and a $31,000 booking carried exactly the same risk as a $46,000 one.
+        /// The whole top of the curve was flat and unplayable.
+        /// </summary>
+        [DataMember] public int BookingRiskPerDollar = 90000;
+
+        /// <summary>How much armed muscle covering her ground takes off the risk.</summary>
+        [DataMember] public float BookingMuscleCover = 0.5f;
+
+        /// <summary>Loyalty and reputation swings when a booking lands or goes wrong.</summary>
+        [DataMember] public float BookingLoyaltyReward = 8f;
+        [DataMember] public float BookingLoyaltyPenalty = 25f;
+        [DataMember] public float BookingStaminaCost = 30f;
+
+        /// <summary>Heat taken off every held corner by a vice contact's favour.</summary>
+        [DataMember] public float LeverageHeatCleared = 0.45f;
+
+        /// <summary>Days of peace bought by a fixer's favour.</summary>
+        [DataMember] public int LeverageTruceDays = 7;
+
+        /// <summary>Followers handed over by a producer's favour.</summary>
+        [DataMember] public float LeverageFollowers = 6000f;
+
+        // --- Houses ---------------------------------------------------------
+        // The indoor operation. Deliberately not given the night bonus: the street
+        // pays 1.6x after dark and a house pays the same around the clock, so the
+        // same worker is worth more indoors by day and more on a corner by night.
+        // That is the whole allocation decision, and handing the house both would
+        // erase it.
+
+        /// <summary>Indoor stamina drain, as a share of the street rate. She is not walking.</summary>
+        [DataMember] public float HouseStaminaDrain = 0.55f;
+
+        /// <summary>Heat bled off a house per hour. Slower than a corner — nothing airs out.</summary>
+        [DataMember] public float HouseHeatDecayPerHour = 0.015f;
+
+        /// <summary>
+        /// A house is raided later than a corner but far harder. One night empties
+        /// it, and the fine is meant to be felt against a six-figure purchase.
+        /// </summary>
+        [DataMember] public float HouseRaidHeatThreshold = 0.90f;
+        [DataMember] public int HouseRaidLockoutDays = 5;
+        [DataMember] public float HouseRaidHeatAfter = 0.35f;
+        [DataMember] public int HouseRaidFine = 25000;
+
+        /// <summary>Loyalty every worker in the house loses when it is turned over.</summary>
+        [DataMember] public float HouseRaidLoyaltyHit = 18f;
+
+        /// <summary>Draw a blip on each house you own.</summary>
+        [DataMember] public bool ShowHouseBlips = true;
+        [DataMember] public string HouseBlipColourName = "Purple";
 
         // --- Recruiting ---------------------------------------------------
         /// <summary>
@@ -245,6 +630,55 @@ namespace OnTheBlade.Core
         /// to be worth the wage, not enough to make holding turf automatic.
         /// </summary>
         [DataMember] public float MuscleTurfDeterrence = 0.6f;
+
+        // --- Armed muscle ---------------------------------------------------
+        /// <summary>
+        /// An armed enforcer turns up in person at incidents in the region he
+        /// covers. Turn this off to keep muscle purely abstract — the skill bonus
+        /// from a weapon still applies either way.
+        /// </summary>
+        [DataMember] public bool MuscleTurnsUp = true;
+
+        /// <summary>How close the player must be before he is spawned in.</summary>
+        [DataMember] public float MuscleSpawnRange = 140f;
+
+        /// <summary>Radius he will engage hostiles within.</summary>
+        [DataMember] public float MuscleFightRadius = 80f;
+
+        /// <summary>
+        /// Game days off after being carried out of a fight. He stays on the
+        /// payroll throughout, which is the cost of sending him in underarmed.
+        /// </summary>
+        [DataMember] public int MuscleInjuryDays = 2;
+
+        /// <summary>
+        /// Ceiling on resolving client trouble off-screen, as a share of effective
+        /// skill. Below 1 so a well-armed enforcer still lets some through for you
+        /// to watch him handle in person.
+        /// </summary>
+        [DataMember] public float MuscleClientHandleCap = 0.75f;
+
+        /// <summary>Blip him on the map while he is out with you.</summary>
+        [DataMember] public bool ShowMuscleBlip = true;
+
+        [DataMember] public string MuscleBlipColourName = "Blue";
+
+        /// <summary>
+        /// Ped models an enforcer can turn up as. One is picked at hire and kept,
+        /// so the same man arrives every time.
+        /// </summary>
+        [DataMember] public string[] EnforcerModels = DefaultEnforcerModels();
+
+        public static string[] DefaultEnforcerModels() => new[]
+        {
+            "g_m_y_famca_01", "g_m_y_famdnf_01", "g_m_y_famfor_01",
+            "g_m_y_ballaeast_01", "g_m_y_ballaorig_01", "g_m_y_ballasout_01",
+            "g_m_y_mexgoon_01", "g_m_y_mexgoon_02", "g_m_y_mexgoon_03",
+            "g_m_y_salvagoon_01", "g_m_y_salvagoon_02",
+            "g_m_y_pologoon_01", "g_m_y_pologoon_02",
+            "a_m_m_soucent_01", "a_m_m_soucent_02", "a_m_y_stlat_01",
+            "s_m_y_dealer_01", "s_m_m_bouncer_01", "s_m_y_doorman_01"
+        };
         [DataMember] public float StashStaminaBonus = 1.5f;      // off-duty recovery, any stash owned
         [DataMember] public float StashHeatDecayBonus = 2.0f;    // in that stash's region
         [DataMember] public float LaunderedHeatDecayBonus = 1.5f;
@@ -330,6 +764,12 @@ namespace OnTheBlade.Core
         [IgnoreDataMember]
         public BlipColor ZoneRaided => ParseBlipColour(ZoneColourRaided, BlipColor.Yellow2);
 
+        [IgnoreDataMember]
+        public BlipColor MuscleBlipColour => ParseBlipColour(MuscleBlipColourName, BlipColor.Blue);
+
+        [IgnoreDataMember]
+        public BlipColor HouseBlipColour => ParseBlipColour(HouseBlipColourName, BlipColor.Purple);
+
         private static Keys ParseKey(string name, Keys fallback)
         {
             Keys parsed;
@@ -342,6 +782,83 @@ namespace OnTheBlade.Core
         {
             if (RecruitModels == null || RecruitModels.Length == 0)
                 RecruitModels = DefaultRecruitModels();
+
+            if (EnforcerModels == null || EnforcerModels.Length == 0)
+                EnforcerModels = DefaultEnforcerModels();
+        }
+
+        /// <summary>
+        /// Restores any setting the file on disk does not mention.
+        ///
+        /// DataContractJsonSerializer builds the object with
+        /// FormatterServices.GetUninitializedObject, which runs neither the
+        /// constructor nor the field initialisers. So every key added after a
+        /// player's config.json was written loads as 0 / false / null rather than
+        /// as the default written next to it in this file — silently, and with no
+        /// error anywhere.
+        ///
+        /// That is not a hypothetical. Adding tier progression against an existing
+        /// config produced TierUpHours2 = 0 and TierUpLoyalty = 0, which promotes
+        /// every worker to tier 3 within two in-game hours, and
+        /// StudioFollowerBonus = 0, which multiplies follower gain by zero. Up to
+        /// now the only thing hiding this was regenerating config.json by hand
+        /// after every change.
+        ///
+        /// Missing keys are detected rather than guessed at, so a value the player
+        /// deliberately set to 0 is left exactly as they set it.
+        /// </summary>
+        private bool RestoreMissingKeys(string path)
+        {
+            HashSet<string> present;
+            try
+            {
+                present = TopLevelKeys(path);
+            }
+            catch
+            {
+                // A file we cannot parse for keys is one we should not second-guess.
+                return false;
+            }
+
+            if (present.Count == 0) return false;
+
+            var defaults = new Config();
+            bool repaired = false;
+
+            foreach (var field in typeof(Config).GetFields(BindingFlags.Public | BindingFlags.Instance))
+            {
+                if (field.GetCustomAttributes(typeof(DataMemberAttribute), false).Length == 0) continue;
+                if (present.Contains(field.Name)) continue;
+
+                field.SetValue(this, field.GetValue(defaults));
+                repaired = true;
+            }
+
+            return repaired;
+        }
+
+        /// <summary>
+        /// The keys actually written in the file. JsonReaderWriterFactory maps a
+        /// JSON object's keys onto XML element names, so the top level of the
+        /// document is exactly the set of settings present — no string matching,
+        /// and no third-party JSON library.
+        /// </summary>
+        private static HashSet<string> TopLevelKeys(string path)
+        {
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            byte[] bytes = File.ReadAllBytes(path);
+
+            using (var reader = JsonReaderWriterFactory.CreateJsonReader(
+                       bytes, XmlDictionaryReaderQuotas.Max))
+            {
+                while (reader.Read())
+                {
+                    if (reader.NodeType == XmlNodeType.Element && reader.Depth == 1)
+                        names.Add(reader.LocalName);
+                }
+            }
+
+            return names;
         }
 
         private static BlipColor ParseBlipColour(string name, BlipColor fallback = BlipColor.Pink)
@@ -360,6 +877,18 @@ namespace OnTheBlade.Core
             }
         }
 
+        /// <summary>Street hours needed to earn promotion <em>into</em> this tier.</summary>
+        public int TierUpHoursFor(int targetTier)
+        {
+            return targetTier >= 3 ? TierUpHours3 : TierUpHours2;
+        }
+
+        /// <summary>Price of buying promotion <em>into</em> this tier.</summary>
+        public int WardrobeCostFor(int targetTier)
+        {
+            return targetTier >= 3 ? WardrobeCost3 : WardrobeCost2;
+        }
+
         public static string Path => System.IO.Path.Combine(SaveManager.DataDirectory, "config.json");
 
         public static void Load()
@@ -370,6 +899,16 @@ namespace OnTheBlade.Core
                 if (loaded != null)
                 {
                     Current = loaded;
+
+                    // Rewritten so the file gains the settings it was missing and
+                    // the player can actually see and tune them, rather than
+                    // having them silently repaired on every load forever.
+                    if (loaded.RestoreMissingKeys(Path))
+                    {
+                        SaveManager.WriteJson(Path, Current);
+                        SaveManager.Log("config.json was missing settings; defaults restored and file rewritten.");
+                    }
+
                     return;
                 }
             }

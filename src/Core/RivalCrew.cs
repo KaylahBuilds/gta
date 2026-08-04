@@ -31,8 +31,33 @@ namespace OnTheBlade.Core
 
         [DataMember] public string PedModel;
 
+        /// <summary>
+        /// Absolute day open war started. 0 means no war.
+        ///
+        /// War is what aggression was always building toward and never reached —
+        /// it topped out at 1 and simply meant "contests a bit more often". A crew
+        /// at war comes constantly, fields more people, and will not sell you
+        /// peace at the ordinary price.
+        /// </summary>
+        [DataMember] public int WarSinceDay;
+
+        [IgnoreDataMember]
+        public bool IsAtWar => WarSinceDay > 0 && !IsBroken;
+
+        /// <summary>Absolute day a paid alliance runs out.</summary>
+        [DataMember] public int AlliedUntilDay;
+
         [IgnoreDataMember]
         public bool IsBroken => Strength <= 0f;
+
+        public bool IsAllied() =>
+            !IsBroken && AlliedUntilDay > 0 && GameState.AbsoluteDay() < AlliedUntilDay;
+
+        public int AllyDaysLeft()
+        {
+            int left = AlliedUntilDay - GameState.AbsoluteDay();
+            return left < 0 ? 0 : left;
+        }
 
         /// <summary>Enforcers they field in a turf battle: 2 at the floor, 5 at full strength.</summary>
         [IgnoreDataMember]
@@ -41,7 +66,8 @@ namespace OnTheBlade.Core
             get
             {
                 int n = 2 + (int)(Strength / 30f);
-                return n > 5 ? 5 : n;
+                if (IsAtWar) n += Config.Current.WarExtraEnforcers;
+                return n > 7 ? 7 : n;
             }
         }
 
@@ -51,6 +77,16 @@ namespace OnTheBlade.Core
             if (Strength > 100f) Strength = 100f;
             if (Aggression < 0f) Aggression = 0f;
             if (Aggression > 1f) Aggression = 1f;
+            if (WarSinceDay < 0) WarSinceDay = 0;
+            if (AlliedUntilDay < 0) AlliedUntilDay = 0;
+
+            // A crew that has been beaten to nothing is not fighting a war and is
+            // not anybody's ally either.
+            if (IsBroken)
+            {
+                WarSinceDay = 0;
+                AlliedUntilDay = 0;
+            }
         }
     }
 

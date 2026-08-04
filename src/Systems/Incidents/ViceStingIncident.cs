@@ -67,24 +67,24 @@ namespace OnTheBlade.Systems.Incidents
             worker.Loyalty -= 15f;
             state.AddHeat(zoneId, 0.25f);
 
-            // A bail fund buys her out the same night, so she keeps her post
-            // instead of the corner standing empty until you reassign her.
-            if (!bailFund) worker.ZoneId = null;
-
             if (bailFund)
             {
+                // The fund is what it was always sold as: she never sees a cell.
+                // Keeping the post means the corner is not left empty either.
+                int owed = state.HasUpgrade(UpgradeCatalog.Retainer) ? BailCost / 2 : BailCost;
+
                 Notify.Show(
                     $"~o~{worker.Name} got picked up.~s~ The fund covered it — she's back " +
                     "on the corner tonight.");
-            }
-            else
-            {
-                int owed = state.HasUpgrade(UpgradeCatalog.Retainer) ? BailCost / 2 : BailCost;
 
                 // Routed through Charge so a bail you cannot afford becomes debt
                 // rather than quietly costing nothing.
-                Notify.Show($"~r~{worker.Name} got picked up.~s~ The corner is hot.");
                 EconomyTick.Charge(owed, "Bail");
+            }
+            else
+            {
+                // No fund means a judge, not a turnstile. She is gone for days.
+                Law.TakeIntoCustody(worker, zoneId);
             }
 
             Spawner.Despawn(WorkerId);

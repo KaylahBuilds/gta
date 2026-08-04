@@ -44,6 +44,10 @@ namespace OnTheBlade.Systems.Incidents
                 _client.RelationshipGroup = Factions.Hostile(Spawner.Crew);
                 _client.Task.Combat(runtime.Ped);
                 _engaged = true;
+
+                // Muscle covering this corner deals with him whether you make it
+                // or not — this is the errand they were hired to take off you.
+                TrySpawnMuscle(worker.ZoneId, runtime.Ped.Position, runtime.Ped.Heading);
                 return;
             }
 

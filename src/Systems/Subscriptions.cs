@@ -59,6 +59,11 @@ namespace OnTheBlade.Systems
                 if ((worker.TraitSet & WorkerTrait.CameraReady) != 0)
                     gain *= cfg.RingLightCameraReadyBonus;
 
+                // Studio time was bought for this worker specifically. Unlike the
+                // ring light it helps whoever you paid for, camera-ready or not —
+                // it is the way to make an ordinary earner worth benching.
+                if (worker.HasStudio) gain *= cfg.StudioFollowerBonus;
+
                 worker.Followers += gain;
             }
 

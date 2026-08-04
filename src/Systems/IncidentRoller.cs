@@ -33,6 +33,18 @@ namespace OnTheBlade.Systems
             var cfg = Config.Current;
             var state = GameState.Current;
 
+            // Collectors outrank everything. They are not a problem on a corner —
+            // they are at the player, and the debt they are here about is the only
+            // thing in the mod that can end the run.
+            if (state.CollectorsPending)
+            {
+                state.CollectorsPending = false;
+
+                if (_missions.TryStart(new CollectorsIncident(
+                        GTA.Game.Player.Character.Position, _spawner)))
+                    return;
+            }
+
             // Only people actually out this hour can get into trouble.
             int hour = GTA.Chrono.GameClock.Hour;
             var onPost = state.Roster
@@ -66,7 +78,9 @@ namespace OnTheBlade.Systems
             // 4. Bad clients — the routine one, and the only one muscle covers.
             foreach (var worker in onPost)
             {
-                float chance = cfg.BadClientChance * Traits.TroubleMultiplier(worker.TraitSet);
+                float chance = cfg.BadClientChance
+                               * Traits.TroubleMultiplier(worker.TraitSet)
+                               * Pricing.Trouble(worker.ZoneId);
                 if (_rng.NextDouble() >= chance) continue;
                 if (HandledByMuscle(worker)) return;
                 if (_missions.TryStart(new BadClientIncident(worker.Id, _spawner))) return;
@@ -87,14 +101,18 @@ namespace OnTheBlade.Systems
             var enforcer = GameState.Current.EnforcerFor(zone.Id);
             if (enforcer == null) return false;
 
-            float chance = (enforcer.Skill / 100f) * Config.Current.MuscleTurfDeterrence;
+            // EffectiveSkill folds in whatever he is carrying and returns zero
+            // while he is laid up — a man in a hospital bed deters nobody.
+            float chance = (enforcer.EffectiveSkill / 100f) * Config.Current.MuscleTurfDeterrence;
             if (_rng.NextDouble() >= chance) return false;
 
             enforcer.Handled++;
 
-            Notify.Show(
-                $"~g~{enforcer.Name} turned {rival.Name} away from {zone.Display}.~s~ " +
-                "That's what the wage is for.");
+            Notify.Show(enforcer.IsArmed
+                ? $"~g~{enforcer.Name} turned {rival.Name} away from {zone.Display}.~s~ " +
+                  "Nobody argues with a man holding something."
+                : $"~g~{enforcer.Name} turned {rival.Name} away from {zone.Display}.~s~ " +
+                  "That's what the wage is for.");
 
             return true;
         }
@@ -110,7 +128,12 @@ namespace OnTheBlade.Systems
             var enforcer = GameState.Current.EnforcerFor(worker.ZoneId);
             if (enforcer == null) return false;
 
-            if (_rng.NextDouble() * 100.0 >= enforcer.Skill) return false;
+            // Capped so it can never be a certainty. Arming a man raises his
+            // effective skill toward 100, and without this a carbine would mean
+            // every client was dealt with off-screen — which would hide the very
+            // thing the weapon was bought for. What gets through, he turns up for.
+            float chance = enforcer.EffectiveSkill * Config.Current.MuscleClientHandleCap;
+            if (_rng.NextDouble() * 100.0 >= chance) return false;
 
             enforcer.Handled++;
             worker.Loyalty += 4f;
@@ -142,10 +165,17 @@ namespace OnTheBlade.Systems
             // A crew you are paying for peace does not come for your corners.
             // That is the whole product.
             foreach (var rival in state.Rivals
-                         .Where(r => !r.IsBroken && !state.HasTruce(r.Id))
+                         .Where(r => !r.IsBroken && !state.HasTruce(r.Id) && !r.IsAllied())
                          .OrderBy(_ => _rng.Next()))
             {
-                if (_rng.NextDouble() >= rival.Aggression * cfg.RivalContestChance) continue;
+                // War is what aggression was always building toward: the same roll,
+                // multiplied, so a crew that has tipped over comes constantly
+                // rather than occasionally.
+                float odds = rival.Aggression
+                             * cfg.RivalContestChance
+                             * Rivals.ContestMultiplier(rival);
+
+                if (_rng.NextDouble() >= odds) continue;
 
                 var target = held[_rng.Next(held.Count)];
 

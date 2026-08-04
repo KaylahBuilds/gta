@@ -123,9 +123,58 @@ namespace OnTheBlade.UI
                 Enabled = false
             });
 
+            // --- borrowing ---
+            {
+                int max = Money.MaxLoan();
+                var cfg = Config.Current;
+
+                // Every amount here has to sit under the ceiling at zero debt, or
+                // the menu offers sums that are always refused.
+                var borrow = new NativeListItem<string>("Borrow it",
+                    "10,000", "20,000", "35,000", "60,000")
+                {
+                    Description =
+                        max <= 0
+                            ? "~r~You owe too much already. Nobody is lending you anything.~s~"
+                            : $"Cash now, ${cfg.LoanMultiplier:0.00} on the book for every dollar " +
+                              $"of it, compounding at {cfg.DebtInterestPerDay * 100:0}% a day like " +
+                              $"everything else you owe. Most anyone will give you right now is " +
+                              $"${max:N0}. Scroll to the amount, then activate."
+                };
+
+                if (max > 0)
+                {
+                    borrow.Activated += (s, e) =>
+                    {
+                        int[] amounts = { 10000, 20000, 35000, 60000 };
+                        int wanted = amounts[borrow.SelectedIndex];
+
+                        if (Money.Borrow(wanted)) RebuildUpgrades();
+                    };
+                }
+                else
+                {
+                    borrow.Enabled = false;
+                }
+
+                _upgrades.Add(borrow);
+            }
+
             if (state.Debt > 0)
             {
                 int payable = Math.Min(Game.Player.Money, state.Debt);
+                int collectorsAt = Money.CollectorsThreshold();
+
+                if (state.Debt >= collectorsAt)
+                {
+                    _upgrades.Add(new NativeItem("They're looking for you",
+                        "Past this much owed, people start turning up in person for it. " +
+                        "Seeing them off buys days, not forgiveness.")
+                    {
+                        AltTitle = "~r~collectors",
+                        Enabled = false
+                    });
+                }
                 var settle = new NativeItem("Pay down what you owe",
                     $"Debt grows {Config.Current.DebtInterestPerDay * 100:0}% a day and the " +
                     $"operation folds at ${Config.Current.DebtCollapseThreshold:N0}. " +
@@ -314,19 +363,27 @@ namespace OnTheBlade.UI
             {
                 var region = Regions.Get(enforcer.RegionId);
 
-                int deter = (int)Math.Round(enforcer.Skill * Config.Current.MuscleTurfDeterrence);
+                int deter = (int)Math.Round(enforcer.EffectiveSkill * Config.Current.MuscleTurfDeterrence);
+
+                string carrying = enforcer.IsArmed
+                    ? $"Carrying {Armoury.NameOf(enforcer.WeaponId).ToLowerInvariant()}, so he turns " +
+                      "out in person when there is trouble here."
+                    : "Bare hands — he handles clients over the phone but never turns out.";
 
                 var item = new NativeItem(enforcer.Name,
-                    $"Covers {region?.Display ?? enforcer.RegionId}. Skill {enforcer.Skill:0} — " +
-                    $"turns away about {deter}% of moves on your corners here, and handles " +
-                    $"client trouble. Dealt with {enforcer.Handled}. " +
-                    $"${enforcer.DailyWage}/day. Activate to let them go.")
+                    $"Covers {region?.Display ?? enforcer.RegionId}. {carrying} " +
+                    $"Turns away about {deter}% of moves on your corners here. " +
+                    $"${enforcer.DailyWage}/day. Activate to arm him or let him go.")
                 {
-                    AltTitle = $"{enforcer.Skill:0}"
+                    AltTitle = enforcer.IsInjured()
+                        ? $"~r~Hurt {enforcer.InjuryDaysLeft()}d"
+                        : enforcer.IsArmed
+                            ? $"~g~{enforcer.EffectiveSkill:0}"
+                            : $"{enforcer.EffectiveSkill:0}"
                 };
 
                 int id = enforcer.Id;
-                item.Activated += (s, e) => Dismiss(id);
+                item.Activated += (s, e) => OpenArmoury(id);
 
                 _muscle.Add(item);
             }
@@ -411,6 +468,11 @@ namespace OnTheBlade.UI
             _phone.Clear();
             var state = GameState.Current;
 
+            // Both of these expire, so they go above everything else — burying a
+            // timed decision under the status report is how a player misses one.
+            AddExitItems();
+            if (state.HasOffer) AddOfferItems();
+
             var report = new NativeItem("Where are we at?",
                 "A quick read on the operation.");
             report.Activated += (s, e) => StatusReport();
@@ -438,6 +500,134 @@ namespace OnTheBlade.UI
                 };
                 _phone.Add(travel);
             }
+        }
+
+        /// <summary>
+        /// Somebody asking to leave. Three answers, all of them costing something —
+        /// there is deliberately no option that keeps her, keeps the money and
+        /// keeps her loyalty.
+        /// </summary>
+        private void AddExitItems()
+        {
+            var state = GameState.Current;
+            var cfg = Config.Current;
+
+            var worker = state.Roster.FirstOrDefault(w => w.WantsOut);
+            if (worker == null) return;
+
+            int daysLeft = cfg.ExitDecisionDays -
+                           (GameState.AbsoluteDay() - worker.WantsOutSinceDay);
+            if (daysLeft < 0) daysLeft = 0;
+
+            _phone.Add(new NativeItem($"{worker.Name} wants out",
+                $"{Crew.ReasonBlurb(worker)} She has been with you " +
+                $"{worker.LifetimeHours} hours. Answer within {daysLeft} day(s) or she " +
+                "goes on her own and people hear about it.")
+            {
+                AltTitle = $"~o~{daysLeft}d",
+                Enabled = false
+            });
+
+            var letGo = new NativeItem("Let her go",
+                $"She leaves on good terms. Builds your name, and there is a fair " +
+                "chance she sends somebody your way.");
+            letGo.Activated += (s, e) =>
+            {
+                _spawner.Despawn(worker.Id);
+                Crew.Release(worker, clean: true);
+                RebuildPhone();
+            };
+            _phone.Add(letGo);
+
+            int cost = Crew.RetentionCost(worker);
+            var keep = new NativeItem("Talk her round",
+                $"${cost:N0} and +{cfg.RetentionLoyalty:0} loyalty. It buys time, not a " +
+                "change of mind — she will ask again.")
+            {
+                AltTitle = $"${cost:N0}",
+                Enabled = Game.Player.Money >= cost
+            };
+            keep.Activated += (s, e) =>
+            {
+                Crew.Retain(worker);
+                RebuildPhone();
+            };
+            _phone.Add(keep);
+
+            var refuse = new NativeItem("Tell her no",
+                $"Costs nothing now. She stays, loses {cfg.RefusalLoyaltyHit:0} loyalty, " +
+                "and below 25 she starts looking for the door on her own terms.");
+            refuse.Activated += (s, e) =>
+            {
+                Crew.Refuse(worker);
+                RebuildPhone();
+            };
+            _phone.Add(refuse);
+        }
+
+        /// <summary>
+        /// The standing client offer. Cash and favour are separate rows rather than
+        /// a toggle, because they are different decisions and the player should be
+        /// able to read both prices at once.
+        /// </summary>
+        private void AddOfferItems()
+        {
+            var state = GameState.Current;
+            var worker = state.GetWorker(state.OfferWorkerId);
+            if (worker == null) return;
+
+            int hoursLeft = state.OfferExpiresAtHour - GameState.AbsoluteHour();
+            if (hoursLeft < 0) hoursLeft = 0;
+
+            string risk = Clients.RiskLabel(state.OfferRisk)
+                          + (Clients.CanScreen ? $" ({state.OfferRisk * 100:0}%)" : string.Empty);
+
+            var connected = Clients.GetConnected((LeverageKind)state.OfferLeverage);
+
+            _phone.Add(new NativeItem($"{state.OfferClientName} is asking",
+                $"He wants {worker.Name} for {state.OfferHours} hours. She earns nothing " +
+                $"else in that time. Risk: {risk}~s~. " +
+                (Clients.CanScreen
+                    ? string.Empty
+                    : "Buy somebody who checks, under Upgrades, and you'd know how bad. ") +
+                $"He waits about {hoursLeft} more hour(s).")
+            {
+                AltTitle = connected != null ? "~b~connected" : $"~g~${state.OfferPayout:N0}",
+                Enabled = false
+            });
+
+            // Cash
+            var cash = new NativeItem("Take the money",
+                $"${state.OfferPayout:N0} when she is back, and one more client who " +
+                "comes looking for her.");
+            cash.Activated += (s, e) =>
+            {
+                ClientBook.Accept(takeFavour: false);
+                RebuildPhone();
+            };
+            _phone.Add(cash);
+
+            // Favour, when he is somebody
+            if (connected != null)
+            {
+                var favour = new NativeItem($"Take the favour — {connected.Title}",
+                    connected.Offer + " You get nothing in cash.");
+                favour.Activated += (s, e) =>
+                {
+                    ClientBook.Accept(takeFavour: true);
+                    RebuildPhone();
+                };
+                _phone.Add(favour);
+            }
+
+            var pass = new NativeItem("Pass",
+                "Tell him she isn't available. Costs you nothing but the money.");
+            pass.Activated += (s, e) =>
+            {
+                ClientBook.Decline();
+                RebuildPhone();
+            };
+            _phone.Add(pass);
         }
 
         private void StatusReport()

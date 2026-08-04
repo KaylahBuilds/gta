@@ -98,6 +98,31 @@ namespace OnTheBlade.Core
         }
 
         /// <summary>
+        /// The closest corner to a point, or null if none is near enough to be
+        /// the same part of town.
+        ///
+        /// Used to work out whose ground an incident happened on when it is not
+        /// tied to a zone — a retaliation lands wherever you were standing when
+        /// you signed someone, which may be nowhere near a corner at all.
+        /// </summary>
+        public static ZoneDef NearestTo(Vector3 position, float maxDistance = 500f)
+        {
+            ZoneDef best = null;
+            float bestDistance = maxDistance;
+
+            foreach (var zone in All)
+            {
+                float d = zone.Anchor.DistanceTo(position);
+                if (d > bestDistance) continue;
+
+                best = zone;
+                bestDistance = d;
+            }
+
+            return best;
+        }
+
+        /// <summary>
         /// Deterministic post position so a worker returns to the same spot every
         /// time they stream back in.
         /// </summary>

@@ -60,7 +60,7 @@ namespace OnTheBlade
             _spotter = new ProspectSpotter(_spawner);
             _zoneBlips = new ZoneBlips();
             _missions = new MissionController();
-            _economy = new EconomyTick(new IncidentRoller(_missions, _spawner));
+            _economy = new EconomyTick(new IncidentRoller(_missions, _spawner), _spawner);
             _ui = new UiRoot(_pool, _spawner, _missions, _spotter);
 
             _phone = new PhoneBridge(() => _ui.TogglePhone());

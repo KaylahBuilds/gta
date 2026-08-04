@@ -16,11 +16,18 @@ namespace OnTheBlade.Systems
     public class EconomyTick
     {
         private readonly IncidentRoller _incidents;
+        private readonly Runtime.SpawnManager _spawner;
         private readonly Random _rng = new Random();
 
-        public EconomyTick(IncidentRoller incidents)
+        /// <param name="spawner">
+        /// Needed because a crew taking one of yours has to pull her ped as well
+        /// as her record — a despawn missed here leaves her standing on a corner
+        /// she no longer works for you.
+        /// </param>
+        public EconomyTick(IncidentRoller incidents, Runtime.SpawnManager spawner)
         {
             _incidents = incidents;
+            _spawner = spawner;
         }
 
         public void Update()
@@ -39,15 +46,34 @@ namespace OnTheBlade.Systems
             bool night = hour >= 20 || hour < 5;
 
             int take = 0;
+            int indoorTake = 0;
 
             foreach (var worker in state.Roster.ToList())
             {
                 var zone = Zones.Get(worker.ZoneId);
                 bool onTheStreet = worker.ShouldBeOnStreet(hour) && zone != null;
 
+                // She is with a client. Not on a corner, not in a room, not
+                // building an audience — the whole point of a booking is that it
+                // costs you her hours.
+                if (worker.IsOnBooking) continue;
+
+                var house = Houses.Get(worker.HouseId);
+                bool indoors = worker.ShouldBeWorkingIndoors(hour)
+                               && house != null
+                               && state.OwnsHouse(house.Id)
+                               && !state.IsHouseLocked(house.Id);
+
                 // Stream two accrues every hour either way — that is what makes
-                // the two streams compete for the same worker's time.
-                Subscriptions.AccrueHourly(worker, onTheStreet);
+                // the two streams compete for the same worker's time. Working
+                // indoors is still working: no followers are built in a room.
+                Subscriptions.AccrueHourly(worker, onTheStreet || indoors);
+
+                if (indoors)
+                {
+                    indoorTake += ResolveIndoor(worker, house, night);
+                    continue;
+                }
 
                 if (!onTheStreet)
                 {
@@ -68,18 +94,28 @@ namespace OnTheBlade.Systems
                                * (1f - state.GetHeat(zone.Id))
                                * (worker.Stamina / 100f)
                                * Saturation(zone, hour, worker)
-                               * Traits.StreetMultiplier(worker.TraitSet);
+                               * Traits.StreetMultiplier(worker.TraitSet)
+                               * Crew.PayoutBonus(zone.Id)
+                               * Pricing.Payout(zone.Id);
 
                 if (night) payout *= cfg.NightDemandBonus;
                 if (state.PlayerOwns(zone.Id)) payout *= cfg.OwnedZoneBonus;
                 if (state.ZoneHasVehicle(zone.Id)) payout *= cfg.VehicleDemandBonus;
 
-                int earned = (int)Math.Round(payout);
+                // Regulars pay on top of the corner and are not touched by zone
+                // demand or saturation — they are hers, not the street's.
+                int earned = (int)Math.Round(payout) + ClientBook.RegularIncome(worker);
                 if (earned > 0)
                 {
                     take += earned;
                     worker.LifetimeEarnings += earned;
                 }
+
+                ClientBook.AccrueRegular(worker);
+
+                // An hour on a corner is an hour of experience. Recorded after the
+                // payout so a promotion never changes the number just paid out.
+                Progression.RecordStreetHour(worker, Crew.MentorBonus(worker, hour));
 
                 // A car means she is not walking the whole shift.
                 float drain = cfg.StaminaDrainPerHour;
@@ -88,6 +124,9 @@ namespace OnTheBlade.Systems
 
                 state.AddHeat(zone.Id,
                     zone.HeatGain * Traits.HeatMultiplier(worker.TraitSet)
+                                  * Crew.HeatMultiplier(zone.Id)
+                                  * Law.HeatMultiplierFor(worker)
+                                  * Pricing.Heat(zone.Id)
                     + DemandEvents.HeatFor(zone.Id));
 
                 // Working someone into the ground is what actually costs you the
@@ -108,7 +147,22 @@ namespace OnTheBlade.Systems
                 Notify.Show($"~g~+${take}~s~  Street take ({hour:00}:00)");
             }
 
+            if (indoorTake > 0)
+            {
+                Game.Player.Money += indoorTake;
+                state.LifetimeTake += indoorTake;
+                state.LifetimeHouseTake += indoorTake;
+                Notify.Show($"~g~+${indoorTake}~s~  Indoors ({hour:00}:00)");
+            }
+
             CheckRaids();
+            CheckHouseRaids();
+
+            // Bookings settle before a new one can be offered, so a worker who
+            // just came back is immediately eligible again rather than sitting
+            // out an extra hour for no reason the player can see.
+            ClientBook.ResolveBookings();
+            ClientBook.RollOffer();
 
             // Rolled after the take so a new event affects the next hour, not the
             // one the player was just paid for.
@@ -121,8 +175,22 @@ namespace OnTheBlade.Systems
             if (hour == 0)
             {
                 PayWages();
+                PayRent();
                 PaySubscriptions();
+                ClientBook.DecayRegulars();
+                Crew.RollExits();
+                Law.TickRetainer();
+                Law.RollInformant();
+                Law.ReleaseFromCustody();
+                Rivals.TickWars();
+                Rivals.TickAlliances();
+                Rivals.RollPoachAttempt(_spawner);
                 AccrueInterest();
+
+                // Flagged rather than started here: this runs at midnight, and the
+                // incident roller is what knows whether the player is somewhere an
+                // incident can sensibly begin.
+                if (Money.ShouldSendCollectors()) state.CollectorsPending = true;
             }
 
             AwardMilestone();
@@ -130,6 +198,104 @@ namespace OnTheBlade.Systems
             // Problems are rolled after the payout so the numbers the player just
             // saw are the ones the roll was based on.
             _incidents.RollHourly();
+        }
+
+        /// <summary>
+        /// An hour worked indoors.
+        ///
+        /// No zone demand, no saturation and no night bonus. Rooms are a hard cap,
+        /// so crowding is handled by the building rather than by a falloff curve,
+        /// and the flat rate around the clock is what makes a house and a corner
+        /// worth different things at different times of day.
+        /// </summary>
+        private int ResolveIndoor(WorkerData worker, HouseDef house, bool night)
+        {
+            var state = GameState.Current;
+            var cfg = Config.Current;
+
+            float payout = cfg.BaseRateFor(worker.Tier)
+                           * house.RateMultiplier
+                           * (worker.Loyalty / 100f)
+                           * (1f - state.GetHouseHeat(house.Id))
+                           * (worker.Stamina / 100f)
+                           * Traits.StreetMultiplier(worker.TraitSet);
+
+            int earned = (int)Math.Round(payout) + ClientBook.RegularIncome(worker);
+            if (earned > 0) worker.LifetimeEarnings += earned;
+
+            ClientBook.AccrueRegular(worker);
+
+            // Indoors is still hours on the job — she is earning the same
+            // experience, which is what stops the house being a way to park
+            // someone forever without her ever progressing.
+            Progression.RecordStreetHour(worker);
+
+            worker.Stamina -= cfg.StaminaDrainPerHour * cfg.HouseStaminaDrain;
+
+            state.AddHouseHeat(house.Id,
+                house.HeatGain * Traits.HeatMultiplier(worker.TraitSet));
+
+            if (worker.IsExhausted)
+                worker.Loyalty -= cfg.LoyaltyDrainWhenExhausted
+                                  * Traits.LoyaltyDrainMultiplier(worker.TraitSet);
+
+            worker.Clamp();
+            return earned < 0 ? 0 : earned;
+        }
+
+        /// <summary>
+        /// Rent is due whether the rooms were used or not. That is what makes a
+        /// house something you have to keep busy rather than something you simply
+        /// own, and it is the fastest route into debt in the whole mod.
+        /// </summary>
+        private void PayRent()
+        {
+            int bill = GameState.Current.DailyRentBill;
+            if (bill <= 0) return;
+
+            Charge(bill, "Rent");
+        }
+
+        /// <summary>
+        /// The house version of a raid. Rarer than a corner's — heat builds an
+        /// order of magnitude slower indoors — but it takes the whole operation in
+        /// one night rather than costing a few days on one street.
+        /// </summary>
+        private void CheckHouseRaids()
+        {
+            var state = GameState.Current;
+            var cfg = Config.Current;
+
+            foreach (var house in Houses.All)
+            {
+                if (!state.OwnsHouse(house.Id)) continue;
+                if (state.GetHouseHeat(house.Id) < cfg.HouseRaidHeatThreshold) continue;
+                if (state.IsHouseLocked(house.Id)) continue;
+
+                int inside = state.WorkersInHouse(house.Id).Count();
+                if (inside == 0) continue;
+
+                foreach (var worker in state.WorkersInHouse(house.Id).ToList())
+                {
+                    worker.Loyalty -= cfg.HouseRaidLoyaltyHit;
+                    worker.Clamp();
+                }
+
+                state.ClearHouse(house.Id);
+                state.HouseLockedUntilDay[house.Id] =
+                    GameState.AbsoluteDay() + cfg.HouseRaidLockoutDays;
+                state.HouseHeat[house.Id] = cfg.HouseRaidHeatAfter;
+
+                Charge(cfg.HouseRaidFine, $"Raid on {house.Display}");
+
+                Notify.Show(
+                    $"~r~They came through the door at {house.Display}.~s~ " +
+                    $"All {inside} of them out, and the place is shut for " +
+                    $"{cfg.HouseRaidLockoutDays} days. The rent does not stop.", true);
+
+                Persistence.SaveManager.Log(
+                    $"HOUSE RAID: {house.Id}, {inside} workers removed.");
+            }
         }
 
         /// <summary>
@@ -143,7 +309,12 @@ namespace OnTheBlade.Systems
                 .Count(w => w.Id != self.Id && w.ShouldBeOnStreet(hour));
 
             if (others <= 0) return 1f;
-            return 1f / (1f + others * Config.Current.ZoneSaturationFalloff);
+
+            // Pricing bends the crowding curve rather than the yield: a premium
+            // corner has fewer clients to go round, so people get in each other's
+            // way faster, and a cut-price one absorbs a crowd.
+            float falloff = Config.Current.ZoneSaturationFalloff * Pricing.Saturation(zone.Id);
+            return 1f / (1f + others * falloff);
         }
 
         private void DecayHeat()
@@ -160,6 +331,18 @@ namespace OnTheBlade.Systems
 
                 state.AddHeat(zone.Id, -decay);
             }
+
+            // Houses cool far more slowly than a corner does. Nothing about an
+            // address airs out the way a street does when you pull people off it.
+            foreach (var house in Houses.All)
+            {
+                if (!state.OwnsHouse(house.Id)) continue;
+
+                float decay = cfg.HouseHeatDecayPerHour;
+                if (state.HasUpgrade(UpgradeCatalog.Laundromat)) decay *= cfg.LaunderedHeatDecayBonus;
+
+                state.AddHouseHeat(house.Id, -decay);
+            }
         }
 
         /// <summary>
@@ -173,11 +356,18 @@ namespace OnTheBlade.Systems
             var state = GameState.Current;
             var cfg = Config.Current;
 
+            Law.ClearWarningIfSafe();
+
             foreach (var zone in Zones.All)
             {
                 if (state.GetHeat(zone.Id) < cfg.RaidHeatThreshold) continue;
                 if (state.IsZoneLocked(zone.Id)) continue;
                 if (!state.WorkersIn(zone.Id).Any()) continue;
+
+                // A man on the payroll turns the first raid into a phone call.
+                // If the corner is still hot and still staffed when the notice
+                // runs out, it goes ahead anyway — he warns, he does not cancel.
+                if (Law.WarnInsteadOfRaid(zone)) continue;
 
                 state.ClearZone(zone.Id);
                 state.ZoneLockedUntilDay[zone.Id] = GameState.AbsoluteDay() + cfg.RaidLockoutDays;

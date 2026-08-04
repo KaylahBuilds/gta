@@ -69,6 +69,11 @@ namespace OnTheBlade.Systems.Incidents
             {
                 if (PlayerDistance() > SpawnRange) return;
                 Spawn(rival);
+
+                // No zone of its own — this happens wherever you were standing when
+                // you signed her. Whoever covers the nearest corner comes out.
+                var near = Zones.NearestTo(_anchor);
+                if (near != null) TrySpawnMuscle(near.Id, _anchor, 0f);
                 return;
             }
 

@@ -53,12 +53,23 @@ namespace OnTheBlade.UI
 
             BuildMain();
             BuildBusinessMenus();
+            BuildHousesMenu();
+            BuildLawMenu();
+            BuildArmouryMenu();     // after BuildBusinessMenus — it parents to _muscle
+            BuildInvestMenu();
             BuildRivalsMenu();
             BuildDiagnosticsMenu();
 
             _main.Shown += (s, e) => RefreshStatus();
             _roster.Shown += (s, e) => RebuildRoster();
             _territory.Shown += (s, e) => RebuildTerritory();
+
+            // Re-bind on show so backing out of Invest does not leave a stale tier,
+            // stamina or loyalty on the row behind it.
+            _detail.Shown += (s, e) =>
+            {
+                if (_boundWorkerId >= 0) BindWorker(_boundWorkerId);
+            };
         }
 
         public void Toggle() => _main.Visible = !_main.Visible;
@@ -241,17 +252,48 @@ namespace OnTheBlade.UI
             _detail.Name = worker.Name.ToUpperInvariant();
 
             // --- post assignment ---
+            // Corners and houses share one list: a worker is in exactly one place,
+            // and two separate selectors would let you set both and then have to
+            // guess which the player meant.
             var options = new List<string> { OffDuty };
             options.AddRange(Zones.OpenTo(worker.Tier).Select(z => z.Display));
+
+            var openHouses = Houses.All
+                .Where(h => GameState.Current.OwnsHouse(h.Id))
+                .ToList();
+            options.AddRange(openHouses.Select(h => h.Display));
+
+            // Running a corner is a posting like any other, so it belongs in the
+            // same selector. Only offered on ground you hold and only to somebody
+            // senior enough, which keeps the list short.
+            string managerReason;
+            var manageable = Crew.CanManage(worker, out managerReason)
+                ? Zones.All.Where(z => GameState.Current.PlayerOwns(z.Id)).ToList()
+                : new List<ZoneDef>();
+
+            options.AddRange(manageable.Select(z => ManageLabel(z)));
 
             var post = new NativeListItem<string>("Post", options.ToArray())
             {
                 Description = $"Tier {worker.Tier} unlocks " +
-                              $"{Zones.OpenTo(worker.Tier).Count()} of {Zones.All.Count} zones."
+                              $"{Zones.OpenTo(worker.Tier).Count()} of {Zones.All.Count} corners." +
+                              (openHouses.Count > 0
+                                  ? " Indoors pays more and draws almost no heat, but the rooms run out."
+                                  : string.Empty) +
+                              (manageable.Count > 0
+                                  ? " Running a corner earns her nothing and everyone else more."
+                                  : string.Empty)
             };
 
             var current = Zones.Get(worker.ZoneId);
-            post.SelectedIndex = current == null ? 0 : Math.Max(0, options.IndexOf(current.Display));
+            var currentHouse = Houses.Get(worker.HouseId);
+            var managed = Zones.Get(worker.ManagesZoneId);
+
+            post.SelectedIndex =
+                managed != null ? Math.Max(0, options.IndexOf(ManageLabel(managed)))
+                : currentHouse != null ? Math.Max(0, options.IndexOf(currentHouse.Display))
+                : current == null ? 0
+                : Math.Max(0, options.IndexOf(current.Display));
             post.ItemChanged += (s, e) =>
             {
                 if (_binding) return;
@@ -279,6 +321,110 @@ namespace OnTheBlade.UI
             _detail.Add(new NativeItem("Traits", TraitDescription(worker))
             {
                 AltTitle = Traits.Describe(worker.TraitSet),
+                Enabled = false
+            });
+
+            // --- experience toward the next tier ---
+            // Shown even when it cannot currently progress, because "why is she
+            // stuck" is exactly the question this row exists to answer.
+            if (Progression.IsMaxTier(worker))
+            {
+                _detail.Add(new NativeItem("Experience",
+                    "Tier 3 is as far as this goes. Every corner is open to her.")
+                {
+                    AltTitle = "~g~Tier 3",
+                    Enabled = false
+                });
+            }
+            else
+            {
+                int needed = Progression.HoursNeeded(worker);
+                bool loyalStuck = worker.Loyalty < Config.Current.TierUpLoyalty;
+
+                _detail.Add(new NativeItem("Experience",
+                    $"Street hours toward tier {Progression.NextTier(worker)}. Off-duty " +
+                    "hours build followers instead, so they do not count here. " +
+                    (loyalStuck
+                        ? $"~o~She will not step up below {Config.Current.TierUpLoyalty:0} loyalty.~s~"
+                        : "Or pay for the wardrobe under Invest."))
+                {
+                    AltTitle = $"{worker.HoursWorked}/{needed} hrs",
+                    Enabled = false
+                });
+            }
+
+            // --- inside ---
+            if (worker.IsJailed())
+            {
+                _detail.Add(new NativeItem("In custody",
+                    $"{worker.JailDaysLeft()} day(s) left. She earns nothing and cannot be " +
+                    "posted. A lawyer can buy the rest of it — see The law.")
+                {
+                    AltTitle = $"~r~{worker.JailDaysLeft()}d",
+                    Enabled = false
+                });
+            }
+
+            // --- running a corner ---
+            if (worker.IsManager)
+            {
+                var run = Zones.Get(worker.ManagesZoneId);
+                _detail.Add(new NativeItem("Running",
+                    $"She works nobody and earns nothing herself. Everyone on " +
+                    $"{run?.Display} earns {(Crew.PayoutBonus(worker.ManagesZoneId) - 1f) * 100:0}% " +
+                    $"more and draws {(1f - Crew.HeatMultiplier(worker.ManagesZoneId)) * 100:0}% " +
+                    "less heat, scaled by how she is doing.")
+                {
+                    AltTitle = $"~b~{run?.Display}",
+                    Enabled = false
+                });
+            }
+
+            // --- how long she has been at this ---
+            {
+                var cfg = Config.Current;
+                bool tired = worker.LifetimeHours >= cfg.BurnoutHours;
+
+                _detail.Add(new NativeItem("Time in",
+                    tired
+                        ? "~o~She has done more than enough hours. She could ask to get " +
+                          "out any day now.~s~"
+                        : "Hours across her whole time with you. Past " +
+                          $"{cfg.BurnoutHours} she starts thinking about getting out.")
+                {
+                    AltTitle = tired
+                        ? $"~o~{worker.LifetimeHours} hrs"
+                        : $"{worker.LifetimeHours}/{cfg.BurnoutHours} hrs",
+                    Enabled = false
+                });
+            }
+
+            // --- clients ---
+            if (worker.IsOnBooking)
+            {
+                int left = worker.BookingEndsAtHour - GameState.AbsoluteHour();
+                if (left < 0) left = 0;
+
+                _detail.Add(new NativeItem("With a client",
+                    $"Out with {worker.BookingClientName}. She earns nothing else until " +
+                    "she is back, and you find out how it went when she is.")
+                {
+                    AltTitle = $"~b~{left}h left",
+                    Enabled = false
+                });
+            }
+
+            _detail.Add(new NativeItem("Regulars",
+                worker.Regulars > 0
+                    ? $"Clients who come back for her. Pays about " +
+                      $"${ClientBook.RegularIncome(worker):N0} on top of every hour she works, " +
+                      "and drops off if you bench her."
+                    : "Nobody asks for her yet. They build while she works, faster at " +
+                      "higher tiers.")
+            {
+                AltTitle = worker.Regulars > 0
+                    ? $"~g~{worker.Regulars}/{Config.Current.MaxRegulars}"
+                    : $"0/{Config.Current.MaxRegulars}",
                 Enabled = false
             });
 
@@ -310,7 +456,8 @@ namespace OnTheBlade.UI
                 int days = Subscriptions.DaysUntilPayout();
 
                 _detail.Add(new NativeItem($"{Subscriptions.Brand} followers",
-                    "Builds while they are off the street, decays while they are on it.")
+                    "Builds while they are off the street, decays while they are on it." +
+                    (worker.HasStudio ? " ~g~Studio time is paid for.~s~" : string.Empty))
                 {
                     AltTitle = $"{worker.Followers:N0}",
                     Enabled = false
@@ -325,6 +472,14 @@ namespace OnTheBlade.UI
             }
 
             // --- actions ---
+            // Re-added on every bind because the detail menu is cleared and rebuilt
+            // per worker; the submenu itself reads _boundWorkerId when it opens.
+            var invest = _detail.AddSubMenu(_invest);
+            invest.Title = "Invest in her";
+            invest.Description =
+                "Money spent on this one person: the step up a tier, a doctor, " +
+                "studio time, papers. None of it survives her leaving the crew.";
+
             var bonus = new NativeItem($"Pay a bonus (${BonusCost})",
                 "A straight cash bonus. Cheapest way to buy loyalty back.");
             bonus.Activated += (s, e) => PayBonus(workerId);
@@ -380,12 +535,38 @@ namespace OnTheBlade.UI
                 return;
             }
 
+            // Posting somebody who is inside would silently do nothing — every
+            // working check already excludes her — and look like a broken menu.
+            if (worker.IsJailed())
+            {
+                Notify.Show(
+                    $"~r~{worker.Name} is in custody.~s~ {worker.JailDaysLeft()} day(s), " +
+                    "or pay a lawyer under The law.");
+                return;
+            }
+
             if (displayName == OffDuty)
             {
                 worker.ZoneId = null;
+                worker.HouseId = null;
+                worker.ManagesZoneId = null;
                 worker.State = WorkerState.OffDuty;
                 _spawner.Despawn(workerId);
                 Notify.Show($"~y~{worker.Name}~s~ is off duty.");
+                return;
+            }
+
+            var managedZone = Zones.All.FirstOrDefault(z => ManageLabel(z) == displayName);
+            if (managedZone != null)
+            {
+                AssignManager(worker, managedZone);
+                return;
+            }
+
+            var house = Houses.All.FirstOrDefault(h => h.Display == displayName);
+            if (house != null)
+            {
+                AssignHouse(worker, house);
                 return;
             }
 
@@ -415,6 +596,8 @@ namespace OnTheBlade.UI
             }
 
             worker.ZoneId = zone.Id;
+            worker.HouseId = null;      // a corner and a room are mutually exclusive
+            worker.ManagesZoneId = null;
             worker.State = WorkerState.Working;
             // Force a re-stream so the ped moves to the new post immediately.
             _spawner.Despawn(workerId);
@@ -429,6 +612,95 @@ namespace OnTheBlade.UI
                 GameState.Current.SetOwner(zone.Id, Ownership.Player);
                 Notify.Show($"~g~{zone.Display}~s~ is yours now. Expect company.");
             }
+        }
+
+        /// <summary>Label for a manage-this-corner entry in the post selector.</summary>
+        private static string ManageLabel(ZoneDef zone) => $"Run {zone.Display}";
+
+        /// <summary>
+        /// Puts her in charge of a corner instead of on it. One manager per zone —
+        /// a second would stack the bonus and make the answer "promote everybody".
+        /// </summary>
+        private void AssignManager(WorkerData worker, ZoneDef zone)
+        {
+            var state = GameState.Current;
+
+            string reason;
+            if (!Crew.CanManage(worker, out reason))
+            {
+                Notify.Show($"~r~{reason}");
+                return;
+            }
+
+            if (!state.PlayerOwns(zone.Id))
+            {
+                Notify.Show($"~r~You don't hold {zone.Display}.");
+                return;
+            }
+
+            var existing = Crew.ManagerOf(zone.Id);
+            if (existing != null && existing.Id != worker.Id)
+            {
+                Notify.Show($"~r~{existing.Name} already runs {zone.Display}.");
+                return;
+            }
+
+            worker.ZoneId = null;
+            worker.HouseId = null;
+            worker.ManagesZoneId = zone.Id;
+            worker.State = WorkerState.Working;
+            _spawner.Despawn(worker.Id);
+
+            var cfg = Config.Current;
+            Notify.Show(
+                $"~g~{worker.Name} runs {zone.Display} now.~s~ She earns nothing herself — " +
+                $"everyone working it earns up to {(cfg.ManagerPayoutBonus - 1f) * 100:0}% more " +
+                $"and draws {(1f - cfg.ManagerHeatReduction) * 100:0}% less heat.", true);
+        }
+
+        /// <summary>
+        /// Moves a worker indoors. Rooms are a hard cap rather than a falloff, so
+        /// unlike a corner this can simply be refused.
+        /// </summary>
+        private void AssignHouse(WorkerData worker, HouseDef house)
+        {
+            var state = GameState.Current;
+
+            if (!state.OwnsHouse(house.Id))
+            {
+                Notify.Show($"~r~You don't own {house.Display}.");
+                return;
+            }
+
+            if (state.IsHouseLocked(house.Id))
+            {
+                Notify.Show(
+                    $"~r~{house.Display} is shut after the raid.~s~ " +
+                    $"{state.HouseLockDaysLeft(house.Id)} day(s) left.");
+                return;
+            }
+
+            if (state.WorkersInHouse(house.Id).Any(w => w.Id == worker.Id))
+                return;   // already there; nothing to say
+
+            if (state.RoomsFree(house) <= 0)
+            {
+                Notify.Show($"~r~{house.Display} is full~s~ ({house.Rooms} rooms).");
+                return;
+            }
+
+            worker.ZoneId = null;
+            worker.ManagesZoneId = null;
+            worker.HouseId = house.Id;
+            worker.State = WorkerState.Working;
+
+            // She is inside now — pull the street ped rather than leaving one
+            // standing on a corner she no longer works.
+            _spawner.Despawn(worker.Id);
+
+            Notify.Show(
+                $"~g~{worker.Name}~s~ is working {house.Display}. " +
+                $"{state.RoomsFree(house)} room(s) left.");
         }
 
         private void PayBonus(int workerId)
@@ -508,6 +780,30 @@ namespace OnTheBlade.UI
                 }
                 else
                 {
+                    // Pricing is only offered on ground you actually hold — you do
+                    // not set the rate on somebody else's corner.
+                    if (state.PlayerOwns(zone.Id))
+                    {
+                        var levels = new[] { "Cut price", "Going rate", "Premium" };
+                        var price = new NativeListItem<string>($"  {zone.Display} rate", levels)
+                        {
+                            Description = Pricing.Blurb(Pricing.LevelOf(zone.Id)),
+                            SelectedIndex = (int)Pricing.LevelOf(zone.Id) + 1
+                        };
+
+                        string priceZone = zone.Id;
+                        price.ItemChanged += (s, e) =>
+                        {
+                            Pricing.SetLevel(priceZone, (PriceLevel)(e.Index - 1));
+                            var set = Pricing.LevelOf(priceZone);
+                            Notify.Show(
+                                $"~g~{Zones.Get(priceZone)?.Display}~s~ — {Pricing.Name(set).ToLowerInvariant()}.");
+                            RebuildTerritory();
+                        };
+
+                        _territory.Add(price);
+                    }
+
                     // Owned or neutral corners are where a bribe is worth paying.
                     int bribe = BribeCost(zone.Id);
                     var item = new NativeItem(zone.Display,
