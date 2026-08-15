@@ -47,11 +47,22 @@ namespace OnTheBlade.Systems
 
             int take = 0;
             int indoorTake = 0;
+            int contentTake = 0;
 
             foreach (var worker in state.Roster.ToList())
             {
                 var zone = Zones.Get(worker.ZoneId);
-                bool onTheStreet = worker.ShouldBeOnStreet(hour) && zone != null;
+
+                // Nobody works themselves unconscious. An exhausted worker used
+                // to keep standing there earning a rounding error — payout
+                // scales with stamina — while still drawing full heat and still
+                // bleeding loyalty, with no route back up because recovery only
+                // happens off-shift. She takes the hour instead. The loyalty
+                // drain below still fires, so running someone to this point is
+                // still a cost; it just is not a one-way trip any more.
+                bool spent = worker.IsExhausted;
+
+                bool onTheStreet = worker.ShouldBeOnStreet(hour) && zone != null && !spent;
 
                 // She is with a client. Not on a corner, not in a room, not
                 // building an audience — the whole point of a booking is that it
@@ -59,15 +70,25 @@ namespace OnTheBlade.Systems
                 if (worker.IsOnBooking) continue;
 
                 var house = Houses.Get(worker.HouseId);
-                bool indoors = worker.ShouldBeWorkingIndoors(hour)
-                               && house != null
-                               && state.OwnsHouse(house.Id)
-                               && !state.IsHouseLocked(house.Id);
+                bool housed = worker.ShouldBeWorkingIndoors(hour)
+                              && !spent
+                              && house != null
+                              && state.OwnsHouse(house.Id)
+                              && !state.IsHouseLocked(house.Id);
+
+                bool isContent = house != null && house.IsContentHouse;
+                bool indoors = housed && !isContent;
+                bool producing = housed && isContent && !state.IsContentShut(house.Id);
 
                 // Stream two accrues every hour either way — that is what makes
                 // the two streams compete for the same worker's time. Working
                 // indoors is still working: no followers are built in a room.
-                Subscriptions.AccrueHourly(worker, onTheStreet || indoors);
+                // Producing is its own case, because she is building an audience
+                // and spending it in the same hour.
+                Subscriptions.AccrueHourly(worker,
+                    producing ? SubscriptionMode.Producing
+                              : onTheStreet || indoors ? SubscriptionMode.Working
+                                                       : SubscriptionMode.Idle);
 
                 if (indoors)
                 {
@@ -75,10 +96,41 @@ namespace OnTheBlade.Systems
                     continue;
                 }
 
+                if (producing)
+                {
+                    contentTake += ResolveContent(worker, house);
+                    continue;
+                }
+
                 if (!onTheStreet)
                 {
                     // Somewhere of their own to rest. Owning any stash is enough —
                     // off-shift workers aren't tied to a region.
+                    // Back-catalogue money, paid here rather than in a branch of
+                    // its own on purpose. This block is a fallthrough, not a
+                    // guard: anything inserted above it takes the off-shift
+                    // resident's stamina recovery away with it, and both the
+                    // content rate and her follower equilibrium scale by stamina,
+                    // so she would quietly spiral to nothing over about two game
+                    // days. She rests AND earns the six per cent.
+                    if (isContent && !state.IsContentShut(house.Id)
+                                  && !state.IsHouseLocked(house.Id)
+                                  && state.OwnsHouse(house.Id))
+                    {
+                        float share = ContentGear.CatalogueShare(house.Id);
+                        if (share > 0f)
+                        {
+                            int catalogue = (int)Math.Round(
+                                ContentHouses.ProjectedHourly(worker, house) * share);
+
+                            if (catalogue > 0)
+                            {
+                                contentTake += catalogue;
+                                worker.LifetimeEarnings += catalogue;
+                            }
+                        }
+                    }
+
                     float recovery = cfg.StaminaRecoverPerHour;
                     if (state.StashHouses.Count > 0) recovery *= cfg.StashStaminaBonus;
 
@@ -89,6 +141,8 @@ namespace OnTheBlade.Systems
 
                 float payout = cfg.BaseRateFor(worker.Tier)
                                * zone.Demand
+                               * ZoneUpgrades.DemandMultiplier(zone.Id)
+                               * (state.HasUpgrade(UpgradeCatalog.GoodProduct) ? cfg.GoodProductPayout : 1f)
                                * DemandEvents.MultiplierFor(zone.Id)
                                * (worker.Loyalty / 100f)
                                * (1f - state.GetHeat(zone.Id))
@@ -99,6 +153,7 @@ namespace OnTheBlade.Systems
                                * Pricing.Payout(zone.Id);
 
                 if (night) payout *= cfg.NightDemandBonus;
+                payout *= LateWindow.PayoutMultiplier(hour);
                 if (state.PlayerOwns(zone.Id)) payout *= cfg.OwnedZoneBonus;
                 if (state.ZoneHasVehicle(zone.Id)) payout *= cfg.VehicleDemandBonus;
 
@@ -117,9 +172,11 @@ namespace OnTheBlade.Systems
                 // payout so a promotion never changes the number just paid out.
                 Progression.RecordStreetHour(worker, Crew.MentorBonus(worker, hour));
 
-                // A car means she is not walking the whole shift.
+                // A car means she is not walking the whole shift, and somewhere to
+                // sit down between means she is not standing for all of it.
                 float drain = cfg.StaminaDrainPerHour;
                 if (state.ZoneHasVehicle(zone.Id)) drain *= cfg.VehicleStaminaRelief;
+                drain *= ZoneUpgrades.StaminaMultiplier(zone.Id);
                 worker.Stamina -= drain;
 
                 state.AddHeat(zone.Id,
@@ -127,7 +184,10 @@ namespace OnTheBlade.Systems
                                   * Crew.HeatMultiplier(zone.Id)
                                   * Law.HeatMultiplierFor(worker)
                                   * Pricing.Heat(zone.Id)
-                    + DemandEvents.HeatFor(zone.Id));
+                                  * LateWindow.HeatMultiplier(hour)
+                                  * ZoneUpgrades.HeatMultiplier(zone.Id)
+                                  * (state.HasUpgrade(UpgradeCatalog.WireBlock)
+                                        ? cfg.WireBlockHeatMultiplier : 1f));
 
                 // Working someone into the ground is what actually costs you the
                 // roster — this is the tension the management loop runs on.
@@ -137,6 +197,9 @@ namespace OnTheBlade.Systems
 
                 worker.Clamp();
             }
+
+            // Once per hour, after the roster loop rather than inside it.
+            ApplyEventHeat(state, hour);
 
             DecayHeat();
 
@@ -155,8 +218,29 @@ namespace OnTheBlade.Systems
                 Notify.Show($"~g~+${indoorTake}~s~  Indoors ({hour:00}:00)");
             }
 
+            if (contentTake > 0)
+            {
+                Game.Player.Money += contentTake;
+                state.LifetimeTake += contentTake;
+                state.LifetimeContentTake += contentTake;
+                Notify.Show($"~g~+${contentTake}~s~  On camera ({hour:00}:00)");
+            }
+
             CheckRaids();
             CheckHouseRaids();
+            CheckContentCondition();
+
+            // Published every hour, after the raids that reset heat, because both
+            // mods READ this file every hour. It used to sit in the midnight
+            // block: our own raid gate then read a figure up to 23 hours stale,
+            // so an hour of decay, a bribe or the laundromat had no effect on our
+            // own raid risk until the next midnight, and the other mod raided
+            // roughly eight game hours early off the same stale number.
+            // Not while saving is blocked. That session is running a BLANK state
+            // after an unreadable save, and publishing it would tell The Trap Star
+            // every zone is unowned and there are no crews — which it would then
+            // act on, through a file that keeps no backup of its own.
+            if (!Persistence.SaveManager.SaveBlocked) BladeWorld.WorldLink.Publish();
 
             // Bookings settle before a new one can be offered, so a worker who
             // just came back is immediately eligible again rather than sitting
@@ -175,10 +259,13 @@ namespace OnTheBlade.Systems
             if (hour == 0)
             {
                 PayWages();
+                StandingOrders.PayRetainers();
                 PayRent();
+                PayContentReputation();
                 PaySubscriptions();
                 ClientBook.DecayRegulars();
                 Crew.RollExits();
+                Crew.RollLoyaltyReferrals();
                 Law.TickRetainer();
                 Law.RollInformant();
                 Law.ReleaseFromCustody();
@@ -241,6 +328,189 @@ namespace OnTheBlade.Systems
 
             worker.Clamp();
             return earned < 0 ? 0 : earned;
+        }
+
+        /// <summary>
+        /// The hourly weather of every content house: heat in, heat out, and rot
+        /// in the ones nobody lives in.
+        ///
+        /// Heat accrues per RESIDENT rather than per producing hour. That is the
+        /// whole reason the shift selector cannot be used to duck it — which is
+        /// exactly what went wrong in the brothel ladder, where a fourteen-hour
+        /// day shift cut the gain 42% against a flat hourly decay and made every
+        /// house permanently heat-immune at full capacity. Here the only lever is
+        /// how many people you put in the building, and that lever costs you
+        /// precisely the income of the rooms you leave empty.
+        ///
+        /// Deliberately not given the laundromat bonus: that multiplier alone
+        /// would raise the quiet line above capacity and delete the mechanic.
+        /// </summary>
+        private static void TickContentHouses()
+        {
+            var state = GameState.Current;
+            var cfg = Config.Current;
+
+            foreach (var house in Houses.Content)
+            {
+                if (!state.OwnsHouse(house.Id)) continue;
+
+                int residents = 0;
+                float gain = 0f;
+
+                foreach (var worker in state.WorkersInHouse(house.Id))
+                {
+                    residents++;
+                    gain += house.HeatGain
+                            * ContentHouses.HeatReduction(house.Id, worker.TraitSet);
+                }
+
+                state.AddHouseHeat(house.Id, gain - cfg.ContentHeatDecayPerHour);
+
+                // A place nobody lives in still goes off, and the rent does not
+                // stop. Applied only when empty so it never double-counts with the
+                // per-producing-hour wear, and suppressed by a proper set because
+                // the point of building it once properly is that it stays built.
+                if (residents == 0 && !ContentGear.StopsRot(house.Id))
+                    state.AddContentWear(house.Id, cfg.ContentIdleWearPerDay / 24f);
+            }
+        }
+
+        /// <summary>
+        /// An hour in front of a camera.
+        ///
+        /// Modelled position-for-position on <see cref="ResolveIndoor"/>, with
+        /// two deliberate absences. There is no <c>ClientBook.RegularIncome</c>
+        /// and no <c>AccrueRegular</c>: a regular is a client who comes to see
+        /// her, and she is not seeing anyone. She KEEPS the regulars she has —
+        /// DecayRegulars tests IsIndoors, which is true for a resident — she
+        /// simply does not work them. On a full book that is real money given up,
+        /// which is what stops anybody moving their best earner in here.
+        /// </summary>
+        private int ResolveContent(WorkerData worker, HouseDef house)
+        {
+            var state = GameState.Current;
+            var cfg = Config.Current;
+
+            // Re-checked here and not only at the menu: a raid, a sale or a save
+            // edited by hand can all leave more people pointing at a house than it
+            // has rooms, and the one who tips it over should earn nothing rather
+            // than the house quietly running over capacity forever.
+            if (state.ContentResidents(house.Id) > house.Rooms) return 0;
+
+            int earned = ContentHouses.ProjectedHourly(worker, house);
+            if (earned > 0) worker.LifetimeEarnings += earned;
+
+            // Hours on camera are still hours on the job. Withholding them would
+            // make a permanently parked, never-promoting, never-burning-out worker
+            // the optimal play and delete the exit arc for anybody in here.
+            Progression.RecordStreetHour(worker);
+
+            worker.Stamina -= cfg.StaminaDrainPerHour * cfg.HouseStaminaDrain;
+
+            // Wear is charged per PRODUCING worker-hour, so an unstaffed house
+            // does not wear at all and a bigger house degrades proportionally
+            // faster. That last property is the entire reason a proper set is
+            // worth buying at the top of the ladder and a donation at the bottom.
+            state.AddContentWear(house.Id,
+                cfg.ContentWearPerWorkerHour * ContentGear.WearMultiplier(house.Id));
+
+            if (worker.IsExhausted)
+                worker.Loyalty -= cfg.LoyaltyDrainWhenExhausted
+                                  * Traits.LoyaltyDrainMultiplier(worker.TraitSet);
+
+            worker.Clamp();
+            return earned < 0 ? 0 : earned;
+        }
+
+        /// <summary>
+        /// Turns everyone out of a house that has been left to rot.
+        ///
+        /// Deliberately unlike a raid. A raid costs you time you cannot buy back
+        /// — five days locked and a fine. Neglect costs money you can pay this
+        /// second. That is why the content house is the thing that keeps earning
+        /// during a hot spell: heat cannot be paid off, wear can.
+        ///
+        /// Announced once. IsContentShut is a pure function of stored wear and
+        /// nothing lowers it but a repair, so without the latch this fired a
+        /// blocking notification every game hour — about thirty an hour of real
+        /// time — until the player noticed.
+        /// </summary>
+        private void CheckContentCondition()
+        {
+            var state = GameState.Current;
+
+            foreach (var house in Houses.Content)
+            {
+                if (!state.OwnsHouse(house.Id)) continue;
+
+                if (!state.IsContentShut(house.Id))
+                {
+                    state.ContentShutAnnounced.Remove(house.Id);
+                    continue;
+                }
+
+                // The latch gates the NOTICE, not the ejection. Gating the
+                // ejection meant anybody posted in after the house shut stayed
+                // in it forever, earning nothing and still drawing heat, because
+                // the transition it was waiting for had already happened.
+                bool announce = !state.ContentShutAnnounced.Contains(house.Id);
+                if (announce) state.ContentShutAnnounced.Add(house.Id);
+
+                int inside = state.ContentResidents(house.Id);
+                state.ClearHouse(house.Id);
+
+                if (!announce) continue;
+
+                Notify.Show(
+                    $"~r~{house.Display} is not fit to work in.~s~ " +
+                    (inside > 0 ? $"All {inside} of them are out. " : string.Empty) +
+                    $"Putting it right costs ${ContentHouses.RepairCost(house):N0}, " +
+                    "and the rent does not stop while it sits empty.", true);
+
+                Persistence.SaveManager.Log($"Content house {house.Id} shut for condition.");
+            }
+        }
+
+        /// <summary>
+        /// The only reputation a content-only player can earn.
+        ///
+        /// Every other Reputation.Award site in the tree is an incident, a
+        /// booking, collectors, an accusation, a war or a standing order, and a
+        /// woman who never leaves the house reaches none of them — bookings are
+        /// explicitly filtered out to make "they only produce content" literal.
+        /// Without this the 200/450/700 gates on this very ladder would be
+        /// unreachable by the business that is supposed to unlock them.
+        /// </summary>
+        private static void PayContentReputation()
+        {
+            var cfg = Config.Current;
+            if (!cfg.ReputationEnabled) return;
+
+            var state = GameState.Current;
+            float earned = 0f;
+
+            foreach (var house in Houses.Content)
+            {
+                if (!state.OwnsHouse(house.Id)) continue;
+                if (state.IsContentShut(house.Id)) continue;
+
+                int residents = state.ContentResidents(house.Id);
+                if (residents <= 0) continue;
+
+                // Floored at 1 per occupied house. The first version was integer
+                // residents/4, which paid literally nothing at the entry rung's
+                // own recommended occupancy — a mechanic that existed to unblock
+                // a gate and awarded zero.
+                float share = residents * cfg.ContentReputationPerResident;
+                earned += share < 1f ? 1f : share;
+            }
+
+            int award = (int)System.Math.Round(earned);
+            if (award <= 0) return;
+
+            if (award > cfg.ContentReputationDailyCap) award = cfg.ContentReputationDailyCap;
+
+            Reputation.Award(award);
         }
 
         /// <summary>
@@ -317,6 +587,26 @@ namespace OnTheBlade.Systems
             return 1f / (1f + others * falloff);
         }
 
+        /// <summary>
+        /// A demand event's heat is a property of the operation running in that
+        /// zone, not of how many people you happen to have standing in it. This
+        /// used to be a term inside the per-worker AddHeat call, which silently
+        /// multiplied it by headcount — a police operation declaring +0.05/hr
+        /// put +0.15/hr on a three-worker corner. Applied once per hour now, and
+        /// still only where you actually have somebody posted, because heat you
+        /// cannot be caught in is not heat.
+        /// </summary>
+        private static void ApplyEventHeat(GameState state, int hour)
+        {
+            float heat = DemandEvents.HeatFor(state.EventZoneId);
+            if (heat <= 0f) return;
+
+            bool posted = state.Roster.Any(
+                w => w.ZoneId == state.EventZoneId && w.ShouldBeOnStreet(hour));
+
+            if (posted) state.AddHeat(state.EventZoneId, heat);
+        }
+
         private void DecayHeat()
         {
             var state = GameState.Current;
@@ -329,6 +619,13 @@ namespace OnTheBlade.Systems
                 if (state.ZoneHasStash(zone.Id)) decay *= cfg.StashHeatDecayBonus;
                 if (state.HasUpgrade(UpgradeCatalog.Laundromat)) decay *= cfg.LaunderedHeatDecayBonus;
 
+                // Somebody who used to be on the job knows how a case falls apart.
+                // Uses whoever covers the region rather than EnforcerFor, because
+                // this is him making calls and not him standing on a corner.
+                var local = state.EnforcerInRegion(Regions.ForZone(zone.Id)?.Id);
+                if (local != null && !local.IsInjured())
+                    decay *= local.Profile.HeatDecayMultiplier;
+
                 state.AddHeat(zone.Id, -decay);
             }
 
@@ -338,11 +635,21 @@ namespace OnTheBlade.Systems
             {
                 if (!state.OwnsHouse(house.Id)) continue;
 
+                // Content houses run their own heat entirely and must not take
+                // this decay as well. Left unbranched they would cool at 0.021/hr
+                // against a full-capacity gain of 0.006 — a quiet line of 245% of
+                // capacity at the entry rung and 333% with the laundromat, which
+                // makes the raid unreachable and leaves both the heat bill and the
+                // discretion upgrade with nothing to act on.
+                if (house.IsContentHouse) continue;
+
                 float decay = cfg.HouseHeatDecayPerHour;
                 if (state.HasUpgrade(UpgradeCatalog.Laundromat)) decay *= cfg.LaunderedHeatDecayBonus;
 
                 state.AddHouseHeat(house.Id, -decay);
             }
+
+            TickContentHouses();
         }
 
         /// <summary>
@@ -360,7 +667,9 @@ namespace OnTheBlade.Systems
 
             foreach (var zone in Zones.All)
             {
-                if (state.GetHeat(zone.Id) < cfg.RaidHeatThreshold) continue;
+                // The shared figure, not ours alone: a block the other business
+                // has been cooking is a block vice are already looking at.
+                if (BladeWorld.WorldLink.ViceHeat(zone.Id) < cfg.RaidHeatThreshold) continue;
                 if (state.IsZoneLocked(zone.Id)) continue;
                 if (!state.WorkersIn(zone.Id).Any()) continue;
 
@@ -459,9 +768,17 @@ namespace OnTheBlade.Systems
         }
 
         /// <summary>
-        /// The lose condition. Not a game over — the save survives and property is
-        /// kept, because deleting someone's progress outright is a worse outcome
-        /// than making them start the street operation again.
+        /// The lose condition. Not a game over — the save survives, because
+        /// deleting somebody's progress outright is a worse outcome than making
+        /// them start the street operation again.
+        ///
+        /// Property used to be kept, and that turned the lose condition into an
+        /// unwinnable one. Rent is charged unconditionally and nothing in the mod
+        /// sells a house, so a collapsed player woke up with an empty roster and
+        /// both ladders still billing — far more than a fresh roster at the
+        /// surviving cap can earn — and collapsed again about every five days,
+        /// forever. The leases go with everything else, and the menu now has a
+        /// way to give one up before it comes to this.
         /// </summary>
         private void Collapse()
         {
@@ -474,12 +791,26 @@ namespace OnTheBlade.Systems
                 if (state.PlayerOwns(zone.Id)) state.SetOwner(zone.Id, string.Empty);
 
             state.Enforcers.Clear();
+
+            int leases = state.OwnedHouses.Count;
+            state.OwnedHouses.Clear();
+            state.ContentWear.Clear();
+            state.ContentGear.Clear();
+            state.ContentShutAnnounced.Clear();
+            state.HouseHeat.Clear();
+            state.HouseLockedUntilDay.Clear();
+            state.StandingOrders.Clear();
+            state.CrewArmour.Clear();
+            state.CrewVehicles.Clear();
+
             state.Debt = 0;
             state.TimesCollapsed++;
 
             Notify.Show(
                 "~r~The people you owe came collecting.~s~ " +
-                $"{lost} gone, every corner given up. You keep the property.", true);
+                $"{lost} gone, every corner given up" +
+                (leases > 0 ? $", and {leases} lease(s) with them" : string.Empty) +
+                ". You start again with nothing owed.", true);
 
             Persistence.SaveManager.Log($"COLLAPSE #{state.TimesCollapsed}: lost {lost} workers.");
         }

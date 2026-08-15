@@ -37,11 +37,15 @@ namespace OnTheBlade.Runtime
             if (!model.IsInCdImage || !model.IsValid) return null;
 
             model.Request(0);
-            if (!model.IsLoaded) return null;
+            if (!model.IsLoaded) { model.MarkAsNoLongerNeeded(); return null; }
 
-            // No sidewalk snap here on purpose. SpawnManager snaps the zone anchor
-            // once and spreads the posts from it; snapping again per worker sends
-            // every one of them back to the same nearest node.
+            // No sidewalk NODE snap here on purpose (four posts would heap on
+            // one node) — but every post is still LAYER-validated: a spread
+            // that pushes a girl through a venue wall gets corrected to the
+            // nearest reachable ground instead of standing her inside the
+            // building where nobody can defend her.
+            position = SafeGround.Fix(position);
+
             if (Config.Current.LogSpawnDiagnostics)
             {
                 Persistence.SaveManager.Log(
@@ -49,7 +53,7 @@ namespace OnTheBlade.Runtime
                     $"at=({position.X:0.0},{position.Y:0.0},{position.Z:0.0})");
             }
 
-            Ped ped = World.CreatePed(model, position, heading);
+            Ped ped = SafeGround.CreatePed(model, position, heading);
             model.MarkAsNoLongerNeeded();
 
             if (ped == null || !ped.Exists()) return null;

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using GTA;
 using LemonUI.Menus;
@@ -85,16 +86,66 @@ namespace OnTheBlade.UI
                 });
             }
 
-            int deter = (int)Math.Round(enforcer.EffectiveSkill * cfg.MuscleTurfDeterrence);
+            var profile = enforcer.Profile;
+
+            _armoury.Add(new NativeItem(profile.Name, profile.Blurb)
+            {
+                AltTitle = $"~b~caps at {profile.SkillCap:0}",
+                Enabled = false
+            });
+
+            int deter = (int)Math.Round(
+                enforcer.EffectiveSkill * cfg.MuscleTurfDeterrence * profile.DeterrenceMultiplier);
+
             _armoury.Add(new NativeItem("Skill",
                 $"{enforcer.Skill:0} of his own plus {Armoury.MuscleOf(enforcer.WeaponId)} for what " +
                 $"he is holding. Turns away about {deter}% of moves on your corners in " +
-                $"{region?.Display ?? enforcer.RegionId}." +
+                $"{region?.Display ?? enforcer.RegionId}. He gains " +
+                $"{profile.GrowthPerHandled:0.0} skill for every problem he settles, up to " +
+                $"{profile.SkillCap:0}." +
                 (enforcer.IsInjured() ? " ~r~Nothing at all while he is laid up.~s~" : string.Empty))
             {
-                AltTitle = $"{enforcer.EffectiveSkill:0}",
+                AltTitle = enforcer.Skill >= profile.SkillCap
+                    ? $"~o~{enforcer.EffectiveSkill:0} (maxed)"
+                    : $"{enforcer.EffectiveSkill:0}",
                 Enabled = false
             });
+
+            // --- minding somebody ---
+            {
+                var state = GameState.Current;
+
+                var minding = enforcer.IsGuarding
+                    ? state.GetWorker(enforcer.GuardingWorkerId)
+                    : null;
+
+                var options = new List<string> { "Cover the region" };
+                options.AddRange(state.Roster.OrderBy(w => w.Id).Select(w => w.Name));
+
+                var duty = new NativeListItem<string>("Duty", options.ToArray())
+                {
+                    Description = minding != null
+                        ? $"He is standing behind {minding.Name}. She takes far less trouble " +
+                          $"and her bookings are far safer — and {region?.Display} has nobody " +
+                          "watching it at all."
+                        : $"Covering {region?.Display}. Put him on one person instead and she " +
+                          "becomes very hard to touch, at the cost of the whole region."
+                };
+
+                duty.SelectedIndex = minding == null
+                    ? 0
+                    : Math.Max(0, options.IndexOf(minding.Name));
+
+                int enforcerId = enforcer.Id;
+
+                // By NAME, not index: the index maps into a live re-sort of the
+                // roster, and one departure while the menu is open shifts every
+                // position — the guard lands on a different woman than the row
+                // shows. The post selector already resolves by string for the
+                // same reason.
+                duty.ItemChanged += (s, e) => SetDuty(enforcerId, e.Object);
+                _armoury.Add(duty);
+            }
 
             _armoury.Add(new NativeItem("Record",
                 $"Problems he has dealt with, and fights he has been carried out of.")
@@ -149,6 +200,54 @@ namespace OnTheBlade.UI
                 _muscle.Visible = true;
             };
             _armoury.Add(dismiss);
+        }
+
+        /// <summary>"Cover the region", or a worker resolved by her name.</summary>
+        private void SetDuty(int enforcerId, string choice)
+        {
+            var state = GameState.Current;
+            var enforcer = state.Enforcers.FirstOrDefault(e => e.Id == enforcerId);
+            if (enforcer == null) return;
+
+            if (string.IsNullOrEmpty(choice) || choice == "Cover the region")
+            {
+                if (!enforcer.IsGuarding) return;
+
+                enforcer.GuardingWorkerId = -1;
+                Notify.Show(
+                    $"~g~{enforcer.Name}~s~ is back on " +
+                    $"{Regions.Get(enforcer.RegionId)?.Display ?? "his patch"}.");
+
+                RebuildArmoury();
+                return;
+            }
+
+            var worker = state.Roster.FirstOrDefault(w => w.Name == choice);
+
+            if (worker == null)
+            {
+                Notify.Show("~o~She's no longer on the books.");
+                RebuildArmoury();
+                return;
+            }
+
+            // Two men on one person is a waste of a wage, and the second would
+            // silently do nothing — GuardFor returns the first it finds.
+            var already = state.GuardFor(worker.Id);
+            if (already != null && already.Id != enforcer.Id)
+            {
+                Notify.Show($"~r~{already.Name} is already minding {worker.Name}.");
+                RebuildArmoury();
+                return;
+            }
+
+            enforcer.GuardingWorkerId = worker.Id;
+
+            Notify.Show(
+                $"~b~{enforcer.Name} is on {worker.Name}.~s~ " +
+                $"{Regions.Get(enforcer.RegionId)?.Display ?? "His region"} has nobody now.", true);
+
+            RebuildArmoury();
         }
 
         private void BuyLoadout(int enforcerId, LoadoutDef loadout)

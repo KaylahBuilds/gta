@@ -111,6 +111,12 @@ namespace OnTheBlade.Systems
             // booking or already in trouble is not on the market.
             var candidates = state.Roster
                 .Where(w => w.IsWorkingThisHour(hour)
+                            // Nobody books a woman who is on camera. This is what
+                            // makes "they only produce content" literal rather
+                            // than approximate — IsWorkingThisHour is true for a
+                            // content resident, so without this a client would
+                            // pull her out of the house to see him.
+                            && !Houses.IsContentHouseId(w.HouseId)
                             && !w.IsOnBooking
                             && w.State != WorkerState.InTrouble)
                 .ToList();
@@ -175,6 +181,18 @@ namespace OnTheBlade.Systems
             if (worker == null)
             {
                 state.ClearOffer();
+                return false;
+            }
+
+            // Availability was checked when the offer ROLLED, and the offer
+            // stands for hours — she can be jailed or dragged into an incident
+            // in between. Booking her from a cell pays out a night she never
+            // worked; the offer stays on the table until it expires on its own.
+            if (worker.IsJailed() || worker.State == WorkerState.InTrouble)
+            {
+                Notify.Show(
+                    $"~o~{worker.Name} can't take it right now.~s~ " +
+                    "The offer stands while it stands.");
                 return false;
             }
 

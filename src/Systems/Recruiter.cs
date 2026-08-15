@@ -200,7 +200,24 @@ namespace OnTheBlade.Systems
             if (GameState.Current.RosterFull) return null;
 
             Ped prospect = FindProspects(spawner, 1).FirstOrDefault();
-            if (prospect == null) return null;
+            return TryRecruitPed(prospect, spawner);
+        }
+
+        /// <summary>
+        /// Recruits the person actually standing in front of the player.
+        ///
+        /// Signing somebody happens face to face now — the menu row that pulled
+        /// the nearest eligible stranger out of a crowd is gone, and this is
+        /// what the walk-up calls instead. Eligibility is re-checked HERE, at
+        /// commitment, not trusted from whenever the focus first saw her: the
+        /// ped is ambient, the engine can recycle it, and the player can carry
+        /// a menu around for as long as they like before pressing the button.
+        /// </summary>
+        public static RecruitResult TryRecruitPed(Ped prospect, SpawnManager spawner)
+        {
+            if (GameState.Current.RosterFull) return null;
+            if (prospect == null || !prospect.Exists() || prospect.IsDead) return null;
+            if (!IsEligible(prospect, OwnHandles(spawner))) return null;
 
             Vector3 where = Game.Player.Character.Position;
             RecruitArea area = RecruitAreas.At(where);
@@ -215,8 +232,10 @@ namespace OnTheBlade.Systems
                 .FirstOrDefault(m => new Model(m).Hash == hash);
 
             worker.TraitSet = Traits.Roll(Rng);
-            worker.Loyalty = 45f + (float)Rng.NextDouble() * 25f
-                             + Reputation.LoyaltyBonus(GameState.Current.Reputation);
+
+            // Loyalty is set inside AddWorker now — assigning it here overwrote
+            // the franchise penalty and the referral bonus that AddWorker had
+            // already applied.
             worker.Clamp();
 
             prospect.MarkAsNoLongerNeeded();

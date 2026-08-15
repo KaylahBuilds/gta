@@ -73,6 +73,7 @@ namespace OnTheBlade.Systems.Incidents
         protected override void OnFail(WorkerData worker)
         {
             Spawner.Despawn(WorkerId);
+            GameState.Current.ReleaseGuardsFor(worker.Id);
             GameState.Current.Roster.Remove(worker);
             Notify.Show($"~r~{worker.Name} is gone.~s~ That one is on you.");
         }

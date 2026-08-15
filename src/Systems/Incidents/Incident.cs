@@ -107,6 +107,11 @@ namespace OnTheBlade.Systems.Incidents
             if (GameState.Current.HasUpgrade(UpgradeCatalog.Burner))
                 _remainingMs += Config.Current.BurnerExtraSeconds * 1000;
 
+            // Dispatch stacks on top of the burners rather than replacing them —
+            // it needs the network to answer the phones for.
+            if (GameState.Current.HasUpgrade(UpgradeCatalog.Dispatch))
+                _remainingMs += Config.Current.DispatchExtraSeconds * 1000;
+
             _lastTickAt = Game.GameTime;
 
             Vector3? target = TargetPosition;
@@ -270,6 +275,13 @@ namespace OnTheBlade.Systems.Incidents
             var enforcer = AvailableMuscle(zoneId);
             if (enforcer == null) return;
 
+            // One owner at a time. If the region stream has this man standing
+            // on the contested corner, drop that ped BEFORE the incident spawns
+            // its own from the same model — otherwise the same enforcer is
+            // visibly present twice, and the incident's cleanup only knows
+            // about one of them.
+            SpawnManager.Instance?.DespawnMuscleFor(enforcer.Id);
+
             var loadout = enforcer.Loadout;
             if (loadout == null) return;
 
@@ -416,9 +428,9 @@ namespace OnTheBlade.Systems.Incidents
             if (!model.IsInCdImage || !model.IsValid) return null;
 
             model.Request(0);
-            if (!model.IsLoaded) return null;
+            if (!model.IsLoaded) { model.MarkAsNoLongerNeeded(); return null; }
 
-            Ped ped = World.CreatePed(model, SafeSpot(near.Around(scatter)), heading);
+            Ped ped = SafeGround.CreatePed(model, SafeSpot(near.Around(scatter)), heading);
             model.MarkAsNoLongerNeeded();
 
             if (ped == null || !ped.Exists()) return null;
@@ -461,15 +473,12 @@ namespace OnTheBlade.Systems.Incidents
         /// </summary>
         protected static Vector3 SafeSpot(Vector3 wanted)
         {
-            Vector3 safe;
-            if (World.GetSafePositionForPed(wanted, out safe,
-                    GetSafePositionFlags.NotWater | GetSafePositionFlags.NotInterior) &&
-                safe != Vector3.Zero)
-                return safe;
-
-            // Nothing safe nearby — fall back to the requested point rather than
-            // silently refusing to spawn.
-            return wanted;
+            // The old fallback returned the RAW point when nothing validated —
+            // which, beside a venue with interior meshes loaded, spawned the
+            // antagonists INSIDE the building the player was meant to defend.
+            // SafeGround prefers the sidewalk over the void, and rejects
+            // interior floors and low roofs by layer, not just height.
+            return SafeGround.Fix(wanted);
         }
 
         protected static void ReleasePed(ref Ped ped)

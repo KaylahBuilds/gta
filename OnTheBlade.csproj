@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net48</TargetFramework>
@@ -9,7 +9,7 @@
     <PlatformTarget>x64</PlatformTarget>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-    <Version>0.3.0</Version>
+    <Version>0.6.0</Version>
   </PropertyGroup>
 
   <!--
@@ -61,11 +61,11 @@
 
   <Target Name="CheckLibs" BeforeTargets="ResolveAssemblyReferences">
     <Error Condition="!Exists('lib\ScriptHookVDotNet3.dll')"
-           Text="lib/ScriptHookVDotNet3.dll is missing. See lib/README.md — download it from the ScriptHookVDotNet Enhanced release." />
+           Text="lib/ScriptHookVDotNet3.dll is missing. See lib/README.md â€” download it from the ScriptHookVDotNet Enhanced release." />
     <Error Condition="!Exists('lib\LemonUI.SHVDN3.dll')"
-           Text="lib/LemonUI.SHVDN3.dll is missing. See lib/README.md — it is the SHVDN3 folder of LemonUI.zip." />
+           Text="lib/LemonUI.SHVDN3.dll is missing. See lib/README.md â€” it is the SHVDN3 folder of LemonUI.zip." />
     <Error Condition="!Exists('lib\iFruitAddon2.dll')"
-           Text="lib/iFruitAddon2.dll is missing. See lib/README.md — needs 3.0.2+ for Enhanced support." />
+           Text="lib/iFruitAddon2.dll is missing. See lib/README.md â€” needs 3.0.2+ for Enhanced support." />
   </Target>
 
 </Project>

@@ -58,6 +58,15 @@ namespace OnTheBlade.Core
             },
             new MilestoneDef
             {
+                // Its own counter rather than the subscription one, so the
+                // milestone above keeps meaning "your first weekly deposit
+                // landed" instead of silently firing on the first content hour.
+                Id = "on_camera", Name = "On camera", Reward = 8000,
+                Blurb = "Take an hour's pay from a content house.",
+                Met = s => s.LifetimeContentTake > 0
+            },
+            new MilestoneDef
+            {
                 Id = "quiet_streets", Name = "Nothing to see", Reward = 12000,
                 Blurb = "Hold three zones with every one of them under 20% heat.",
                 Met = s =>

@@ -29,7 +29,7 @@ namespace OnTheBlade.UI
 
             _diagnostics = new NativeMenu("On The Blade", "DIAGNOSTICS");
             _pool.Add(_diagnostics);
-            _main.AddSubMenu(_diagnostics);
+            _bizGroup.AddSubMenu(_diagnostics);
             _diagnostics.Shown += (s, e) => RebuildDiagnostics();
         }
 

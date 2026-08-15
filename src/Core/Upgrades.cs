@@ -33,6 +33,15 @@ namespace OnTheBlade.Core
         public const string BailFund = "bail_fund";
         public const string Screening = "screening";
 
+        // Second tiers
+        public const string Studio = "studio";
+        public const string Dispatch = "dispatch";
+
+        // Upgrades that cost you something as well as money
+        public const string WireBlock = "wire_block";
+        public const string GoodProduct = "good_product";
+        public const string Franchise = "franchise";
+
         public static readonly List<UpgradeDef> All = new List<UpgradeDef>
         {
             new UpgradeDef
@@ -77,6 +86,42 @@ namespace OnTheBlade.Core
                 Id = Laundromat, Name = "Laundromat", Cost = 22000,
                 Description = "Washes 40% of the weekly deposit. Heat bleeds off half again as " +
                               "fast everywhere, and payday cools the corners you hold."
+            },
+
+            // --- second tiers ---
+            new UpgradeDef
+            {
+                Id = Studio, Name = "A proper studio", Cost = 30000, Requires = Creator,
+                Description = "Somewhere real to shoot, for everybody. The whole book builds " +
+                              "an audience 40% faster. Needs the ring light first."
+            },
+            new UpgradeDef
+            {
+                Id = Dispatch, Name = "Dispatch", Cost = 25000, Requires = Burner,
+                Description = "Somebody whose only job is answering phones. Another 30 seconds " +
+                              "on every incident, on top of the burners. Needs the network first."
+            },
+
+            // --- upgrades that cost you something as well ---
+            new UpgradeDef
+            {
+                Id = WireBlock, Name = "Wire the block", Cost = 18000,
+                Description = "Cameras and a scanner on every corner you hold. Heat builds 30% " +
+                              "slower — and you are visible, so crews come for your ground a " +
+                              "third more often."
+            },
+            new UpgradeDef
+            {
+                Id = GoodProduct, Name = "The good stuff", Cost = 26000,
+                Description = "Better everything, and a better class of problem. The street " +
+                              "take goes up 25%, and vice work your corners half again as often."
+            },
+            new UpgradeDef
+            {
+                Id = Franchise, Name = "Franchise", Cost = 45000,
+                Description = "A name people have heard of. Everyone signs on at tier 2 or " +
+                              "better — and arrives 15 loyalty down, because they signed with " +
+                              "the name and not with you."
             }
         };
 

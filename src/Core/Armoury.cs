@@ -26,6 +26,15 @@ namespace OnTheBlade.Core
         /// so the weapon matters even on the nights you never see him.
         /// </summary>
         public int Muscle;
+
+        /// <summary>
+        /// What it costs to send him out with it, per fight he handles without
+        /// you. Buying the best gun once should not be a permanent solution to a
+        /// recurring problem — a carbine that holds a corner every night has a
+        /// running cost, and that is what keeps the loadout a decision rather
+        /// than a purchase.
+        /// </summary>
+        public int AmmoCost;
     }
 
     /// <summary>
@@ -55,7 +64,7 @@ namespace OnTheBlade.Core
         {
             new LoadoutDef
             {
-                Id = Bat, Name = "A bat", Cost = 600,
+                Id = Bat, Name = "A bat", Cost = 600, AmmoCost = 0,
                 Weapon = WeaponHash.Bat, Ammo = 0,
                 Armour = 0, Accuracy = 20, Muscle = 8,
                 Description = "He turns up, and he is holding something. Enough for a client " +
@@ -63,7 +72,7 @@ namespace OnTheBlade.Core
             },
             new LoadoutDef
             {
-                Id = Pistol, Name = "A pistol", Cost = 3000,
+                Id = Pistol, Name = "A pistol", Cost = 3000, AmmoCost = 150,
                 Weapon = WeaponHash.Pistol, Ammo = 250,
                 Armour = 25, Accuracy = 35, Muscle = 18,
                 Description = "Matches what the crews carry. He can hold his own at a corner " +
@@ -71,7 +80,7 @@ namespace OnTheBlade.Core
             },
             new LoadoutDef
             {
-                Id = Smg, Name = "A micro SMG", Cost = 9000,
+                Id = Smg, Name = "A micro SMG", Cost = 9000, AmmoCost = 450,
                 Weapon = WeaponHash.MicroSMG, Ammo = 400,
                 Armour = 50, Accuracy = 45, Muscle = 30,
                 Description = "Outguns anything a crew brings to a corner. Half armour, and " +
@@ -79,7 +88,7 @@ namespace OnTheBlade.Core
             },
             new LoadoutDef
             {
-                Id = Carbine, Name = "A carbine", Cost = 22000,
+                Id = Carbine, Name = "A carbine", Cost = 22000, AmmoCost = 900,
                 Weapon = WeaponHash.CarbineRifle, Ammo = 500,
                 Armour = 100, Accuracy = 55, Muscle = 45,
                 Description = "Full armour and a rifle. He will clear a corner on his own if " +

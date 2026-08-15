@@ -165,6 +165,7 @@ namespace OnTheBlade.Systems
             if (state.Debt < 0) state.Debt = 0;
 
             spawner.Despawn(worker.Id);
+            state.ReleaseGuardsFor(worker.Id);
             state.Roster.Remove(worker);
 
             state.CollectorsGraceUntilDay = GameState.AbsoluteDay() + cfg.CollectorsGraceDays;

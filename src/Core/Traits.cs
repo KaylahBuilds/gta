@@ -89,6 +89,26 @@ namespace OnTheBlade.Core
             return m;
         }
 
+        /// <summary>
+        /// What she is worth on camera. Deliberately shallow — Camera-ready is
+        /// already the strongest single multiplier in the mod (x1.50 on follower
+        /// gain, doubled again by the ring light), and she reaches the content
+        /// payout through her larger audience anyway. This is a nod, not a
+        /// second helping, and it is bounded because the audience factor is.
+        ///
+        /// Hustler is the mirror of her street bonus: she is good at working a
+        /// kerb and that is not this. It gives two more traits a content
+        /// identity they have never had.
+        /// </summary>
+        public static float ContentMultiplier(WorkerTrait set)
+        {
+            float m = 1f;
+            if ((set & WorkerTrait.CameraReady) != 0) m *= 1.15f;
+            if ((set & WorkerTrait.Hustler) != 0) m *= 0.90f;
+            if ((set & WorkerTrait.Magnetic) != 0) m *= 1.10f;
+            return m;
+        }
+
         public static float FollowerMultiplier(WorkerTrait set)
         {
             float m = 1f;

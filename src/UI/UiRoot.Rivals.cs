@@ -23,7 +23,7 @@ namespace OnTheBlade.UI
         {
             _rivals = new NativeMenu("On The Blade", "THE CREWS");
             _pool.Add(_rivals);
-            _main.AddSubMenu(_rivals);
+            _streets.AddSubMenu(_rivals);
             _rivals.Shown += (s, e) => RebuildRivals();
         }
 
@@ -155,7 +155,7 @@ namespace OnTheBlade.UI
                 }
             }
 
-            int rep = state.Reputation;
+            int rep = BladeWorld.WorldLink.Reputation();   // one street, one name
             int next = Reputation.NextRankAt(rep);
 
             _rivals.Add(new NativeItem("Your name",

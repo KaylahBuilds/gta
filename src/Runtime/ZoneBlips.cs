@@ -13,13 +13,23 @@ namespace OnTheBlade.Runtime
     /// corner, lose it, and fight over it without the map ever showing where it
     /// was.
     ///
-    /// Two blips per zone: a coloured radius for the ground itself, and a small
-    /// pin carrying the name and state. Neutral corners get only the pin, because
-    /// filling the map with circles for ground nobody holds is noise — and in a
-    /// heavily modded install the map is already crowded.
+    /// Two blips per zone: a shaded BLOCK over the ground somebody holds, and a
+    /// small pin carrying the name and state. Ground nobody holds gets only the
+    /// pin — shading unclaimed turf is noise, and in a heavily modded install
+    /// the map is already crowded.
     /// </summary>
     public class ZoneBlips
     {
+        /// <summary>
+        /// The blocking, matched to the product side deliberately: both
+        /// businesses paint the same city on the same pause map, and turf that
+        /// changed shape or shade between them would read as two games.
+        /// Same square, same pale alpha, same grid alignment as
+        /// TheTrapStar's CornerBlips.
+        /// </summary>
+        private const float TerritorySide = 170f;
+        private const int TerritoryAlpha = 55;
+
         private readonly Dictionary<string, Blip> _area = new Dictionary<string, Blip>();
         private readonly Dictionary<string, Blip> _pin = new Dictionary<string, Blip>();
 
@@ -79,12 +89,23 @@ namespace OnTheBlade.Runtime
                     continue;
                 }
 
-                bool shut = state.IsHouseLocked(house.Id);
+                // A content house shuts for condition rather than for a raid,
+                // and condition is not in the lock state — without both here the
+                // blip renders a shut house as open and never refreshes when the
+                // place wears down.
+                bool raided = state.IsHouseLocked(house.Id);
+                bool derelict = house.IsContentHouse && state.IsContentShut(house.Id);
+                bool shut = raided || derelict;
+
                 int used = state.WorkersInHouse(house.Id).Count();
 
                 string signature = string.Join("|",
-                    shut ? "shut" + state.HouseLockDaysLeft(house.Id) : "open",
-                    used.ToString());
+                    raided ? "raid" + state.HouseLockDaysLeft(house.Id)
+                           : derelict ? "derelict" : "open",
+                    used.ToString(),
+                    house.IsContentHouse
+                        ? ((int)(state.ContentCondition(house.Id) * 10f)).ToString()
+                        : "-");
 
                 string previous;
                 if (_drawn.TryGetValue(key, out previous) && previous == signature) continue;
@@ -96,12 +117,21 @@ namespace OnTheBlade.Runtime
                 if (pin == null || !pin.Exists()) continue;
 
                 pin.Sprite = BlipSprite.Health;
-                pin.Color = shut ? Config.Current.ZoneRaided : Config.Current.HouseBlipColour;
+                pin.Color = shut
+                    ? Config.Current.ZoneRaided
+                    : house.IsContentHouse
+                        ? Config.Current.ContentBlipColour
+                        : Config.Current.HouseBlipColour;
                 pin.Scale = Config.Current.ZoneBlipScale;
                 pin.IsShortRange = false;
-                pin.Name = shut
+                pin.Name = raided
                     ? $"{house.Display} — shut, {state.HouseLockDaysLeft(house.Id)}d"
-                    : $"{house.Display} — {used}/{house.Rooms} working";
+                    : derelict
+                        ? $"{house.Display} — not fit to work in"
+                        : house.IsContentHouse
+                            ? $"{house.Display} — {used}/{house.Rooms} living there, " +
+                              $"{state.ContentCondition(house.Id) * 100:0}%"
+                            : $"{house.Display} — {used}/{house.Rooms} working";
 
                 _pin[key] = pin;
             }
@@ -111,10 +141,16 @@ namespace OnTheBlade.Runtime
         private static string Signature(ZoneDef zone)
         {
             var state = GameState.Current;
+
+            // The set's flag is part of the signature: naming or repainting it
+            // on the product side must redraw this mod's board too, and the
+            // world-file read behind these is cached, not a file hit per zone.
             return string.Join("|",
                 state.OwnerOf(zone.Id) ?? "neutral",
                 state.IsZoneLocked(zone.Id) ? "raid" + state.LockoutDaysLeft(zone.Id) : "open",
-                state.WorkersIn(zone.Id).Count().ToString());
+                state.WorkersIn(zone.Id).Count().ToString(),
+                BladeWorld.WorldLink.SetName() ?? "-",
+                (BladeWorld.WorldLink.SetColour() ?? 0).ToString());
         }
 
         private void Redraw(ZoneDef zone)
@@ -140,35 +176,62 @@ namespace OnTheBlade.Runtime
             }
             else if (mine)
             {
-                colour = cfg.ZoneMine;
+                // Your ground flies the set's flag once the product side has
+                // named one — same colour, same name, both businesses.
+                colour = BladeWorld.WorldLink.SetColour() ?? cfg.ZoneMine;
+                string set = BladeWorld.WorldLink.SetName();
+
                 sprite = BlipSprite.DollarSignCircled;
-                status = $"yours, {state.WorkersIn(zone.Id).Count()}/{zone.Slots} posted";
+                status = set != null
+                    ? $"{set} turf, {state.WorkersIn(zone.Id).Count()}/{zone.Slots} posted"
+                    : $"yours, {state.WorkersIn(zone.Id).Count()}/{zone.Slots} posted";
             }
             else if (contested)
             {
+                // The girl, in pink. This is the escort side of the city, so
+                // its ground is marked with a woman and not with a pill — the
+                // product side owns that icon and the two boards are read at
+                // the same time on the same map.
                 colour = cfg.ZoneRival;
-                sprite = BlipSprite.BigCircleOutline;
+                sprite = BlipSprite.Hooker;
                 status = state.OwnerName(zone.Id);
             }
             else
             {
                 colour = cfg.ZoneNeutral;
-                sprite = BlipSprite.BigCircleOutline;
+                sprite = BlipSprite.Hooker;
                 status = "neutral";
             }
 
-            // Ground is only shaded when asked for, and only for turf somebody
-            // actually holds. The pin carries the same information without
-            // covering the map.
-            if (Config.Current.ShowZoneAreaCircles && (mine || contested || raided))
+            // THE BLOCKING — exactly what the product side does for a corner
+            // somebody holds: a SQUARE of pale colour over the ground itself
+            // (ADD_BLIP_FOR_AREA), axis-aligned to the map grid, so held turf
+            // reads as blocks rather than as rings drawn over the streets.
+            //
+            // This replaces the BigCircleOutline pin that used to mark rival
+            // ground: a map-scale circle swallowed several blocks and
+            // everything inside them, and said less than the shading does.
+            //
+            // Shaded whenever ANYBODY holds it — yours, theirs, or raided.
+            // Only genuinely unclaimed ground stays bare.
+            if (mine || raided || contested)
             {
-                Blip area = World.CreateBlip(zone.Anchor, zone.Radius);
-                if (area != null && area.Exists())
+                int handle = GTA.Native.Function.Call<int>(
+                    GTA.Native.Hash.ADD_BLIP_FOR_AREA,
+                    zone.Anchor.X, zone.Anchor.Y, zone.Anchor.Z,
+                    TerritorySide, TerritorySide);
+
+                if (handle != 0)
                 {
-                    area.Color = colour;
-                    area.Alpha = Config.Current.ZoneBlipAlpha;
-                    area.Name = $"{zone.Display} — {status}";
-                    _area[zone.Id] = area;
+                    Blip area = new Blip(handle);
+                    if (area.Exists())
+                    {
+                        area.Color = colour;
+                        area.Alpha = TerritoryAlpha;
+                        area.Rotation = 0;
+                        area.Name = $"{zone.Display} — {status}";
+                        _area[zone.Id] = area;
+                    }
                 }
             }
 

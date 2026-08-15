@@ -77,8 +77,42 @@ namespace OnTheBlade.Core
 
         [DataMember] public WorkerState State = WorkerState.OffDuty;
 
-        /// <summary>When she works her post. Nights pay 1.6x; days build followers.</summary>
-        [DataMember] public WorkerShift Shift = WorkerShift.Always;
+        /// <summary>
+        /// When she works her post. Nights pay 1.6x on the street; the hours she
+        /// is not posted are the hours she builds an audience.
+        ///
+        /// Nights, not Always. Always is enum value 0, so it was what every
+        /// recruit got and what every pre-shift save deserialised to — and it is
+        /// the worst of the three: 24 hours of exposure against a flat hourly
+        /// heat decay, and a payout that scales with a stamina bar which never
+        /// gets an hour off to refill. Simulated over 14 days, every house in
+        /// the mod was deeply negative on Always and deeply positive on any
+        /// other setting. Nights is the honest default: it earns the 1.6x night
+        /// demand bonus on the street and sits under the heat decay indoors.
+        /// </summary>
+        [DataMember] public WorkerShift Shift = WorkerShift.Nights;
+
+        /// <summary>
+        /// Absolute day of her last cash-out, or 0 for never — and 0 is safely
+        /// in the past, because AbsoluteDay is year*400+dayOfYear and so never
+        /// approaches it. That is deliberate: it means this field needs no
+        /// migration step, unlike the -1 sentinels that have bitten three times.
+        /// </summary>
+        [DataMember] public int LastCashOutDay;
+
+        /// <summary>Absolute hour her night off ends. 0 — never rested — is in
+        /// the past by construction, so no migration step is needed.</summary>
+        [DataMember] public int RestUntilHour;
+
+        /// <summary>Absolute hour of the last in-person bonus, for the
+        /// diminishing envelope. 0 reads as long ago, which is correct.</summary>
+        [DataMember] public int LastBonusHour;
+
+        /// <summary>How many times the envelope has halved inside the window.</summary>
+        [DataMember] public int BonusHalvings;
+
+        [IgnoreDataMember]
+        public bool IsResting => GameState.AbsoluteHour() < RestUntilHour;
 
         /// <summary>Bitfield of <see cref="WorkerTrait"/>.</summary>
         [DataMember] public int TraitFlags;
@@ -215,6 +249,7 @@ namespace OnTheBlade.Core
             return State == WorkerState.Working
                    && !string.IsNullOrEmpty(ZoneId)
                    && !IsJailed()
+                   && !IsResting
                    && IsOnShift(hour);
         }
 
@@ -228,6 +263,7 @@ namespace OnTheBlade.Core
             return State == WorkerState.Working
                    && IsIndoors
                    && !IsJailed()
+                   && !IsResting
                    && IsOnShift(hour);
         }
 
@@ -261,11 +297,24 @@ namespace OnTheBlade.Core
             if (Tier > 3) Tier = 3;
             if (HoursWorked < 0) HoursWorked = 0;
             if (Regulars < 0) Regulars = 0;
-            if (Regulars > Config.Current.MaxRegulars) Regulars = Config.Current.MaxRegulars;
+            // Guarded against a zero cap. If Config.Current is ever a
+            // default-constructed-but-unpopulated instance — which two paths in
+            // Config.Load could produce — an unguarded clamp takes every
+            // worker's regulars and followers to zero, and the autosave makes it
+            // permanent two minutes later. Those are the two stocks in the mod
+            // that take game-weeks to build and cannot be bought back.
+            if (Config.Current.MaxRegulars > 0 && Regulars > Config.Current.MaxRegulars)
+                Regulars = Config.Current.MaxRegulars;
             if (BookingEndsAtHour < 0) BookingEndsAtHour = 0;
             if (BookingPayout < 0) BookingPayout = 0;
             if (Followers < 0f) Followers = 0f;
-            if (Followers > Config.Current.MaxFollowers) Followers = Config.Current.MaxFollowers;
+            if (Config.Current.MaxFollowers > 0 && Followers > Config.Current.MaxFollowers)
+                Followers = Config.Current.MaxFollowers;
+            if (LastCashOutDay < 0) LastCashOutDay = 0;
+            if (RestUntilHour < 0) RestUntilHour = 0;
+            if (LastBonusHour < 0) LastBonusHour = 0;
+            if (BonusHalvings < 0) BonusHalvings = 0;
+            if (BonusHalvings > 4) BonusHalvings = 4;
 
             // Saves written before models were stored by hash carry only a name.
             if (ModelHash == 0 && !string.IsNullOrEmpty(ModelName))

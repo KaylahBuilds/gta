@@ -137,6 +137,7 @@ namespace OnTheBlade.Systems.Incidents
             if (worker == null) return;
 
             Spawner.Despawn(worker.Id);
+            GameState.Current.ReleaseGuardsFor(worker.Id);
             GameState.Current.Roster.Remove(worker);
             Notify.Show($"~r~They took {worker.Name} back.~s~ You weren't there.");
         }

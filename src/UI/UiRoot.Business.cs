@@ -36,9 +36,9 @@ namespace OnTheBlade.UI
             _pool.Add(_phone);
             _pool.Add(_goals);
 
-            _main.AddSubMenu(_upgrades);
-            _main.AddSubMenu(_property);
-            _main.AddSubMenu(_muscle);
+            _bizGroup.AddSubMenu(_upgrades);
+            _bizGroup.AddSubMenu(_property);
+            _streets.AddSubMenu(_muscle);
             _muscle.AddSubMenu(_hire);
 
             _upgrades.Shown += (s, e) => RebuildUpgrades();
@@ -82,6 +82,14 @@ namespace OnTheBlade.UI
                     Enabled = false
                 });
             }
+
+            // The shared city, visible rather than magic — the one place this
+            // mod renders the link, the combined name, and the set's flag.
+            _goals.Add(new NativeItem("The other business",
+                BladeWorld.WorldLink.StatusLine())
+            {
+                Enabled = false
+            });
         }
 
         /// <summary>Opened by the phone keybind and by the in-game phone contact.</summary>
@@ -351,6 +359,12 @@ namespace OnTheBlade.UI
             _muscle.Clear();
             _muscle.AddSubMenu(_hire);
 
+            // Re-added every rebuild because Clear() above removes them. Adding
+            // these in BuildOrdersMenu only worked until the first time this
+            // menu was opened.
+            if (_orders != null) _muscle.AddSubMenu(_orders);
+            if (_gear != null) _muscle.AddSubMenu(_gear);
+
             var state = GameState.Current;
 
             if (state.Enforcers.Count == 0)
@@ -395,41 +409,68 @@ namespace OnTheBlade.UI
             });
         }
 
+        /// <summary>
+        /// Hiring is now a two-part choice: where, and what kind of man. The
+        /// region is picked with a list item so the backgrounds are not multiplied
+        /// by four regions into a wall of twenty entries.
+        /// </summary>
         private void RebuildHire()
         {
             _hire.Clear();
             var state = GameState.Current;
-            var cfg = Config.Current;
 
-            foreach (var region in Regions.All)
+            var open = Regions.All
+                .Where(r => !state.Enforcers.Any(e => e.RegionId == r.Id))
+                .ToList();
+
+            if (open.Count == 0)
             {
-                bool taken = state.Enforcers.Any(e => e.RegionId == region.Id);
-
-                var item = new NativeItem(region.Display,
-                    taken
-                        ? "Already covered."
-                        : $"${cfg.EnforcerHireCost:N0} up front, then ${cfg.EnforcerDailyWage}/day. " +
-                          "Turns rivals away from your corners here, and handles routine " +
-                          "client trouble. Never covers stings or walk-offs.")
+                _hire.Add(new NativeItem("(every region is covered)",
+                    "Let somebody go before taking anyone else on.")
                 {
-                    AltTitle = taken ? "~g~Covered" : $"${cfg.EnforcerHireCost:N0}",
-                    Enabled = !taken
+                    Enabled = false
+                });
+                return;
+            }
+
+            var names = open.Select(r => r.Display).ToArray();
+            var where = new NativeListItem<string>("Where", names)
+            {
+                Description = "Which ground he covers. One man per region."
+            };
+            _hire.Add(where);
+
+            foreach (var background in MuscleBackgrounds.All)
+            {
+                int cost = EnforcerCatalog.HireCost(background.Kind);
+                var profile = background;
+
+                float wage = Config.Current.EnforcerDailyWage
+                             * (Config.Current.EnforcerWageSkillFloor + profile.StartSkill / 100f)
+                             * profile.WageMultiplier;
+
+                var item = new NativeItem(profile.Name,
+                    $"{profile.Blurb} Starts around {profile.StartSkill:0} skill and tops out " +
+                    $"at {profile.SkillCap:0}. About ${(int)wage:N0} a day to keep.")
+                {
+                    AltTitle = $"${cost:N0}",
+                    Enabled = Game.Player.Money >= cost
                 };
 
-                if (!taken)
+                item.Activated += (s, e) =>
                 {
-                    var def = region;
-                    item.Activated += (s, e) => Hire(def);
-                }
+                    var region = open[where.SelectedIndex];
+                    Hire(region, profile.Kind);
+                };
 
                 _hire.Add(item);
             }
         }
 
-        private void Hire(RegionDef region)
+        private void Hire(RegionDef region, MuscleBackground background)
         {
             var state = GameState.Current;
-            int cost = Config.Current.EnforcerHireCost;
+            int cost = EnforcerCatalog.HireCost(background);
 
             if (Game.Player.Money < cost)
             {
@@ -437,14 +478,23 @@ namespace OnTheBlade.UI
                 return;
             }
 
+            if (state.Enforcers.Any(e => e.RegionId == region.Id))
+            {
+                Notify.Show($"~r~{region.Display} is already covered.");
+                return;
+            }
+
             Game.Player.Money -= cost;
 
             var taken = state.Enforcers.Select(e => e.Name).ToArray();
-            var enforcer = EnforcerCatalog.Create(state.NextEnforcerId++, region.Id, taken);
+            var enforcer = EnforcerCatalog.Create(
+                state.NextEnforcerId++, region.Id, taken, background);
+
             state.Enforcers.Add(enforcer);
 
             Notify.Show(
-                $"~g~{enforcer.Name}~s~ is covering {region.Display}. Skill {enforcer.Skill:0}.");
+                $"~g~{enforcer.Name}~s~ — {enforcer.Profile.Name.ToLowerInvariant()}, covering " +
+                $"{region.Display}. Skill {enforcer.Skill:0}, ${enforcer.DailyWage}/day.", true);
 
             RebuildHire();
         }
@@ -528,13 +578,23 @@ namespace OnTheBlade.UI
                 Enabled = false
             });
 
+            // Every row re-resolves her at the moment it is pressed. The menu can
+            // sit open across midnight, and midnight is exactly when overdue
+            // exits and poaches remove her — acting on the snapshot would charge
+            // retention money, or award send-off reputation, for a woman who is
+            // already gone.
+            int exitId = worker.Id;
+
             var letGo = new NativeItem("Let her go",
                 $"She leaves on good terms. Builds your name, and there is a fair " +
                 "chance she sends somebody your way.");
             letGo.Activated += (s, e) =>
             {
-                _spawner.Despawn(worker.Id);
-                Crew.Release(worker, clean: true);
+                var her = StillAsking(exitId);
+                if (her == null) return;
+
+                _spawner.Despawn(her.Id);
+                Crew.Release(her, clean: true);
                 RebuildPhone();
             };
             _phone.Add(letGo);
@@ -549,7 +609,16 @@ namespace OnTheBlade.UI
             };
             keep.Activated += (s, e) =>
             {
-                Crew.Retain(worker);
+                var her = StillAsking(exitId);
+                if (her == null) return;
+
+                if (Game.Player.Money < Crew.RetentionCost(her))
+                {
+                    Notify.Show("~r~You can't cover it right now.");
+                    return;
+                }
+
+                Crew.Retain(her);
                 RebuildPhone();
             };
             _phone.Add(keep);
@@ -559,10 +628,36 @@ namespace OnTheBlade.UI
                 "and below 25 she starts looking for the door on her own terms.");
             refuse.Activated += (s, e) =>
             {
-                Crew.Refuse(worker);
+                var her = StillAsking(exitId);
+                if (her == null) return;
+
+                Crew.Refuse(her);
                 RebuildPhone();
             };
             _phone.Add(refuse);
+        }
+
+        /// <summary>The exit conversation's live re-resolution: still on the
+        /// books, still asking. Null (with the reason shown) otherwise.</summary>
+        private WorkerData StillAsking(int workerId)
+        {
+            var her = GameState.Current.GetWorker(workerId);
+
+            if (her == null)
+            {
+                Notify.Show("~o~That resolved itself — she's already gone.");
+                RebuildPhone();
+                return null;
+            }
+
+            if (!her.WantsOut)
+            {
+                Notify.Show("~o~She's not asking any more.");
+                RebuildPhone();
+                return null;
+            }
+
+            return her;
         }
 
         /// <summary>
@@ -660,7 +755,17 @@ namespace OnTheBlade.UI
 
             foreach (var worker in state.Roster.Where(w => w.State == WorkerState.Working).ToList())
             {
+                // All three posting fields, the same set Law custody clears.
+                // Nulling only ZoneId left a recalled manager attached:
+                // Crew.ManagerOf matches on ManagesZoneId and never looks at
+                // State, so she carried on applying her payout and heat
+                // multipliers to a corner she had been pulled off. An indoor
+                // worker kept IsIndoors true for the same reason, which is what
+                // ClientBook.DecayRegulars tests to decide who is posted — so
+                // she stopped earning but never bled a regular either.
                 worker.ZoneId = null;
+                worker.HouseId = null;
+                worker.ManagesZoneId = null;
                 worker.State = WorkerState.OffDuty;
                 _spawner.Despawn(worker.Id);
                 pulled++;

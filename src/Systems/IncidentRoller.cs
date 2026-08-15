@@ -68,8 +68,15 @@ namespace OnTheBlade.Systems
             // 3. Vice stings, weighted entirely by how hot the corner is.
             foreach (var worker in onPost)
             {
-                float chance = state.GetHeat(worker.ZoneId) * cfg.ViceStingHeatFactor;
+                float chance = state.GetHeat(worker.ZoneId)
+                               * cfg.ViceStingHeatFactor
+                               * ZoneUpgrades.StingMultiplier(worker.ZoneId);
+
                 if (state.HasUpgrade(UpgradeCatalog.Retainer)) chance *= 0.75f;
+
+                // Better product draws a better class of attention.
+                if (state.HasUpgrade(UpgradeCatalog.GoodProduct))
+                    chance *= cfg.GoodProductStingMultiplier;
 
                 if (_rng.NextDouble() >= chance) continue;
                 if (_missions.TryStart(new ViceStingIncident(worker.Id, _spawner))) return;
@@ -80,7 +87,11 @@ namespace OnTheBlade.Systems
             {
                 float chance = cfg.BadClientChance
                                * Traits.TroubleMultiplier(worker.TraitSet)
-                               * Pricing.Trouble(worker.ZoneId);
+                               * Pricing.Trouble(worker.ZoneId)
+                               * LateWindow.TroubleMultiplier(hour);
+
+                // A man standing behind her means most of it never starts.
+                if (state.GuardFor(worker.Id) != null) chance *= cfg.GuardTroubleReduction;
                 if (_rng.NextDouble() >= chance) continue;
                 if (HandledByMuscle(worker)) return;
                 if (_missions.TryStart(new BadClientIncident(worker.Id, _spawner))) return;
@@ -102,11 +113,16 @@ namespace OnTheBlade.Systems
             if (enforcer == null) return false;
 
             // EffectiveSkill folds in whatever he is carrying and returns zero
-            // while he is laid up — a man in a hospital bed deters nobody.
-            float chance = (enforcer.EffectiveSkill / 100f) * Config.Current.MuscleTurfDeterrence;
+            // while he is laid up — a man in a hospital bed deters nobody. What he
+            // used to do for a living decides how much of it lands.
+            float chance = (enforcer.EffectiveSkill / 100f)
+                           * Config.Current.MuscleTurfDeterrence
+                           * enforcer.Profile.DeterrenceMultiplier;
+
             if (_rng.NextDouble() >= chance) return false;
 
-            enforcer.Handled++;
+            enforcer.RecordHandled();
+            AddHandlingHeat(enforcer, zone.Id);
 
             Notify.Show(enforcer.IsArmed
                 ? $"~g~{enforcer.Name} turned {rival.Name} away from {zone.Display}.~s~ " +
@@ -125,7 +141,11 @@ namespace OnTheBlade.Systems
         /// </summary>
         private bool HandledByMuscle(WorkerData worker)
         {
-            var enforcer = GameState.Current.EnforcerFor(worker.ZoneId);
+            // A man minding her personally gets first refusal — that is what he is
+            // standing there for.
+            var enforcer = GameState.Current.GuardFor(worker.Id)
+                           ?? GameState.Current.EnforcerFor(worker.ZoneId);
+
             if (enforcer == null) return false;
 
             // Capped so it can never be a certainty. Arming a man raises his
@@ -135,13 +155,28 @@ namespace OnTheBlade.Systems
             float chance = enforcer.EffectiveSkill * Config.Current.MuscleClientHandleCap;
             if (_rng.NextDouble() * 100.0 >= chance) return false;
 
-            enforcer.Handled++;
+            enforcer.RecordHandled();
+            AddHandlingHeat(enforcer, worker.ZoneId);
+
             worker.Loyalty += 4f;
             worker.Clamp();
 
             Notify.Show(
                 $"~g~{enforcer.Name}~s~ dealt with a client near {worker.Name}. No action needed.");
             return true;
+        }
+
+        /// <summary>
+        /// Some men settle things in ways the street remembers. This is the cost
+        /// of a leg-breaker's deterrence, and the reason he is not simply the best
+        /// background.
+        /// </summary>
+        private static void AddHandlingHeat(EnforcerData enforcer, string zoneId)
+        {
+            float heat = enforcer.Profile.HeatPerHandled;
+            if (heat <= 0f || string.IsNullOrEmpty(zoneId)) return;
+
+            GameState.Current.AddHeat(zoneId, heat);
         }
 
         /// <summary>
@@ -175,12 +210,23 @@ namespace OnTheBlade.Systems
                              * cfg.RivalContestChance
                              * Rivals.ContestMultiplier(rival);
 
+                // Wiring the block keeps you cool and makes you conspicuous.
+                if (state.HasUpgrade(UpgradeCatalog.WireBlock))
+                    odds *= cfg.WireBlockContestMultiplier;
+
                 if (_rng.NextDouble() >= odds) continue;
 
                 var target = held[_rng.Next(held.Count)];
 
                 // Muscle on that ground gets a say before it becomes a fight.
+                // Deterrence stays first: a crew that waves them off without a
+                // shot costs nothing, and should remain the best outcome even
+                // when a standing order would have handled it.
                 if (DeterredByMuscle(target, rival)) continue;
+
+                // If you are paying them to hold this corner, they hold it —
+                // and you find out afterwards rather than being called away.
+                if (StandingOrders.Resolve(target, rival)) return true;
 
                 if (_missions.TryStart(new TurfBattleIncident(target.Id, rival.Id, false, _spawner)))
                     return true;

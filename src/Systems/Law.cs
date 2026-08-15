@@ -88,7 +88,11 @@ namespace OnTheBlade.Systems
 
             var hottest = Zones.All
                 .Where(z => state.PlayerOwns(z.Id) && state.WorkersIn(z.Id).Any())
-                .OrderByDescending(z => state.GetHeat(z.Id))
+                // Shared heat, not local. Every other law decision below now
+                // reads the same number, and picking the "hottest" corner off a
+                // different figure than the one the raid gate uses is how the
+                // warning ended up aimed at the wrong block.
+                .OrderByDescending(z => BladeWorld.WorldLink.ViceHeat(z.Id))
                 .FirstOrDefault();
 
             if (hottest == null)
@@ -157,7 +161,15 @@ namespace OnTheBlade.Systems
             }
 
             bool empty = !state.WorkersIn(zone.Id).Any();
-            bool cool = state.GetHeat(zone.Id) < Config.Current.RaidHeatThreshold;
+            // The raid gate reads shared heat and shared is always >= local,
+            // so deciding "cool enough to stand the warning down" on the local
+            // figure opened a band in which the warning was cleared and
+            // immediately re-armed with a fresh expiry every single hour. Inside
+            // it the expiry was never reached, the raid was unreachable, and the
+            // player got "nobody came" and "he called" back to back forever.
+            // With the other mod running hot that band was a third of the scale
+            // wide and permanent.
+            bool cool = BladeWorld.WorldLink.ViceHeat(zone.Id) < Config.Current.RaidHeatThreshold;
 
             if (!empty && !cool) return;
 
@@ -248,7 +260,7 @@ namespace OnTheBlade.Systems
         {
             int cost = Config.Current.InformantSweepCost;
             if (GameState.Current.HasUpgrade(UpgradeCatalog.Retainer)) cost /= 2;
-            return cost;
+            return (int)Math.Round(cost * MuscleBackgrounds.LegalCostMultiplier());
         }
 
         /// <summary>Pays to find out. Names her, or confirms there is nobody.</summary>
@@ -290,6 +302,7 @@ namespace OnTheBlade.Systems
             bool right = worker.Id == state.InformantWorkerId;
 
             spawner.Despawn(worker.Id);
+            state.ReleaseGuardsFor(worker.Id);
             state.Roster.Remove(worker);
 
             if (right)
@@ -342,7 +355,7 @@ namespace OnTheBlade.Systems
             var cfg = Config.Current;
             var state = GameState.Current;
 
-            float heat = state.GetHeat(zoneId);
+            float heat = BladeWorld.WorldLink.ViceHeat(zoneId);
             int days = cfg.CustodyDaysMin +
                        (int)Math.Round(heat * (cfg.CustodyDaysMax - cfg.CustodyDaysMin));
 
@@ -358,6 +371,8 @@ namespace OnTheBlade.Systems
                 ? cfg.CourtFine / 2
                 : cfg.CourtFine;
 
+            fine = (int)Math.Round(fine * MuscleBackgrounds.LegalCostMultiplier());
+
             Notify.Show(
                 $"~r~{worker.Name} is in custody.~s~ {days} day(s) before she is out, " +
                 "and a fine on top. A lawyer can shorten it.", true);
@@ -371,7 +386,7 @@ namespace OnTheBlade.Systems
             int cost = Config.Current.LawyerCostPerDay * Math.Max(1, days);
 
             if (GameState.Current.HasUpgrade(UpgradeCatalog.Retainer)) cost /= 2;
-            return cost;
+            return (int)Math.Round(cost * MuscleBackgrounds.LegalCostMultiplier());
         }
 
         /// <summary>Buys the rest of her sentence. All of it, or none.</summary>

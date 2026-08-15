@@ -16,7 +16,7 @@ namespace OnTheBlade.Core
         /// <see cref="Migrate"/>. Without this, a reshaped save fails silently
         /// and half-populated rather than loudly.
         /// </summary>
-        public const int CurrentSaveVersion = 12;
+        public const int CurrentSaveVersion = 16;
 
         [DataMember] public int SaveVersion;
 
@@ -24,6 +24,10 @@ namespace OnTheBlade.Core
 
         [DataMember] public int NextWorkerId = 1;
         [DataMember] public List<WorkerData> Roster = new List<WorkerData>();
+
+        /// <summary>Last day a pillow-talk tip was rolled for the product side.
+        /// Additive; 0 on old saves means "never", which is correct.</summary>
+        [DataMember] public int LastTipDay;
 
         /// <summary>Zone id -> heat, 0..1.</summary>
         [DataMember] public Dictionary<string, float> ZoneHeat = new Dictionary<string, float>();
@@ -51,6 +55,39 @@ namespace OnTheBlade.Core
 
         /// <summary>Lifetime take earned indoors.</summary>
         [DataMember] public int LifetimeHouseTake;
+
+        /// <summary>Lifetime take produced on camera. Kept apart from the
+        /// subscription counter so the two_streams milestone keeps meaning
+        /// "your first weekly deposit landed".</summary>
+        [DataMember] public int LifetimeContentTake;
+
+        /// <summary>
+        /// Content house id -> condition points LOST, 0..1.
+        ///
+        /// Stored as WEAR rather than as condition precisely because DCJS
+        /// deserialises a missing key as 0, and zero wear — a place in perfect
+        /// order — is the right answer both for a save written before the
+        /// feature and for a house bought thirty seconds ago. A condition
+        /// dictionary reading zero the way GetHeat does would have shut every
+        /// content house the player ever bought.
+        /// </summary>
+        [DataMember] public Dictionary<string, float> ContentWear = new Dictionary<string, float>();
+
+        /// <summary>
+        /// Content house id -> gear ids bought for it. See
+        /// <see cref="Core.ContentGear"/> — the static class of that name is
+        /// shadowed by this field inside GameState, so anything in here that
+        /// wants the catalogue has to say Core.ContentGear in full.
+        ///
+        /// Kept apart from ZoneUpgrades because a house cannot be taken off you:
+        /// this survives a raid, and zone upgrades deliberately do not.
+        /// </summary>
+        [DataMember]
+        public Dictionary<string, List<string>> ContentGear = new Dictionary<string, List<string>>();
+
+        /// <summary>Houses already announced as shut, so the notice fires once
+        /// rather than every game hour until it is repaired.</summary>
+        [DataMember] public List<string> ContentShutAnnounced = new List<string>();
 
         // --- the client currently asking, flattened so it serialises plainly ---
         // Only ever one at a time, same as the running demand event. Two offers
@@ -101,6 +138,20 @@ namespace OnTheBlade.Core
         // --- money ---
         /// <summary>Zone id -> <see cref="PriceLevel"/>. Missing means the going rate.</summary>
         [DataMember] public Dictionary<string, int> ZonePrices = new Dictionary<string, int>();
+
+        // --- standing orders ---
+        /// <summary>Zone id -> <see cref="StandingOrder"/>. Missing means off.</summary>
+        [DataMember] public Dictionary<string, int> StandingOrders = new Dictionary<string, int>();
+
+        /// <summary>Region id -> armour level bought for the crew there.</summary>
+        [DataMember] public Dictionary<string, int> CrewArmour = new Dictionary<string, int>();
+
+        /// <summary>Region id -> vehicle level. Can be written off in a bad fight.</summary>
+        [DataMember] public Dictionary<string, int> CrewVehicles = new Dictionary<string, int>();
+
+        /// <summary>Zone id -> ids from <see cref="Core.ZoneUpgrades"/> bought for it.</summary>
+        [DataMember]
+        public Dictionary<string, List<string>> ZoneUpgrades = new Dictionary<string, List<string>>();
 
         /// <summary>Cash borrowed over the run, before interest.</summary>
         [DataMember] public int LifetimeBorrowed;
@@ -181,7 +232,17 @@ namespace OnTheBlade.Core
         [DataMember] public int LastPayoutDayOfYear = -1;
 
         [IgnoreDataMember]
-        public int LifetimeStreetTake => LifetimeTake - LifetimeSubscriptionTake;
+        /// <summary>
+        /// What was actually earned on a kerb. Every other stream adds to
+        /// LifetimeTake as well as to its own counter, so each one has to be
+        /// subtracted back out here — house, bookings and now content were all
+        /// being reported as street income in the Territory readout.
+        ///
+        /// Any future stream must add BOTH a counter and a term to this line.
+        /// </summary>
+        public int LifetimeStreetTake =>
+            LifetimeTake - LifetimeSubscriptionTake - LifetimeHouseTake
+                         - LifetimeBookingTake - LifetimeContentTake;
 
         /// <summary>Last in-game hour the economy resolved for, so a reload does
         /// not immediately re-run a tick.</summary>
@@ -207,6 +268,16 @@ namespace OnTheBlade.Core
             if (HouseHeat == null) HouseHeat = new Dictionary<string, float>();
             if (HouseLockedUntilDay == null) HouseLockedUntilDay = new Dictionary<string, int>();
             if (ZonePrices == null) ZonePrices = new Dictionary<string, int>();
+            // Above Migrate(), because a migration step that touches one of
+            // these would throw inside deserialisation — which SaveManager
+            // swallows into a log line and then discards the whole save.
+            if (ContentWear == null) ContentWear = new Dictionary<string, float>();
+            if (ContentGear == null) ContentGear = new Dictionary<string, List<string>>();
+            if (ContentShutAnnounced == null) ContentShutAnnounced = new List<string>();
+            if (ZoneUpgrades == null) ZoneUpgrades = new Dictionary<string, List<string>>();
+            if (StandingOrders == null) StandingOrders = new Dictionary<string, int>();
+            if (CrewArmour == null) CrewArmour = new Dictionary<string, int>();
+            if (CrewVehicles == null) CrewVehicles = new Dictionary<string, int>();
 
             Migrate();
 
@@ -220,6 +291,41 @@ namespace OnTheBlade.Core
             foreach (var w in Roster) w.Clamp();
             foreach (var r in Rivals) r.Clamp();
             foreach (var e in Enforcers) e.Clamp();
+
+            ReleaseDanglingGuards();
+        }
+
+        /// <summary>
+        /// Frees any enforcer minding somebody who is no longer on the books.
+        ///
+        /// Against `this` rather than GameState.Current, and that is the whole
+        /// point: this runs from [OnDeserialized], before Current is assigned,
+        /// so anything reading Current here sees an empty throwaway roster and
+        /// concludes that every worker has left.
+        /// </summary>
+        public void ReleaseDanglingGuards()
+        {
+            foreach (var enforcer in Enforcers)
+            {
+                if (enforcer.GuardingWorkerId < 0) continue;
+                if (Roster.Any(w => w.Id == enforcer.GuardingWorkerId)) continue;
+
+                enforcer.GuardingWorkerId = -1;
+            }
+        }
+
+        /// <summary>
+        /// Frees whoever was minding this worker. Called wherever somebody leaves
+        /// the roster — the load-time sweep above only catches what a save
+        /// happens to be reloaded with, so without this a bodyguard stays
+        /// attached to a woman who walked off until the next restart.
+        /// </summary>
+        public void ReleaseGuardsFor(int workerId)
+        {
+            if (workerId < 0) return;
+
+            foreach (var enforcer in Enforcers)
+                if (enforcer.GuardingWorkerId == workerId) enforcer.GuardingWorkerId = -1;
         }
 
         // --- upgrades, property, muscle -----------------------------------
@@ -233,6 +339,15 @@ namespace OnTheBlade.Core
                 int cap = Config.Current.BaseRosterCap;
                 if (HasUpgrade(UpgradeCatalog.RosterA)) cap += 2;
                 if (HasUpgrade(UpgradeCatalog.RosterB)) cap += 2;
+
+                // Somewhere for them to live as well as work. Base 4 + 2 + 2 plus
+                // the ladder's 1 + 1 + 2 + 3 comes to exactly 15, which is the
+                // capacity of the top house — so the ladder terminates with no
+                // dead rooms and no roster you cannot house.
+                cap += Houses.All
+                    .Where(h => h.IsContentHouse && OwnsHouse(h.Id))
+                    .Sum(h => h.RosterSlots);
+
                 return cap;
             }
         }
@@ -251,12 +366,33 @@ namespace OnTheBlade.Core
         /// <summary>True if the zone's region has a stash house.</summary>
         public bool ZoneHasStash(string zoneId) => OwnsStash(Regions.ForZone(zoneId)?.Id);
 
-        /// <summary>The enforcer covering a zone's region, if any.</summary>
+        /// <summary>
+        /// The enforcer covering a zone's region, if any.
+        ///
+        /// Somebody minding one person is deliberately not returned here. He is
+        /// standing behind her, not watching the neighbourhood, and that is the
+        /// entire cost of putting him there.
+        /// </summary>
         public EnforcerData EnforcerFor(string zoneId)
         {
             var region = Regions.ForZone(zoneId);
             if (region == null) return null;
-            return Enforcers.FirstOrDefault(e => e.RegionId == region.Id);
+            return Enforcers.FirstOrDefault(e => e.RegionId == region.Id && !e.IsGuarding);
+        }
+
+        /// <summary>Anyone covering this region at all, minding somebody or not.</summary>
+        public EnforcerData EnforcerInRegion(string regionId)
+        {
+            return string.IsNullOrEmpty(regionId)
+                ? null
+                : Enforcers.FirstOrDefault(e => e.RegionId == regionId);
+        }
+
+        /// <summary>The man assigned to one specific worker, if there is one.</summary>
+        public EnforcerData GuardFor(int workerId)
+        {
+            if (workerId < 0) return null;
+            return Enforcers.FirstOrDefault(e => e.GuardingWorkerId == workerId && !e.IsInjured());
         }
 
         public int DailyWageBill => Enforcers.Sum(e => e.DailyWage);
@@ -437,6 +573,81 @@ namespace OnTheBlade.Core
                 SaveVersion = 12;
             }
 
+            if (SaveVersion < 13)
+            {
+                // Muscle backgrounds, minding somebody, and per-corner upgrades.
+                //
+                // GuardingWorkerId is the trap: it defaults to -1 on a fresh object
+                // but deserialises as 0 from an older save, and 0 is not a valid
+                // worker id here — ids start at 1 — so it would have read as
+                // "minding worker 0", pulling every existing enforcer off region
+                // cover to guard somebody who does not exist.
+                foreach (var e in Enforcers)
+                {
+                    e.GuardingWorkerId = -1;
+                    e.Background = (int)MuscleBackground.Journeyman;
+
+                    // Existing hires keep the skill they earned, but their wage is
+                    // recomputed — it used to be flat and is now what they are worth.
+                    e.DailyWage = e.WageFor();
+                }
+
+                SaveVersion = 13;
+            }
+
+            if (SaveVersion < 14)
+            {
+                // Standing orders, crew armour and vehicles arrived. Every new
+                // collection defaults empty and empty means off, which is the
+                // right answer for a save that predates the feature — nobody is
+                // holding anything on retainer until the player says so.
+                SaveVersion = 14;
+            }
+
+            if (SaveVersion < 15)
+            {
+                // Everyone was on Always, because Always is enum value 0 and so
+                // was both the recruit default and what a pre-v3 save
+                // deserialised to. It is strictly the worst shift: it draws a
+                // third more heat than a day shift and earns a fraction of it,
+                // because payout scales with a stamina bar that only refills
+                // off-shift. Every house in the mod ran at a loss on it.
+                //
+                // Moved rather than left alone, because nobody chose this — it
+                // was the value of an uninitialised field. Anyone who did want
+                // it can set it back from the worker's own menu.
+                int moved = 0;
+                foreach (var w in Roster)
+                {
+                    if (w.Shift != WorkerShift.Always) continue;
+                    w.Shift = WorkerShift.Nights;
+                    moved++;
+                }
+
+                if (moved > 0)
+                    Persistence.SaveManager.Log(
+                        $"Moved {moved} worker(s) off the Always shift onto Nights.");
+
+                SaveVersion = 15;
+            }
+
+            if (SaveVersion < 16)
+            {
+                // Content houses arrived. All three collections default empty and
+                // empty is correct: nobody owns one, so there is nothing kitted
+                // out, nothing worn and nothing shut. Condition is stored as wear
+                // for exactly this reason — a missing key reads as zero wear,
+                // which is a house in perfect order, whereas a condition
+                // dictionary reading zero the way GetHeat does would have shut
+                // every content house the player later bought. Same fault the v4
+                // step had to repair for EventMultiplier.
+                //
+                // No worker field is added, so nothing on the roster needs
+                // back-filling: a content house is a HouseDef, and HouseId already
+                // means "she is inside one of them".
+                SaveVersion = 16;
+            }
+
             Persistence.SaveManager.Log($"Save migrated from version {from} to {SaveVersion}.");
         }
 
@@ -539,12 +750,30 @@ namespace OnTheBlade.Core
         }
 
         /// <summary>Pulls every worker off a zone — used when a corner is lost.</summary>
+        /// <summary>
+        /// Takes everybody off this corner — including whoever was running it.
+        ///
+        /// AssignManager sets ZoneId to null and ManagesZoneId to the corner, so a
+        /// manager is not in WorkersIn and nothing here used to touch her. After a
+        /// turf loss, a raid or a standing-order defeat she was still Working,
+        /// still named on a rival's corner in the menu, still shielded from
+        /// regular decay — and because AssignManager only rejects a DIFFERENT
+        /// manager, retaking the corner silently switched her multipliers back on
+        /// for free. Repaired here rather than at the three call sites, so a
+        /// fourth caller cannot miss it.
+        /// </summary>
         public void ClearZone(string zoneId)
         {
             foreach (var worker in WorkersIn(zoneId).ToList())
             {
                 worker.ZoneId = null;
                 worker.State = WorkerState.OffDuty;
+            }
+
+            foreach (var manager in Roster.Where(w => w.ManagesZoneId == zoneId).ToList())
+            {
+                manager.ManagesZoneId = null;
+                manager.State = WorkerState.OffDuty;
             }
         }
 
@@ -613,6 +842,54 @@ namespace OnTheBlade.Core
         }
 
         /// <summary>Empties a house — used when it is raided.</summary>
+        // --- content houses -------------------------------------------
+
+        public float ContentWearOn(string houseId)
+        {
+            float wear;
+            return !string.IsNullOrEmpty(houseId) && ContentWear.TryGetValue(houseId, out wear)
+                ? wear
+                : 0f;
+        }
+
+        public float ContentCondition(string houseId)
+        {
+            float c = 1f - ContentWearOn(houseId);
+            if (c < 0f) c = 0f;
+            if (c > 1f) c = 1f;
+            return c;
+        }
+
+        public void AddContentWear(string houseId, float delta)
+        {
+            if (string.IsNullOrEmpty(houseId)) return;
+
+            float wear = ContentWearOn(houseId) + delta;
+            if (wear < 0f) wear = 0f;
+            if (wear > 1f) wear = 1f;
+
+            ContentWear[houseId] = wear;
+        }
+
+        public void ClearContentWear(string houseId)
+        {
+            if (string.IsNullOrEmpty(houseId)) return;
+
+            ContentWear.Remove(houseId);
+            ContentShutAnnounced.Remove(houseId);
+        }
+
+        public bool IsContentShut(string houseId)
+        {
+            return ContentCondition(houseId) < Config.Current.ContentConditionShutBelow;
+        }
+
+        /// <summary>People living here, whatever shift they are on.</summary>
+        public int ContentResidents(string houseId)
+        {
+            return WorkersInHouse(houseId).Count();
+        }
+
         public void ClearHouse(string houseId)
         {
             foreach (var worker in WorkersInHouse(houseId).ToList())
@@ -626,6 +903,22 @@ namespace OnTheBlade.Core
         [IgnoreDataMember]
         public int DailyRentBill =>
             Houses.All.Where(h => OwnsHouse(h.Id)).Sum(h => h.DailyRent);
+
+        // --- crew gear ------------------------------------------------------
+
+        public int ArmourLevel(string regionId)
+        {
+            if (string.IsNullOrEmpty(regionId)) return 0;
+            int level;
+            return CrewArmour.TryGetValue(regionId, out level) ? level : 0;
+        }
+
+        public int CrewVehicleLevel(string regionId)
+        {
+            if (string.IsNullOrEmpty(regionId)) return 0;
+            int level;
+            return CrewVehicles.TryGetValue(regionId, out level) ? level : 0;
+        }
 
         public WorkerData GetWorker(int id) => Roster.FirstOrDefault(w => w.Id == id);
 
@@ -648,6 +941,8 @@ namespace OnTheBlade.Core
             return idx < 0 ? 0 : idx % zone.Slots;
         }
 
+        private static readonly System.Random _loyaltyRng = new System.Random();
+
         public WorkerData AddWorker(string name, int modelHash, int tier)
         {
             var worker = new WorkerData
@@ -657,6 +952,26 @@ namespace OnTheBlade.Core
                 ModelHash = modelHash,
                 Tier = tier
             };
+
+            // The base roll and the reputation bonus used to be applied by the
+            // caller, NINE LINES after this method had already applied the
+            // franchise penalty and the referral bonus — so a plain assignment
+            // discarded both, every single time. Franchise was a $45,000 upgrade
+            // whose only stated drawback never landed, and a referral was
+            // decremented and announced to the player and then never paid.
+            //
+            // Doing it here, first, is the fix. Note that += on the caller's line
+            // would NOT have been: it lands every recruit at the clamp, which
+            // erases the penalty just as thoroughly.
+            worker.Loyalty = Config.Current.RecruitLoyaltyBase
+                             + (float)_loyaltyRng.NextDouble() * Config.Current.RecruitLoyaltySpread
+                             // Fully qualified: the Reputation FIELD on this class
+                             // shadows the Reputation class inside it.
+                             + OnTheBlade.Core.Reputation.LoyaltyBonus(Reputation);
+
+            // She signed with the name rather than with you, and it shows.
+            if (HasUpgrade(UpgradeCatalog.Franchise))
+                worker.Loyalty -= Config.Current.FranchiseLoyaltyPenalty;
 
             // Every recruitment path funnels through here, so this is the one
             // place a referral can be spent without each caller having to know

@@ -134,6 +134,12 @@ namespace OnTheBlade.Core
             if (cover != null && cover.IsArmed && !cover.IsInjured())
                 risk *= 1f - (cover.EffectiveSkill / 100f) * cfg.BookingMuscleCover;
 
+            // A man assigned to her personally goes with her. This is the only
+            // thing in the mod that meaningfully de-risks the biggest bookings,
+            // and it costs a whole region's cover to have.
+            if (GameState.Current.GuardFor(worker.Id) != null)
+                risk *= cfg.GuardBookingRiskReduction;
+
             if (risk < 0.02f) risk = 0.02f;
             if (risk > 0.85f) risk = 0.85f;
             return risk;

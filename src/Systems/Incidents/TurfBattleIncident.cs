@@ -215,9 +215,24 @@ namespace OnTheBlade.Systems.Incidents
             {
                 state.SetOwner(_zoneId, _rivalId);
                 state.ClearZone(_zoneId);
+
+                // Same as the standing-order loss path: the order dies with the
+                // corner. Left set it costs nothing while somebody else holds the
+                // ground — but it switches itself back on the moment you retake
+                // the corner, at double rate if it was DefendAndTake, with no
+                // notification and no row in the menu that ever said so.
+                Systems.StandingOrders.SetOrder(_zoneId, StandingOrder.Off);
                 if (rival != null) rival.Strength += 10f;
-                Notify.Show(
-                    $"~r~You lost {Zone?.Display}.~s~ Everyone posted there is off the street.");
+
+                // Anything bought for that corner goes with it. Improvements are
+                // on the ground, and the ground is theirs now.
+                int lost = Core.ZoneUpgrades.CountOn(_zoneId);
+                Core.ZoneUpgrades.ClearZone(_zoneId);
+
+                Notify.Show(lost > 0
+                    ? $"~r~You lost {Zone?.Display}.~s~ Everyone posted there is off the " +
+                      $"street, and everything you put into that corner went with it."
+                    : $"~r~You lost {Zone?.Display}.~s~ Everyone posted there is off the street.");
             }
 
             rival?.Clamp();

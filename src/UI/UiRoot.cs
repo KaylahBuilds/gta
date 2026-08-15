@@ -29,6 +29,8 @@ namespace OnTheBlade.UI
         private readonly NativeMenu _roster;
         private readonly NativeMenu _detail;
         private readonly NativeMenu _territory;
+        private readonly NativeMenu _bizGroup;
+        private readonly NativeMenu _streets;
 
         private int _boundWorkerId = -1;
         private bool _binding;
@@ -46,19 +48,29 @@ namespace OnTheBlade.UI
             _detail = new NativeMenu("On The Blade", "CREW MEMBER");
             _territory = new NativeMenu("On The Blade", "TERRITORY");
 
+            // The groups — every feature kept, one level deeper: the business
+            // (what you own) and the streets (who you deal with).
+            _bizGroup = new NativeMenu("On The Blade", "THE BUSINESS");
+            _streets = new NativeMenu("On The Blade", "THE STREETS");
+
             _pool.Add(_main);
             _pool.Add(_roster);
             _pool.Add(_detail);
             _pool.Add(_territory);
+            _pool.Add(_bizGroup);
+            _pool.Add(_streets);
 
             BuildMain();
             BuildBusinessMenus();
             BuildHousesMenu();
+            BuildContentHouseMenu();  // after BuildHousesMenu — it parents to _houses
             BuildLawMenu();
             BuildArmouryMenu();     // after BuildBusinessMenus — it parents to _muscle
+            BuildOrdersMenu();      // likewise
             BuildInvestMenu();
             BuildRivalsMenu();
             BuildDiagnosticsMenu();
+            BuildStreetMenu();
 
             _main.Shown += (s, e) => RefreshStatus();
             _roster.Shown += (s, e) => RebuildRoster();
@@ -85,51 +97,22 @@ namespace OnTheBlade.UI
             };
             _main.Add(_status);
 
+            // Recruiting left this menu. Signing somebody happens face to
+            // face now — walk up to an eligible woman and press the talk key.
+            // The row survives as the scan readout, because "why is nobody
+            // eligible here" is still the question this menu can answer best.
             _recruit = new NativeItem(
-                "Recruit nearest prospect",
-                "Offer a contract to the nearest eligible woman.");
-
-            _recruit.Activated += (s, e) =>
+                "Prospects",
+                "Walk up to somebody and press the talk key to offer a contract.")
             {
-                if (GameState.Current.RosterFull)
-                {
-                    Notify.Show(
-                        $"~r~Your book is full~s~ ({GameState.Current.RosterCap}). " +
-                        "Buy a bigger one under Upgrades.");
-                    return;
-                }
-
-                var result = Recruiter.TryRecruitNearest(_spawner);
-                if (result == null)
-                {
-                    Notify.Show("~r~Nobody nearby is interested.");
-                    return;
-                }
-
-                var worker = result.Worker;
-                Notify.Show(
-                    $"~g~{worker.Name}~s~ signed on (tier {worker.Tier}). Assign them a post.");
-
-                if (result.ClaimedFrom != null)
-                {
-                    Notify.Show(
-                        $"~o~She was working for {result.ClaimedFrom.Name}.~s~ " +
-                        "Experienced, but she doesn't trust you yet — and word travels.");
-
-                    if (result.Retaliation)
-                    {
-                        _main.Visible = false;   // no time to be in a menu
-                        _missions.TryStart(new RetaliationIncident(
-                            result.Where, result.ClaimedFrom.Id, worker.Id, _spawner));
-                    }
-                }
-
-                RefreshStatus();
+                Enabled = false
             };
 
             _main.Add(_recruit);
             _main.AddSubMenu(_roster);
             _main.AddSubMenu(_territory);
+            _main.AddSubMenu(_bizGroup);
+            _main.AddSubMenu(_streets);
 
             var save = new NativeItem("Save now", "Write the current operation to disk.");
             save.Activated += (s, e) =>
@@ -157,10 +140,13 @@ namespace OnTheBlade.UI
                     ? $"~r~{_missions.ActiveTitle}"
                     : live != null ? "~y~something's on" : "~g~Quiet";
 
+                // The COMBINED street name — the drug game counts here too.
+                int streetName = BladeWorld.WorldLink.Reputation();
+
                 _status.Description = live
                     ?? "Anything currently going wrong. Reputation: "
-                       + $"{Reputation.Rank(GameState.Current.Reputation)} "
-                       + $"({GameState.Current.Reputation}).";
+                       + $"{Reputation.Rank(streetName)} "
+                       + $"({streetName}, both businesses).";
             }
 
             if (_recruit == null) return;
@@ -226,6 +212,16 @@ namespace OnTheBlade.UI
                 int id = worker.Id;
                 item.Activated += (s, e) =>
                 {
+                    // If she left while the roster sat open, BindWorker would
+                    // no-op and the detail menu would open still bound to the
+                    // PREVIOUS woman — bonus and release would hit the wrong one.
+                    if (GameState.Current.GetWorker(id) == null)
+                    {
+                        Notify.Show("~o~She's no longer on the books.");
+                        RebuildRoster();
+                        return;
+                    }
+
                     BindWorker(id);
 
                     // Hide the roster first. Opening a menu without closing its
@@ -307,7 +303,11 @@ namespace OnTheBlade.UI
             var shiftNames = new[] { "Always", "Days (06-20)", "Nights (20-06)", "Not working" };
             var shift = new NativeListItem<string>("Shift", shiftNames)
             {
-                Description = "Nights pay more. Off-shift hours build followers and stamina.",
+                Description = "Nights pay more. Off-shift hours build followers and stamina." +
+                              (Config.Current.LateWindowEnabled
+                                  ? $" {LateWindow.Label()} pays more again and roughly doubles " +
+                                    "the chance of trouble — anyone out then is in it."
+                                  : string.Empty),
                 SelectedIndex = (int)worker.Shift
             };
             shift.ItemChanged += (s, e) =>
@@ -469,6 +469,83 @@ namespace OnTheBlade.UI
                     AltTitle = $"${Subscriptions.WeeklyEstimate(worker):N0}",
                     Enabled = false
                 });
+
+                // Followers cap and then produce nothing. Spending them turns the
+                // ceiling into something you can actually use.
+                string cashReason;
+                bool canCash = Subscriptions.CanCashOut(worker, out cashReason);
+                int cashValue = Subscriptions.CashOutValue(worker);
+
+                var cashOut = new NativeItem("Sell the audience",
+                    canCash
+                        ? $"Cashes in {Config.Current.FollowerCashOutShare * 100:0}% of her " +
+                          $"followers for ${cashValue:N0} now. Costs her " +
+                          $"{Config.Current.FollowerCashOutLoyalty:0} loyalty — she built it."
+                        : cashReason)
+                {
+                    AltTitle = canCash ? $"~g~${cashValue:N0}" : "~r~—",
+                    Enabled = canCash
+                };
+
+                cashOut.Activated += (s, e) =>
+                {
+                    // Re-resolved like the bonus and release rows beside it — the
+                    // cash-out must not pay real money for the audience of a woman
+                    // who left the books while this menu was open.
+                    var her = GameState.Current.GetWorker(workerId);
+
+                    if (her == null)
+                    {
+                        Notify.Show("~o~She's no longer on the books.");
+                        return;
+                    }
+
+                    if (Subscriptions.CashOut(her) > 0) BindWorker(workerId);
+                };
+                _detail.Add(cashOut);
+            }
+
+            // --- on camera ---
+            // Three numbers that are invisible without a readout, and all three
+            // read as bugs if the player cannot see them: what she makes here,
+            // where her audience settles rather than where it is now, and the
+            // regulars she keeps but earns nothing from.
+            var contentHouse = Houses.Get(worker.HouseId);
+            if (contentHouse != null && contentHouse.IsContentHouse)
+            {
+                _detail.Add(new NativeItem("On camera",
+                    $"Producing at {contentHouse.Display}. She sees no clients at all " +
+                    "while she is in there, and nobody can book her.")
+                {
+                    AltTitle = $"~g~${ContentHouses.ProjectedHourly(worker, contentHouse):N0}/hr",
+                    Enabled = false
+                });
+
+                float settling = ContentHouses.ProjectedStock(worker);
+
+                _detail.Add(new NativeItem("Audience",
+                    $"Settling near {settling:N0} at this rate — she spends it as fast as " +
+                    "she makes it in there. Every follower is worth more here than in the " +
+                    "weekly deposit, which she does not get while she is producing.")
+                {
+                    AltTitle = $"{worker.Followers:N0} now",
+                    Enabled = false
+                });
+
+                if (worker.Regulars > 0)
+                {
+                    int forgone = ClientBook.RegularIncome(worker);
+
+                    _detail.Add(new NativeItem("Not seeing clients",
+                        $"She keeps the {worker.Regulars} regulars she has — they do not " +
+                        $"drift while she is posted — but she earns nothing from them in " +
+                        $"there. That is about ${forgone:N0} an hour she is not making, and " +
+                        "it is why the good earners belong on a corner.")
+                    {
+                        AltTitle = $"~o~-${forgone:N0}/hr",
+                        Enabled = false
+                    });
+                }
             }
 
             // --- actions ---
@@ -480,7 +557,7 @@ namespace OnTheBlade.UI
                 "Money spent on this one person: the step up a tier, a doctor, " +
                 "studio time, papers. None of it survives her leaving the crew.";
 
-            var bonus = new NativeItem($"Pay a bonus (${BonusCost})",
+            var bonus = new NativeItem($"Send a bonus with somebody (${BonusCost})",
                 "A straight cash bonus. Cheapest way to buy loyalty back.");
             bonus.Activated += (s, e) => PayBonus(workerId);
             _detail.Add(bonus);
@@ -680,6 +757,20 @@ namespace OnTheBlade.UI
                 return;
             }
 
+            // A content house below the condition line is not workable either.
+            // Without this she could be posted in, earn exactly nothing, and
+            // still count as a resident for heat — and because the eject only
+            // fires on the transition into shut, she would never be turned back
+            // out. Fourteen game days of that ends in a raid, a fine and a
+            // five-day lockout for zero income throughout.
+            if (house.IsContentHouse && state.IsContentShut(house.Id))
+            {
+                Notify.Show(
+                    $"~r~{house.Display} is not fit to work in.~s~ " +
+                    $"Putting it right costs ${ContentHouses.RepairCost(house):N0}.");
+                return;
+            }
+
             if (state.WorkersInHouse(house.Id).Any(w => w.Id == worker.Id))
                 return;   // already there; nothing to say
 
@@ -715,7 +806,10 @@ namespace OnTheBlade.UI
             }
 
             Game.Player.Money -= BonusCost;
-            worker.Loyalty += 12f;
+
+            // The remote rate. Handed over in person it is worth twice this —
+            // that differential, not availability, is the reason to drive out.
+            worker.Loyalty += Config.Current.RemoteBonusLoyalty;
             worker.Clamp();
 
             Notify.Show($"~g~{worker.Name}~s~ loyalty now {worker.Loyalty:0}.");
@@ -728,6 +822,7 @@ namespace OnTheBlade.UI
             if (worker == null) return;
 
             _spawner.Despawn(workerId);
+            GameState.Current.ReleaseGuardsFor(worker.Id);
             GameState.Current.Roster.Remove(worker);
             Notify.Show($"~y~{worker.Name}~s~ left the crew.");
         }
@@ -802,6 +897,35 @@ namespace OnTheBlade.UI
                         };
 
                         _territory.Add(price);
+
+                        // Money spent on this specific corner. Only on ground you
+                        // hold, and lost with it if a crew takes it.
+                        foreach (var up in ZoneUpgrades.All)
+                        {
+                            bool owned = ZoneUpgrades.Owns(zone.Id, up.Id);
+                            bool afford = Game.Player.Money >= up.Cost;
+
+                            var row = new NativeItem($"    {up.Name}",
+                                owned
+                                    ? up.Description + "  Bought for this corner."
+                                    : up.Description +
+                                      (afford
+                                          ? "  Lost if you lose the corner."
+                                          : $"  ~r~You need ${up.Cost:N0}."))
+                            {
+                                AltTitle = owned ? "~g~Done" : $"${up.Cost:N0}",
+                                Enabled = !owned && afford
+                            };
+
+                            if (!owned && afford)
+                            {
+                                string uz = zone.Id;
+                                var ud = up;
+                                row.Activated += (s, e) => BuyZoneUpgrade(uz, ud);
+                            }
+
+                            _territory.Add(row);
+                        }
                     }
 
                     // Owned or neutral corners are where a bribe is worth paying.
@@ -880,6 +1004,30 @@ namespace OnTheBlade.UI
 
             float cleared = Math.Min(heat, Config.Current.BribeHeatCleared);
             return (int)Math.Round(cleared * Config.Current.BribeCostPerHeat);
+        }
+
+        private void BuyZoneUpgrade(string zoneId, ZoneUpgradeDef upgrade)
+        {
+            if (Game.Player.Money < upgrade.Cost)
+            {
+                Notify.Show($"~r~You need ${upgrade.Cost:N0}.");
+                return;
+            }
+
+            if (!GameState.Current.PlayerOwns(zoneId))
+            {
+                Notify.Show("~r~That corner isn't yours to spend on.");
+                return;
+            }
+
+            Game.Player.Money -= upgrade.Cost;
+            ZoneUpgrades.Buy(zoneId, upgrade.Id);
+
+            Notify.Show(
+                $"~g~{Zones.Get(zoneId)?.Display} — {upgrade.Name.ToLowerInvariant()}.~s~ " +
+                "Sorted, for as long as you hold it.");
+
+            RebuildTerritory();
         }
 
         private void PayBribe(string zoneId)

@@ -58,6 +58,17 @@ namespace OnTheBlade.Systems
             // The least loyal is the one they get to.
             var worker = targets.OrderBy(w => w.Loyalty).First();
 
+            // Somebody minding her personally simply sends them away. Nothing else
+            // in the mod protects a low-loyalty worker this reliably.
+            var guard = state.GuardFor(worker.Id);
+            if (guard != null && Rng.NextDouble() < cfg.GuardPoachDeterrence)
+            {
+                Notify.Show(
+                    $"~g~{crew.Name} did not get near {worker.Name}.~s~ {guard.Name} was " +
+                    "standing right there.");
+                return;
+            }
+
             // Armed muscle covering her ground is a reason not to try it.
             var cover = state.EnforcerFor(worker.ZoneId);
             if (cover != null && cover.IsArmed && !cover.IsInjured())
@@ -90,6 +101,7 @@ namespace OnTheBlade.Systems
 
             // Gone.
             spawner.Despawn(worker.Id);
+            state.ReleaseGuardsFor(worker.Id);
             state.Roster.Remove(worker);
 
             crew.Strength += cfg.RivalPoachStrengthGain;

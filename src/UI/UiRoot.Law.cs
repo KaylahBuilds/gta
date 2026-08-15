@@ -25,7 +25,7 @@ namespace OnTheBlade.UI
             _pool.Add(_law);
             _pool.Add(_accuse);
 
-            _main.AddSubMenu(_law);
+            _streets.AddSubMenu(_law);
             _law.AddSubMenu(_accuse);
 
             _law.Shown += (s, e) => RebuildLaw();
@@ -137,8 +137,24 @@ namespace OnTheBlade.UI
                     Enabled = Game.Player.Money >= lawyer
                 };
 
-                var w = worker;
-                item.Activated += (s, e) => { Law.PayLawyer(w); RebuildLaw(); };
+                // Sentences expire at midnight whether the menu is open or not —
+                // re-resolved so the lawyer is never paid for a release that
+                // already happened on its own.
+                int jailedId = worker.Id;
+                item.Activated += (s, e) =>
+                {
+                    var w = GameState.Current.GetWorker(jailedId);
+
+                    if (w == null || !w.IsJailed())
+                    {
+                        Notify.Show("~o~She's already out.");
+                        RebuildLaw();
+                        return;
+                    }
+
+                    Law.PayLawyer(w);
+                    RebuildLaw();
+                };
                 _law.Add(item);
             }
         }
@@ -185,9 +201,23 @@ namespace OnTheBlade.UI
                     AltTitle = known ? "~r~it's her" : $"{worker.Loyalty:0}"
                 };
 
-                var w = worker;
+                // Re-resolved at the press: the low-loyalty women this menu lists
+                // are exactly the ones walk-offs and midnight poaches remove
+                // while it sits open — accusing a ghost would still dock the
+                // whole roster's loyalty and your name for removing nobody.
+                int accusedId = worker.Id;
                 item.Activated += (s, e) =>
                 {
+                    var w = GameState.Current.GetWorker(accusedId);
+
+                    if (w == null)
+                    {
+                        Notify.Show("~o~She's already gone — nothing to put out.");
+                        _accuse.Visible = false;
+                        _law.Visible = true;
+                        return;
+                    }
+
                     Law.Accuse(w, _spawner);
                     _accuse.Visible = false;
                     _law.Visible = true;

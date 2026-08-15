@@ -109,6 +109,34 @@ namespace OnTheBlade.Systems
         // --- leaving -------------------------------------------------------
 
         /// <summary>
+        /// Somebody genuinely happy tells the people she trusts.
+        ///
+        /// Loyalty has only ever been something to defend — it scales payout,
+        /// gates walk-offs and now stops a rival taking her. Nothing rewarded
+        /// pushing it to the top of the scale, so there was no reason to go past
+        /// "safe".
+        /// </summary>
+        public static void RollLoyaltyReferrals()
+        {
+            var state = GameState.Current;
+            var cfg = Config.Current;
+
+            foreach (var worker in state.Roster)
+            {
+                if (worker.Loyalty < cfg.ReferralLoyaltyThreshold) continue;
+                if (worker.WantsOut || worker.IsJailed()) continue;
+                if (Rng.NextDouble() >= cfg.LoyaltyReferralChance) continue;
+
+                state.PendingReferrals++;
+
+                Notify.Show(
+                    $"~g~{worker.Name} put your name to somebody.~s~ Your next signing " +
+                    "comes in already knowing who you are.");
+                return;   // one a day is plenty
+            }
+        }
+
+        /// <summary>
         /// Rolled once per game day. At most one worker is asking at a time — two
         /// simultaneous resignations is a queue, and the phone is not a to-do list.
         /// </summary>
@@ -195,6 +223,34 @@ namespace OnTheBlade.Systems
         }
 
         /// <summary>Pays her to stay. Resets the clock rather than ending it.</summary>
+        /// <summary>
+        /// The retention talk had face to face. Same effect as
+        /// <see cref="Retain"/>, discounted because you turned up — showing up
+        /// is most of the argument, and it is the whole reason the street menu
+        /// carries this row instead of duplicating the phone's.
+        /// </summary>
+        public static bool RetainInPerson(WorkerData worker)
+        {
+            int cost = (int)System.Math.Round(
+                RetentionCost(worker) * Config.Current.InPersonRetentionMultiplier);
+
+            if (GTA.Game.Player.Money < cost)
+            {
+                Notify.Show($"~r~You need ${cost:N0}.");
+                return false;
+            }
+
+            GTA.Game.Player.Money -= cost;
+
+            worker.Loyalty += Config.Current.RetentionLoyalty;
+            worker.WantsOutReason = (int)ExitReason.None;
+            worker.WantsOutSinceDay = 0;
+            worker.Clamp();
+
+            Notify.Show($"~g~{worker.Name} stays.~s~ It mattered that it was you who asked.");
+            return true;
+        }
+
         public static bool Retain(WorkerData worker)
         {
             int cost = RetentionCost(worker);
@@ -247,6 +303,7 @@ namespace OnTheBlade.Systems
             var state = GameState.Current;
             var cfg = Config.Current;
 
+            state.ReleaseGuardsFor(worker.Id);
             state.Roster.Remove(worker);
 
             if (clean)

@@ -83,6 +83,18 @@ namespace OnTheBlade.Core
         [DataMember] public float RevenuePerFollowerWeekly = 0.5f;
         [DataMember] public float MaxFollowers = 25000f;
 
+        // How often the back catalogue can be sold. This is the only thing that
+        // makes MaxFollowers mean anything: cash-out income is a FLOW, equal to
+        // FollowerCashOutRate x the hourly gain, and it does not care about the
+        // ceiling at all — a smaller audience just refills and sells sooner.
+        // Simulated over 100 game days, a camera-ready worker with both studios
+        // cycled every 3.9 days for $9,565/day risk-free, against about $4,000
+        // for the same woman on a corner with heat and incidents on it. Lowering
+        // the ceiling changed that by 8%. Rationing the sale is what works: at
+        // seven days the cap finally binds, and the multipliers buy reaching it
+        // before the week is up rather than an unbounded rate.
+        [DataMember] public int CashOutCooldownDays = 7;
+
         // --- Tier progression ---------------------------------------------
         // Tier is the largest single term in the payout formula and it used to be
         // decided by one roll at recruit that the player could never touch. These
@@ -132,6 +144,95 @@ namespace OnTheBlade.Core
 
         /// <summary>Buys the Connected trait for one worker — she stops drawing heat.</summary>
         [DataMember] public int PapersCost = 6500;
+
+        // --- Per-corner upgrades ----------------------------------------------
+        [DataMember] public float LookoutHeatMultiplier = 0.65f;
+        [DataMember] public float PatrolStingMultiplier = 0.50f;
+        [DataMember] public float RoomStaminaMultiplier = 0.55f;
+        [DataMember] public float KnownCornerDemand = 1.15f;
+
+        // --- Second-tier upgrades ---------------------------------------------
+        /// <summary>Roster-wide follower multiplier once a studio is bought.</summary>
+        [DataMember] public float StudioRosterBonus = 1.40f;
+
+        /// <summary>Extra incident seconds on top of the burner network.</summary>
+        [DataMember] public int DispatchExtraSeconds = 30;
+
+        // --- Upgrades that cost you something ----------------------------------
+        [DataMember] public float WireBlockHeatMultiplier = 0.70f;
+        [DataMember] public float WireBlockContestMultiplier = 1.35f;
+
+        [DataMember] public float GoodProductPayout = 1.25f;
+        [DataMember] public float GoodProductStingMultiplier = 1.50f;
+
+        /// <summary>Lowest tier anyone signs at once the name is worth something.</summary>
+        [DataMember] public int FranchiseMinTier = 2;
+
+        /// <summary>Loyalty a franchise signing is short. They signed with the name.</summary>
+        [DataMember] public float FranchiseLoyaltyPenalty = 15f;
+
+        // --- Muscle: backgrounds, growth and minding somebody -----------------
+        /// <summary>
+        /// Floor on the wage multiplier before skill is added, so a bad hire still
+        /// costs something. Wage is base x (this + skill/100) x background.
+        /// </summary>
+        [DataMember] public float EnforcerWageSkillFloor = 0.55f;
+
+        /// <summary>Multiplier on client trouble for a worker with a man on her.</summary>
+        [DataMember] public float GuardTroubleReduction = 0.25f;
+
+        /// <summary>Multiplier on booking risk for a worker with a man on her.</summary>
+        [DataMember] public float GuardBookingRiskReduction = 0.45f;
+
+        /// <summary>Chance a guard simply refuses a rival trying to take her.</summary>
+        [DataMember] public float GuardPoachDeterrence = 0.85f;
+
+        // --- Late window ------------------------------------------------------
+        // Nights already pay 1.6x from 20:00. This is the hour nobody sensible is
+        // out: better money still, and roughly double the chance of a problem.
+        [DataMember] public bool LateWindowEnabled = true;
+        [DataMember] public int LateWindowStart = 2;
+        [DataMember] public int LateWindowEnd = 5;
+        [DataMember] public float LateWindowPayout = 1.45f;
+        [DataMember] public float LateWindowTrouble = 2.0f;
+        [DataMember] public float LateWindowHeat = 1.25f;
+
+        // --- Followers as currency --------------------------------------------
+        /// <summary>
+        /// Cash per follower when a worker cashes her audience out.
+        ///
+        /// Raised from 1.35 after simulating against what those followers would
+        /// have paid anyway. At the old rate the lump was worth 2.7 weeks of
+        /// deposits, so anybody doing the arithmetic would never touch it — an
+        /// emergency lever should be expensive, not obviously wrong. At 2.5 it is
+        /// worth about five weeks: a real choice when you need money tonight.
+        /// </summary>
+        [DataMember] public float FollowerCashOutRate = 2.5f;
+
+        /// <summary>Share of her followers spent when she does it.</summary>
+        [DataMember] public float FollowerCashOutShare = 0.6f;
+
+        /// <summary>Loyalty it costs her. She built that audience.</summary>
+        [DataMember] public float FollowerCashOutLoyalty = 8f;
+
+        // --- Loyalty referrals -------------------------------------------------
+        /// <summary>Loyalty above which she starts sending people your way.</summary>
+        [DataMember] public float ReferralLoyaltyThreshold = 85f;
+
+        /// <summary>Daily chance per worker over that line.</summary>
+        [DataMember] public float LoyaltyReferralChance = 0.06f;
+
+        // --- Recruiting: tier weighting ---------------------------------------
+        // Skewed down from the original roll now that tier can be earned and
+        // bought. Vinewood used to hand out tier 3 at 30% and tier 2 at 45%, which
+        // started most of a roster at the ceiling and left progression nowhere to
+        // go. These are the chance of rolling tier 3 and tier 2 respectively.
+        [DataMember] public float TierChanceVinewood3 = 0.10f;
+        [DataMember] public float TierChanceVinewood2 = 0.30f;
+        [DataMember] public float TierChanceGang3 = 0.02f;
+        [DataMember] public float TierChanceGang2 = 0.18f;
+        [DataMember] public float TierChanceOrdinary3 = 0.04f;
+        [DataMember] public float TierChanceOrdinary2 = 0.22f;
 
         // --- Money: borrowing, pricing and collectors -------------------------
         /// <summary>
@@ -188,6 +289,81 @@ namespace OnTheBlade.Core
 
         /// <summary>Share of the debt written off when they take somebody instead.</summary>
         [DataMember] public float CollectorsTakeShare = 0.35f;
+
+        // --- Standing orders ------------------------------------------------
+        // Paying the crew to hold a corner without you. The guarantee comes from
+        // what you have built, never from paying more at the moment of the fight.
+
+        /// <summary>Crew-to-rival ratio at which it is not a roll at all.</summary>
+        [DataMember] public float OrderGuaranteeRatio = 1.6f;
+
+        /// <summary>Ratio above which they hold, but somebody may get hurt.</summary>
+        [DataMember] public float OrderHoldRatio = 1.1f;
+
+        /// <summary>Ratio above which it is a genuine coin flip.</summary>
+        [DataMember] public float OrderCoinFlipRatio = 0.7f;
+
+        /// <summary>Each body a rival brings beyond two, as a share of their strength.</summary>
+        [DataMember] public float OrderRivalPerBody = 0.15f;
+
+        /// <summary>How much harder a crew at war is to hold off.</summary>
+        [DataMember] public float OrderWarMultiplier = 1.35f;
+
+        /// <summary>Per corner per day, on top of the enforcer's wage.</summary>
+        [DataMember] public int OrderRetainerPerDay = 600;
+
+        /// <summary>Paid each time they fight for you, before ammunition.</summary>
+        [DataMember] public int OrderBattleFee = 2000;
+        [DataMember] public float OrderFeePerStrength = 25f;
+
+        /// <summary>
+        /// Share of the normal reputation a corner held without you is worth.
+        ///
+        /// This is the cost that keeps the feature honest. The money is
+        /// affordable; the name is not free, and reputation gates tier-3
+        /// prospects, protection prices and plug introductions in the other mod.
+        /// </summary>
+        [DataMember] public float OrderReputationShare = 0.33f;
+
+        [DataMember] public float OrderCasualtyOnWin = 0.35f;
+        [DataMember] public float OrderCasualtyOnLoss = 0.75f;
+
+        /// <summary>Strength a beaten crew loses when your people did it.</summary>
+        [DataMember] public float OrderRivalStrengthLoss = 12f;
+
+        // How a crew rating is built. Skill is worth OrderSkillBase of itself
+        // flat, plus a slice scaled by what the man used to do for a living —
+        // so a leg-breaker is better without being a different order of thing.
+        // Simulation is what set these: multiplying skill by the background
+        // outright made every fight after the first equipment purchase a
+        // formality.
+        [DataMember] public float OrderSkillBase = 0.7f;
+        [DataMember] public float OrderSkillFromProfile = 0.3f;
+
+        // Even a one-sided win costs somebody occasionally. Without it a crew
+        // past the guarantee threshold is never hurt again for the rest of the
+        // run, and a war stops being a fight.
+        [DataMember] public float OrderCasualtyOnRout = 0.10f;
+
+        // Taking ground back, which is what the second order level buys.
+        [DataMember] public float OrderTakeChance = 0.22f;
+        [DataMember] public float OrderTakeStrengthLoss = 8f;
+        [DataMember] public float OrderTakeAggression = 0.10f;
+
+        // --- Sharing a world with The Trap Star ----------------------------------
+        /// <summary>
+        /// How much one kind of police attention bleeds into the other. Must match
+        /// the same value in The Trap Star, or the two mods disagree about how hot
+        /// a corner is.
+        /// </summary>
+        [DataMember] public float HeatSpillover = 0.35f;
+
+        /// <summary>
+        /// Share of our vice heat that also reads as narcotics attention. Small —
+        /// girls on a corner are not what a warrant is about, but a corner being
+        /// watched is being watched.
+        /// </summary>
+        [DataMember] public float BladeNarcoBleed = 0.15f;
 
         // --- Rivals: poaching back, war and alliances -------------------------
         /// <summary>
@@ -460,6 +636,185 @@ namespace OnTheBlade.Core
         /// <summary>Loyalty every worker in the house loses when it is turned over.</summary>
         [DataMember] public float HouseRaidLoyaltyHit = 18f;
 
+        // --- Content houses -------------------------------------------------
+        // Live-in production houses. A resident sees no clients at all: she is
+        // paid a flat hourly rate the moment she walks in, multiplied by the
+        // audience she brought with her. The ladder runs from a Chamberlain
+        // Hills trap house to a fifteen-room place in Vinewood Hills.
+        //
+        // Every number below was solved against a tier-2 worker at 70 loyalty
+        // standing in the Mirror Park flat, then re-checked by simulation on the
+        // Days shift specifically — the first pass derived the audience
+        // equilibrium for a worker producing 24 hours a day, which is the one
+        // shift the design forbids, and every rate in it came out 24-31% low.
+
+        /// <summary>
+        /// Base content payout per producing worker-hour, before every multiplier.
+        ///
+        /// Reusing BaseRateFor(worker.Tier) here would restore the 120/260/550
+        /// curve and destroy the entire reason a tier-1 goes on camera and a
+        /// tier-3 goes to a corner. Guarded at the point of use against a 0 in an
+        /// edited config, because RestoreMissingKeys deliberately preserves a
+        /// value a player set to zero.
+        ///
+        /// Solved backwards from one requirement: a content house must be the
+        /// worse business for anyone who has a choice. Measured per worker-DAY,
+        /// because content runs a 14-hour day shift against a night corner's 10
+        /// and comparing hourly rates flatters whichever side works longer, and
+        /// with Traits.StreetMultiplier's Camera-ready 0.80 and zone saturation
+        /// applied to the street side rather than quietly omitted:
+        ///
+        ///   tier 1 at the Chamberlain place   46% of her night corner
+        ///   tier 2 at the Mirror Park flat    85%
+        ///   tier 3 at Rockford Hills          61%
+        ///   tier 3 Camera-ready, Vinewood     98%
+        ///
+        /// The better the worker, the worse the trade — which is the sorting the
+        /// whole feature exists for. Camera-ready is the one person who belongs
+        /// in there, and she still pays 0.80 on a kerb. At the first pass of 200
+        /// this read 92% / 169% / 121% / 196%: the content house beat the street
+        /// at every tier, with none of the heat and none of the incidents.
+        /// </summary>
+        [DataMember] public float ContentBaseRatePerHour = 100f;
+
+        /// <summary>
+        /// Tier's effect on content output. A 2.17x spread against the street's
+        /// 4.58x — a camera does not care nearly as much who is in front of it as
+        /// a client does. Three flat scalars rather than an array because
+        /// RestoreMissingKeys only sees top-level keys and would treat an array as
+        /// one present-or-absent key with its interior unrepaired.
+        /// </summary>
+        [DataMember] public float ContentTierAppeal1 = 0.60f;
+        [DataMember] public float ContentTierAppeal2 = 1.00f;
+        [DataMember] public float ContentTierAppeal3 = 1.30f;
+
+        /// <summary>
+        /// Ceiling of the audience factor: 1.00 at zero followers, 2.20 at the
+        /// cap. Floored at 1.00 so a fresh recruit in a freshly bought house with
+        /// no ring light earns the full base from her first hour — no single key
+        /// can gate the feature to nothing.
+        /// </summary>
+        [DataMember] public float ContentAudienceBonusMax = 1.20f;
+
+        /// <summary>Share of the normal off-duty follower gain a producing worker still earns.</summary>
+        [DataMember] public float ContentGainShare = 0.85f;
+
+        /// <summary>
+        /// Fraction of the follower stock consumed per hour of RESIDENCY — every
+        /// hour she lives there, not only the hours she is on shift.
+        ///
+        /// Charging it per producing hour made the equilibrium shift-dependent:
+        /// 283x her gain rate on Always, 521x on Days, 750x on Nights. On the two
+        /// sustainable shifts that clamped almost every worker worth housing at
+        /// MaxFollowers, which turned the audience factor into a constant 2.20 and
+        /// made both studios worth exactly nothing — the precise "upgrade that
+        /// buys nothing" fault this feature was meant to repair. Charged per
+        /// residency hour it lands at 304x on Days and 312x on Nights, so the
+        /// shift barely moves it and the multipliers stay live all the way up.
+        /// </summary>
+        [DataMember] public float ContentChurnPerHour = 0.0030f;
+
+        /// <summary>
+        /// Flat heat bled off every owned content house per hour, against the
+        /// brothel's 0.015 and a corner's 0.03. A video does not come down the way
+        /// a street airs out. Deliberately not multiplied by the laundromat.
+        /// </summary>
+        [DataMember] public float ContentHeatDecayPerHour = 0.006f;
+
+        /// <summary>
+        /// Floor on the combined heat reduction from equipment and traits.
+        ///
+        /// The quiet line is 70% of capacity by construction, so any multiplier
+        /// below 0.70 makes a house permanently cold at full occupancy and deletes
+        /// heat, the raid, the bill and the occupancy decision in a single
+        /// purchase. Discretion alone was 0.60, and a house of Connected residents
+        /// reproduced it for free with nothing bought at all. 0.75 keeps the worst
+        /// case at a 93% quiet line, so full capacity always drifts upward.
+        /// </summary>
+        [DataMember] public float ContentHeatReductionFloor = 0.75f;
+
+        /// <summary>Cost per room per 1.0 of heat cleared, matching the corner bribe.</summary>
+        [DataMember] public int ContentHeatClearCostPerRoom = 9000;
+        [DataMember] public float ContentHeatClearMax = 0.5f;
+
+        /// <summary>
+        /// Condition lost per PRODUCING worker-hour. Solved from the top rung:
+        /// fifteen residents on Days is 210 worker-hours a day, so 0.0462/day —
+        /// perfect order to 70% in about six game days. The same constant leaves
+        /// the entry rung effectively maintenance-free, which is how the brief
+        /// framed it: maintenance was asked for on the luxury house.
+        /// </summary>
+        [DataMember] public float ContentWearPerWorkerHour = 0.00022f;
+
+        /// <summary>Rot per day, applied only to a content house with nobody living in it.</summary>
+        [DataMember] public float ContentIdleWearPerDay = 0.015f;
+
+        /// <summary>Payout floor for a fully worn house: factor = floor + (1-floor) x condition.</summary>
+        [DataMember] public float ContentConditionFloor = 0.35f;
+
+        /// <summary>Condition at which the place is uninhabitable and everyone is turned out.</summary>
+        [DataMember] public float ContentConditionShutBelow = 0.20f;
+
+        /// <summary>Repair cost per room per point of wear.</summary>
+        [DataMember] public int ContentRepairPerRoom = 3200;
+
+        /// <summary>
+        /// Flat fee on every repair, on top of the per-point cost.
+        ///
+        /// Without it the steady-state repair cost is identical whatever
+        /// threshold you repair at — the per-point term cancels — so the optimal
+        /// policy was "press the button as often as the menu allows" and
+        /// maintenance was a tax with a chore attached rather than a decision. A
+        /// call-out fee makes waiting genuinely cheaper and neglect genuinely
+        /// dearer, and puts a right moment in between.
+        /// </summary>
+        [DataMember] public int ContentRepairCallOut = 2500;
+
+        /// <summary>Wear below which the repair row is hidden entirely.</summary>
+        [DataMember] public float ContentRepairMinFraction = 0.05f;
+
+        /// <summary>Share of her full rate an OFF-SHIFT resident earns with an editor on retainer.</summary>
+        [DataMember] public float ContentCatalogueShare = 0.06f;
+
+        /// <summary>
+        /// Reputation per resident per game day, floored at 1 for any occupied
+        /// house and capped below.
+        ///
+        /// Content residents are excluded from bookings, to make "they only
+        /// produce content" literal. Every other Reputation.Award site is an
+        /// incident, collectors, an accusation, a war or a standing order — none
+        /// of which reach a woman who never leaves the house. Without this a
+        /// content-only player sits at reputation 0 forever, locked out of the
+        /// 200/450/700 gates on this very ladder. The first version was integer
+        /// residents/4, which paid literally nothing at the entry rung's own
+        /// recommended occupancy.
+        /// </summary>
+        [DataMember] public float ContentReputationPerResident = 0.8f;
+        [DataMember] public int ContentReputationDailyCap = 10;
+
+        /// <summary>Lights and sound: a flat +20% on everything shot here.</summary>
+        [DataMember] public float ContentGearRateBonus = 1.20f;
+
+        /// <summary>A proper set: 40% less wear.</summary>
+        [DataMember] public float ContentGearWearBonus = 0.60f;
+
+        /// <summary>The lighting rig is the only piece that makes maintenance worse.</summary>
+        [DataMember] public float ContentGearWearPenalty = 1.35f;
+
+        /// <summary>
+        /// Discretion. Must stay strictly above the 0.70 quiet fraction or the
+        /// mechanic self-deletes: at 0.60 the Rooms term cancelled out of the
+        /// drift entirely and every content house at every rung was permanently
+        /// cold at full capacity. 0.80 leaves a 87.5% quiet line, so the top
+        /// house still climbs to a raid in about six game weeks if you fill it
+        /// and ignore it. ContentHeatReductionFloor is the backstop that keeps
+        /// this true when Connected residents stack on top.
+        /// </summary>
+        [DataMember] public float ContentGearHeatBonus = 0.80f;
+
+        /// <summary>Map blip colour, so the two property ladders read as two ladders.</summary>
+        [DataMember] public string ContentBlipColourName = "Pink";
+
         /// <summary>Draw a blip on each house you own.</summary>
         [DataMember] public bool ShowHouseBlips = true;
         [DataMember] public string HouseBlipColourName = "Purple";
@@ -584,17 +939,24 @@ namespace OnTheBlade.Core
         /// <summary>Draw territory on the map: green yours, red rival, grey neutral, yellow raided.</summary>
         [DataMember] public bool ShowZoneBlips = true;
 
+        /// <summary>The girls' own pins — on her ped when spawned, at her post
+        /// when not. Off-duty and jailed women carry no pin.</summary>
+        [DataMember] public bool ShowCrewBlips = true;
+        [DataMember] public float CrewBlipScale = 0.7f;
+
         /// <summary>
-        /// Shade the ground as well as pinning it.
+        /// NO LONGER READ. Kept so old config files still parse — a key that
+        /// vanishes from the contract is a key that can break a load.
         ///
-        /// Off by default: a filled radius sits *under* every other blip but
-        /// *over* the map itself, so on an install already carrying two or three
-        /// turf overlays it hides roads and landmarks rather than adding
-        /// information. The pins alone answer "where is my territory".
+        /// Territory shading is not optional any more and is not a circle:
+        /// held ground is painted as a square BLOCK, the same size, shade and
+        /// grid alignment the product side uses, because both businesses draw
+        /// the same city on the same pause map. See ZoneBlips.TerritorySide.
         /// </summary>
         [DataMember] public bool ShowZoneAreaCircles;
 
-        /// <summary>0-255, and low on purpose. Only applies to the shaded ground.</summary>
+        /// <summary>NO LONGER READ — see above. The block alpha now matches
+        /// the product side's, in ZoneBlips.TerritoryAlpha.</summary>
         [DataMember] public int ZoneBlipAlpha = 45;
 
         // Territory is marked in pale colours so it sits behind the map rather
@@ -619,6 +981,71 @@ namespace OnTheBlade.Core
         [DataMember] public string ProspectBlipColourName = "Pink";
 
         // --- Business -----------------------------------------------------
+        /// <summary>Loyalty a fresh recruit signs on with, before reputation,
+        /// the franchise penalty and any referral. Was hard-coded in Recruiter.</summary>
+        // --- The street -----------------------------------------------------
+        // Walking up to your own people. The split is structural: the street
+        // carries things done to a person standing in front of you, at a
+        // discount or a bonus for having turned up; the phone keeps
+        // administration, and conditionally re-carries face-to-face verbs at
+        // full price for anyone with no live ped — indoor, jailed, off-shift —
+        // so nothing is ever stranded behind a body that does not exist.
+
+        /// <summary>Key pressed at a focused person to open their street menu.</summary>
+        [DataMember] public string TalkKeyName = "T";
+
+        /// <summary>Metres within which somebody can be focused.</summary>
+        [DataMember] public float FocusRadius = 3.5f;
+
+        /// <summary>Facing requirement: dot(forward, toTarget) above this.
+        /// Minimum correctness, not polish — posts are 2.6m apart, so any
+        /// radius over 1.3m holds two candidates without it.</summary>
+        [DataMember] public float FocusDotMin = 0.5f;
+
+        /// <summary>Focus holds until the target exceeds this distance…</summary>
+        [DataMember] public float FocusStickyExit = 4.55f;
+
+        /// <summary>…or a rival candidate is this fraction closer.</summary>
+        [DataMember] public float FocusSwitchRatio = 0.8f;
+
+        /// <summary>Two candidates within this of each other: refuse to pick.</summary>
+        [DataMember] public float FocusCoincidenceRefuse = 0.3f;
+
+        /// <summary>Retention cost multiplier for asking her to stay in person.</summary>
+        [DataMember] public float InPersonRetentionMultiplier = 0.6f;
+
+        /// <summary>Loyalty from a bonus handed over in person / sent remotely.</summary>
+        [DataMember] public float InPersonBonusLoyalty = 12f;
+        [DataMember] public float RemoteBonusLoyalty = 6f;
+
+        /// <summary>Each bonus to the same worker inside this window is worth
+        /// half the previous one. Kills both the spam-to-100 blitz and the
+        /// daily paper round: the natural cadence is one circuit a week.</summary>
+        [DataMember] public int BonusDiminishWindowHours = 168;
+
+        /// <summary>The doctor is offered on the street below this stamina.</summary>
+        [DataMember] public float DoctorOfferStaminaBelow = 40f;
+
+        /// <summary>Markup for having a loadout sent to a man with no ped.</summary>
+        [DataMember] public float RemoteKitMarkup = 0.20f;
+
+        /// <summary>Sending word to reassign a guard remotely: cost, and it
+        /// takes effect tomorrow. Walking up is instant and free.</summary>
+        [DataMember] public int GuardSendWordCost = 500;
+
+        /// <summary>"I'll come see you" freezes an exit decision this long. Once.</summary>
+        [DataMember] public int ExitFreezeHours = 24;
+
+        /// <summary>Hard ceiling on peds this mod owns at once.</summary>
+        [DataMember] public int MaxOwnedPeds = 24;
+
+        [IgnoreDataMember]
+        public System.Windows.Forms.Keys TalkKey =>
+            ParseKey(TalkKeyName, System.Windows.Forms.Keys.T);
+
+        [DataMember] public float RecruitLoyaltyBase = 45f;
+        [DataMember] public float RecruitLoyaltySpread = 25f;
+
         [DataMember] public int BaseRosterCap = 4;               // +2 per roster upgrade
         [DataMember] public int EnforcerHireCost = 12000;
         [DataMember] public int EnforcerDailyWage = 350;         // charged at 00:00 game time
@@ -770,6 +1197,9 @@ namespace OnTheBlade.Core
         [IgnoreDataMember]
         public BlipColor HouseBlipColour => ParseBlipColour(HouseBlipColourName, BlipColor.Purple);
 
+        [IgnoreDataMember]
+        public BlipColor ContentBlipColour => ParseBlipColour(ContentBlipColourName, BlipColor.Pink);
+
         private static Keys ParseKey(string name, Keys fallback)
         {
             Keys parsed;
@@ -814,13 +1244,36 @@ namespace OnTheBlade.Core
             {
                 present = TopLevelKeys(path);
             }
-            catch
+            catch (Exception ex)
             {
-                // A file we cannot parse for keys is one we should not second-guess.
+                // We cannot tell which keys the file has, so we cannot tell which
+                // are missing — but leaving the half-deserialised instance
+                // installed is the worst of the three options. A zeroed Config
+                // does not merely misbehave: DebtCollapseThreshold reads 0, so
+                // any debt at all triggers Collapse at the next midnight and
+                // takes the roster, the muscle and every property lease with it;
+                // BurnoutHours reads 0 and the whole roster wants out on the same
+                // tick; WarAggressionThreshold reads 0 inside a migration step.
+                // Falling back to a full default is recoverable. Zeroed is not.
+                SaveManager.Log($"Could not read config keys for repair ({ex.Message}); "
+                                + "falling back to built-in defaults for this session.");
+
+                Current = new Config();
+                SaveManager.PendingNotice = SaveManager.Append(SaveManager.PendingNotice,
+                    "~o~config.json could not be read properly.~s~ Built-in defaults are in "
+                    + "use for this session and your file has been left alone.");
+
                 return false;
             }
 
-            if (present.Count == 0) return false;
+            // No recognisable keys at all — an empty object, or a file of
+            // nothing but comments. DataContractJsonSerializer does not throw on
+            // "{}", it returns an instance with every field at its zero value,
+            // so bailing out here left Current fully zeroed and every clamp in
+            // the mod measuring against 0. Restoring the lot is the only safe
+            // reading of a file that says nothing.
+            if (present.Count == 0)
+                SaveManager.Log("config.json held no recognisable settings; restoring all defaults.");
 
             var defaults = new Config();
             bool repaired = false;
@@ -911,6 +1364,25 @@ namespace OnTheBlade.Core
 
                     return;
                 }
+            }
+
+            // Reached either because there is no config.json yet, or because
+            // there is one and it would not parse. Those are very different: the
+            // file is advertised at the top of this class as hand-editable so
+            // balance can be changed without a rebuild, so overwriting it with
+            // defaults over a single trailing comma throws away work with no
+            // message at all. Quarantined instead, under a timestamped name so a
+            // second bad edit does not throw on a name that already exists — the
+            // bare File.Move this replaces would have escaped Main.Initialise.
+            if (File.Exists(Path))
+            {
+                string moved = SaveManager.Quarantine(Path, "bad");
+                SaveManager.PendingNotice =
+                    "~o~config.json would not parse and has been replaced with defaults.~s~ "
+                    + (moved != null ? $"Your version was kept as {moved}." : string.Empty);
+
+                SaveManager.Log("config.json could not be parsed; defaults written."
+                                + (moved != null ? $" Original kept as {moved}." : string.Empty));
             }
 
             Current = new Config();
