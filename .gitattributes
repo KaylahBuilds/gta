@@ -1,0 +1,20 @@
+# Normalise line endings in the repo, check out native on Windows.
+#
+# Without this, git's autocrlf conversion shows up as every line of every file
+# changing the first time anything touches it — which makes a diff useless for
+# reviewing an actual change.
+* text=auto
+
+*.cs      text diff=csharp
+*.md      text
+*.csproj  text
+*.json    text
+*.html    text
+*.css     text
+*.js      text
+
+*.dll binary
+*.png binary
+*.jpg binary
+*.zip binary
+*.rpf binary
