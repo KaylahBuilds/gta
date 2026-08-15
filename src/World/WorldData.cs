@@ -30,10 +30,26 @@ namespace OnTheBlade.BladeWorld
     /// - Lists rather than dictionaries: DataContractJsonSerializer renders a
     ///   dictionary as an array of key/value pairs, which is unreadable, and this
     ///   file is meant to be openable by a human.
+    ///
+    /// - EVERY contract in this file implements IExtensibleDataObject, and that
+    ///   is load-bearing rather than tidy. Without it
+    ///   DataContractJsonSerializer SILENTLY DISCARDS fields it does not know
+    ///   on a round-trip: a mod reads the file, keeps only what its own copy of
+    ///   this DTO declares, and writes back a version with everybody else's
+    ///   newer fields deleted. No error, no warning, and the loss only shows up
+    ///   as another mod's data intermittently reverting. With it, unknown
+    ///   fields survive read-modify-write untouched, which is the only thing
+    ///   that makes "only ever add fields" actually safe for a THIRD writer
+    ///   whose fields these two mods will never have heard of.
     /// </summary>
     [DataContract(Name = "world")]
-    public class WorldData
+    public class WorldData : IExtensibleDataObject
     {
+
+        /// <summary>Fields written by a mod that is newer than this one. Held
+        /// verbatim and written back out untouched. Never a [DataMember] —
+        /// the serialiser owns this slot.</summary>
+        public ExtensionDataObject ExtensionData { get; set; }
         public const int CurrentSchema = 3;
 
         [DataMember(Name = "schemaVersion", Order = 0)]
@@ -121,8 +137,13 @@ namespace OnTheBlade.BladeWorld
     /// wrote last.
     /// </summary>
     [DataContract(Name = "reputation")]
-    public class Reputation
+    public class Reputation : IExtensibleDataObject
     {
+
+        /// <summary>Fields written by a mod that is newer than this one. Held
+        /// verbatim and written back out untouched. Never a [DataMember] —
+        /// the serialiser owns this slot.</summary>
+        public ExtensionDataObject ExtensionData { get; set; }
         [DataMember(Name = "blade", Order = 0)] public int Blade;
         [DataMember(Name = "trap", Order = 1)] public int Trap;
 
@@ -130,8 +151,13 @@ namespace OnTheBlade.BladeWorld
     }
 
     [DataContract(Name = "zone")]
-    public class ZoneEntry
+    public class ZoneEntry : IExtensibleDataObject
     {
+
+        /// <summary>Fields written by a mod that is newer than this one. Held
+        /// verbatim and written back out untouched. Never a [DataMember] —
+        /// the serialiser owns this slot.</summary>
+        public ExtensionDataObject ExtensionData { get; set; }
         [DataMember(Name = "id", Order = 0)] public string Id;
 
         /// <summary>"player", a crew id, or empty for neutral. Written by blade.</summary>
@@ -148,8 +174,13 @@ namespace OnTheBlade.BladeWorld
     /// need the writer's palette.
     /// </summary>
     [DataContract(Name = "set")]
-    public class SetEntry
+    public class SetEntry : IExtensibleDataObject
     {
+
+        /// <summary>Fields written by a mod that is newer than this one. Held
+        /// verbatim and written back out untouched. Never a [DataMember] —
+        /// the serialiser owns this slot.</summary>
+        public ExtensionDataObject ExtensionData { get; set; }
         [DataMember(Name = "name", Order = 0)] public string Name;
         [DataMember(Name = "colourId", Order = 1)] public int ColourId;
         [DataMember(Name = "tag", Order = 2)] public string Tag;
@@ -161,8 +192,13 @@ namespace OnTheBlade.BladeWorld
     /// weight at a premium). Ids are unique so the reader shows each once.
     /// </summary>
     [DataContract(Name = "tip")]
-    public class TipEntry
+    public class TipEntry : IExtensibleDataObject
     {
+
+        /// <summary>Fields written by a mod that is newer than this one. Held
+        /// verbatim and written back out untouched. Never a [DataMember] —
+        /// the serialiser owns this slot.</summary>
+        public ExtensionDataObject ExtensionData { get; set; }
         [DataMember(Name = "id", Order = 0)] public string Id;
         [DataMember(Name = "kind", Order = 1)] public string Kind;
         [DataMember(Name = "zone", Order = 2)] public string ZoneId;
@@ -176,8 +212,13 @@ namespace OnTheBlade.BladeWorld
     }
 
     [DataContract(Name = "crew")]
-    public class CrewEntry
+    public class CrewEntry : IExtensibleDataObject
     {
+
+        /// <summary>Fields written by a mod that is newer than this one. Held
+        /// verbatim and written back out untouched. Never a [DataMember] —
+        /// the serialiser owns this slot.</summary>
+        public ExtensionDataObject ExtensionData { get; set; }
         [DataMember(Name = "id", Order = 0)] public string Id;
         [DataMember(Name = "name", Order = 1)] public string Name;
         [DataMember(Name = "strength", Order = 2)] public float Strength;
@@ -187,8 +228,13 @@ namespace OnTheBlade.BladeWorld
     }
 
     [DataContract(Name = "police")]
-    public class PoliceEntry
+    public class PoliceEntry : IExtensibleDataObject
     {
+
+        /// <summary>Fields written by a mod that is newer than this one. Held
+        /// verbatim and written back out untouched. Never a [DataMember] —
+        /// the serialiser owns this slot.</summary>
+        public ExtensionDataObject ExtensionData { get; set; }
         /// <summary>Absolute day the retainer runs out. Written by blade.</summary>
         [DataMember(Name = "retainerUntilDay", Order = 0)] public int RetainerUntilDay;
 
@@ -207,8 +253,13 @@ namespace OnTheBlade.BladeWorld
     /// channel — a block under one kind of scrutiny gets more police generally.
     /// </summary>
     [DataContract(Name = "heat")]
-    public class HeatEntry
+    public class HeatEntry : IExtensibleDataObject
     {
+
+        /// <summary>Fields written by a mod that is newer than this one. Held
+        /// verbatim and written back out untouched. Never a [DataMember] —
+        /// the serialiser owns this slot.</summary>
+        public ExtensionDataObject ExtensionData { get; set; }
         [DataMember(Name = "zone", Order = 0)] public string ZoneId;
 
         [DataMember(Name = "viceBlade", Order = 1)] public float ViceBlade;
