@@ -242,6 +242,13 @@ namespace OnTheBlade.Systems
             // act on, through a file that keeps no backup of its own.
             if (!Persistence.SaveManager.SaveBlocked) BladeWorld.WorldLink.Publish();
 
+            // And SAY something. This mod has published territory, crews and
+            // the wash capacity both other pillars spend, and has never once
+            // spoken in the city it underwrites. A ticker with one writer is a
+            // log; two make it a city.
+            BladeWorld.CityDesk.ReadIn();
+            SaySomething();
+
             // Bookings settle before a new one can be offered, so a worker who
             // just came back is immediately eligible again rather than sitting
             // out an extra hour for no reason the player can see.
@@ -838,5 +845,53 @@ namespace OnTheBlade.Systems
             Notify.Show(
                 $"~r~{reason}: ${shortfall:N0} you don't have.~s~ Debt is now ${state.Debt:N0}.", true);
         }
+
+        /// <summary>
+        /// One line about the night this business actually had, at most once a
+        /// day, and only when there is something to say.
+        ///
+        /// Never invented mood — it reads the state and reports it, the same
+        /// rule the other pillar's feed follows, because a ticker that makes
+        /// things up is worse than a silent one.
+        /// </summary>
+        private static int _lastSaidDay;
+
+        private static void SaySomething()
+        {
+            var state = GameState.Current;
+            int today = GameState.AbsoluteDay();
+
+            if (today == _lastSaidDay) return;
+            _lastSaidDay = today;
+
+            int venues = Core.Houses.All.Count(h => state.OwnsHouse(h.Id));
+            if (venues <= 0) return;
+
+            // Same figure WorldLink publishes, computed the same way rather
+            // than re-derived — two places disagreeing about the wash is
+            // exactly the kind of drift that is invisible until it matters.
+            int wash = state.Roster.Count > 0 ? 8000 + state.Roster.Count * 2000 : 0;
+
+            if (wash > 12000)
+            {
+                BladeWorld.CityDesk.Publish(
+                    "Somebody's places are turning over serious paper and none " +
+                    "of it looks like it came off a street.");
+                return;
+            }
+
+            if (venues >= 2)
+            {
+                BladeWorld.CityDesk.Publish(
+                    "Two of the late venues had a night. Cars down the block " +
+                    "and nobody counting who went in.");
+                return;
+            }
+
+            BladeWorld.CityDesk.Publish(
+                "Quiet week on the late side of town. Which is its own kind of " +
+                "news round here.");
+        }
+
     }
 }

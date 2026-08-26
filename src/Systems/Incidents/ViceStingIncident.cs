@@ -77,6 +77,12 @@ namespace OnTheBlade.Systems.Incidents
                     $"~o~{worker.Name} got picked up.~s~ The fund covered it — she's back " +
                     "on the corner tonight.");
 
+                // Vice working a zone matters to anyone else operating in it.
+                // No names — the ticker is street word, not a police report.
+                BladeWorld.CityDesk.Publish(
+                    "Vice ran a sting tonight and it wasn't a quiet one. " +
+                    "Worth knowing where they were.");
+
                 // Routed through Charge so a bail you cannot afford becomes debt
                 // rather than quietly costing nothing.
                 EconomyTick.Charge(owed, "Bail");

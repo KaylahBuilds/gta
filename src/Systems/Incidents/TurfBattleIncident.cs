@@ -195,7 +195,16 @@ namespace OnTheBlade.Systems.Incidents
             rival?.Clamp();
 
             if (rival != null && rival.IsBroken)
+            {
                 Notify.Show($"~g~{rival.Name} are finished.~s~ They won't be back.");
+
+                // A crew being wiped off a zone is city news whether or not the
+                // other businesses had anything to do with it. This is the kind
+                // of thing that ought to reach a feed.
+                BladeWorld.CityDesk.Publish(
+                    $"{rival.Name} aren't working {Zone?.Display} any more. " +
+                    "Somebody moved them off it and nobody's saying who.");
+            }
         }
 
         protected override void OnFail(WorkerData worker)
@@ -210,6 +219,10 @@ namespace OnTheBlade.Systems.Incidents
                 // Nothing lost but the attempt — they dig in a little.
                 if (rival != null) rival.Strength += 5f;
                 Notify.Show($"~r~{Zone?.Display} stays with {rival?.Name}.");
+
+                BladeWorld.CityDesk.Publish(
+                    $"Somebody tried {Zone?.Display} last night and got walked " +
+                    $"back off it. {rival?.Name} are still holding it.");
             }
             else
             {
