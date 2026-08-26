@@ -50,7 +50,7 @@ namespace OnTheBlade.BladeWorld
         /// verbatim and written back out untouched. Never a [DataMember] —
         /// the serialiser owns this slot.</summary>
         public ExtensionDataObject ExtensionData { get; set; }
-        public const int CurrentSchema = 3;
+        public const int CurrentSchema = 4;
 
         [DataMember(Name = "schemaVersion", Order = 0)]
         public int SchemaVersion = CurrentSchema;
@@ -95,6 +95,24 @@ namespace OnTheBlade.BladeWorld
         [DataMember(Name = "washCapacity", Order = 10)]
         public int WashCapacityPerDay;
 
+
+        /// <summary>
+        /// THE CITY TICKER — one-line events any pillar may publish and every
+        /// pillar's feed may read. Schema 4.
+        ///
+        /// This is the cheapest possible proof that OneCity is real: a line
+        /// about a venue having a night, or a plate going out over the air,
+        /// arriving in another mod's feed. Far cheaper than shared mechanics,
+        /// and more legible.
+        ///
+        /// Rules, matching the heat ledger's discipline: every writer APPENDS
+        /// its own entries and prunes only entries IT wrote (by Source), so no
+        /// mod ever deletes another's news. Rolling and small — the wire is a
+        /// ticker, not an archive.
+        /// </summary>
+        [DataMember(Name = "ticker", Order = 11)]
+        public List<TickerEntry> Ticker = new List<TickerEntry>();
+
         public void EnsureCollections()
         {
             if (Rep == null) Rep = new Reputation();
@@ -104,6 +122,7 @@ namespace OnTheBlade.BladeWorld
             if (Heat == null) Heat = new List<HeatEntry>();
             if (Couriers == null) Couriers = new List<int>();
             if (Tips == null) Tips = new List<TipEntry>();
+            if (Ticker == null) Ticker = new List<TickerEntry>();
         }
 
         public HeatEntry HeatFor(string zoneId, bool create)
@@ -269,5 +288,20 @@ namespace OnTheBlade.BladeWorld
 
         public float Vice => ViceBlade + ViceTrap;
         public float Narco => NarcoBlade + NarcoTrap;
+    }
+
+    /// <summary>
+    /// One line of city news. Source is the writing mod ("trap", "blade",
+    /// "swipe") — the pruning key, and how a reader skips its own entries.
+    /// Day is the writer's absolute day, used only for pruning.
+    /// </summary>
+    [DataContract(Name = "tick")]
+    public class TickerEntry : IExtensibleDataObject
+    {
+        public ExtensionDataObject ExtensionData { get; set; }
+
+        [DataMember(Name = "src", Order = 0)] public string Source;
+        [DataMember(Name = "text", Order = 1)] public string Text;
+        [DataMember(Name = "day", Order = 2)] public int Day;
     }
 }
