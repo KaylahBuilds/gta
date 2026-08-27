@@ -425,10 +425,11 @@ namespace OnTheBlade.Systems.Incidents
                                              float scatter = 3.5f)
         {
             var model = new Model(modelName);
-            if (!model.IsInCdImage || !model.IsValid) return null;
 
-            model.Request(0);
-            if (!model.IsLoaded) { model.MarkAsNoLongerNeeded(); return null; }
+            // Same one-frame request that made the women invisible — and here it
+            // meant an incident the player was summoned to could have no
+            // antagonists in it at all.
+            if (!Core.SafeGround.RequestPed(model)) return null;
 
             Ped ped = SafeGround.CreatePed(model, SafeSpot(near.Around(scatter)), heading);
             model.MarkAsNoLongerNeeded();

@@ -32,6 +32,11 @@ namespace OnTheBlade.Runtime
         private bool _crewReady;
         private int _nextScan;
 
+        /// <summary>Next heartbeat. A mod ticking perfectly and a mod whose
+        /// spawner is stone dead used to produce identical logs; this is the
+        /// line that tells them apart.</summary>
+        private int _nextHeartbeat;
+
         /// <summary>
         /// Peds this mod currently owns. The old ceiling was purely emergent —
         /// a property of six anchors being far apart — and a future zone within
@@ -115,6 +120,16 @@ namespace OnTheBlade.Runtime
             PruneDead();
 
             Vector3 player = Game.Player.Character.Position;
+
+            if (Config.Current.LogSpawnDiagnostics && Game.GameTime >= _nextHeartbeat)
+            {
+                _nextHeartbeat = Game.GameTime + 30000;
+
+                Persistence.SaveManager.Log(
+                    $"STREAM roster={GameState.Current.Roster.Count} live={_live.Count} " +
+                    $"muscle={_muscle.Count} hour={GTA.Chrono.GameClock.Hour} " +
+                    $"player=({player.X:0},{player.Y:0},{player.Z:0})");
+            }
             float spawnR = Config.Current.SpawnRadius;
             float despawnR = Config.Current.DespawnRadius;
 
@@ -139,12 +154,25 @@ namespace OnTheBlade.Runtime
 
                 if (distance <= spawnR)
                 {
-                    if (!_live.ContainsKey(worker.Id)
-                        && OwnedPeds < Config.Current.MaxOwnedPeds)
+                    if (!_live.ContainsKey(worker.Id))
                     {
-                        var runtime = WorkerRuntime.Create(worker, post, zone.Heading, _crew);
-                        if (runtime != null) _live[worker.Id] = runtime;
-                        // If null, the model was not resident yet — retry next scan.
+                        if (OwnedPeds >= Config.Current.MaxOwnedPeds)
+                        {
+                            if (Config.Current.LogSpawnDiagnostics)
+                            {
+                                Persistence.SaveManager.Log(
+                                    $"SKIP {worker.Name} reason=ped-cap owned={OwnedPeds} " +
+                                    $"cap={Config.Current.MaxOwnedPeds}");
+                            }
+                        }
+                        else
+                        {
+                            // Null means the model is still streaming; Create logs
+                            // its own reason. It retries next scan, and now that
+                            // the request survives between attempts, it converges.
+                            var runtime = WorkerRuntime.Create(worker, post, zone.Heading, _crew);
+                            if (runtime != null) _live[worker.Id] = runtime;
+                        }
                     }
                 }
                 else if (distance >= despawnR)
@@ -368,6 +396,9 @@ namespace OnTheBlade.Runtime
             // the player restarts the game.
             foreach (var runtime in _muscle.Values) runtime.Despawn();
             _muscle.Clear();
+
+            // Anything still loading for a spawn that will now never happen.
+            SafeGround.ReleasePendingModels();
         }
     }
 }

@@ -34,10 +34,19 @@ namespace OnTheBlade.Runtime
             // Recruited from arbitrary world peds, so the model is only ever known
             // by hash.
             var model = new Model(data.ModelHash);
-            if (!model.IsInCdImage || !model.IsValid) return null;
 
-            model.Request(0);
-            if (!model.IsLoaded) { model.MarkAsNoLongerNeeded(); return null; }
+            // One frame was never enough, and cancelling the request on the way
+            // out meant the next scan started from nothing. See SafeGround.Pending.
+            if (!SafeGround.RequestPed(model))
+            {
+                if (Config.Current.LogSpawnDiagnostics)
+                {
+                    Persistence.SaveManager.Log(
+                        $"SPAWN-WAIT {data.Name} model={data.ModelHash} not streamed yet.");
+                }
+
+                return null;
+            }
 
             // No sidewalk NODE snap here on purpose (four posts would heap on
             // one node) — but every post is still LAYER-validated: a spread
@@ -56,7 +65,20 @@ namespace OnTheBlade.Runtime
             Ped ped = SafeGround.CreatePed(model, position, heading);
             model.MarkAsNoLongerNeeded();
 
-            if (ped == null || !ped.Exists()) return null;
+            if (ped == null || !ped.Exists())
+            {
+                // World.CreatePed also returns null when the engine's ped pool is
+                // full, which on a heavily modded install is a completely
+                // different problem wearing the same silence.
+                if (Config.Current.LogSpawnDiagnostics)
+                {
+                    Persistence.SaveManager.Log(
+                        $"SPAWN-FAIL {data.Name} model loaded but CreatePed returned " +
+                        "nothing — ped pool full, or the position was rejected.");
+                }
+
+                return null;
+            }
 
             // Owned by the script: exempt from population culling.
             ped.IsPersistent = true;

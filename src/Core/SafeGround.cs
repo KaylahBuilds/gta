@@ -117,6 +117,65 @@ namespace OnTheBlade.Core
         private static int _nextSweepAt;
         private const int MaxTracked = 256;
 
+        /// <summary>
+        /// Models we have asked the streamer for and not yet handed back.
+        ///
+        /// This exists because of the bug that made this class's whole cast
+        /// invisible. The three spawners that make PEOPLE — workers, muscle and
+        /// incident antagonists — asked for their model with a ONE FRAME budget
+        /// and then, on failing to get it, immediately revoked the request:
+        ///
+        ///     model.Request(0);
+        ///     if (!model.IsLoaded) { model.MarkAsNoLongerNeeded(); return null; }
+        ///
+        /// A cold ped model cannot load in one frame. So every scan asked, waited
+        /// a frame, cancelled its own request and gave up — and the "retry next
+        /// scan" the caller relied on could never accumulate an inch of progress.
+        /// It restarted from nothing every 750ms, forever, silently.
+        ///
+        /// The cure is to leave the request STANDING between attempts, which is
+        /// what makes retrying converge. That trades against the rule this
+        /// codebase holds everywhere else — every Request is matched by a release
+        /// on every path — so the outstanding ones are tracked here and released
+        /// together when the stream shuts down. Bounded, and never leaked past
+        /// the session.
+        /// </summary>
+        private static readonly System.Collections.Generic.HashSet<int> Pending =
+            new System.Collections.Generic.HashSet<int>();
+
+        /// <summary>
+        /// Ask the streamer for a ped model, and say honestly whether we got it.
+        ///
+        /// The budget matches the scenery spawners, which were always given one:
+        /// HouseTraffic and HouseDoors at 500ms, RivalGirls at 250. The people
+        /// this business is actually about were the only ones asking for zero.
+        /// </summary>
+        public static bool RequestPed(Model model, int timeoutMs = 500)
+        {
+            if (!model.IsInCdImage || !model.IsPed) return false;
+
+            if (model.Request(timeoutMs))
+            {
+                Pending.Remove(model.Hash);
+                return true;
+            }
+
+            // Deliberately NOT released. The next attempt inherits the loading
+            // this one paid for; releasing here is precisely what made the retry
+            // loop spin forever.
+            Pending.Add(model.Hash);
+            return false;
+        }
+
+        /// <summary>Hands back every model still loading for a spawn that never
+        /// happened. Called from the stream's shutdown, so a script reload or a
+        /// quit never leaves one flagged.</summary>
+        public static void ReleasePendingModels()
+        {
+            foreach (int hash in Pending) new Model(hash).MarkAsNoLongerNeeded();
+            Pending.Clear();
+        }
+
         public static Ped CreatePed(Model model, Vector3 position)
         {
             var ped = World.CreatePed(model, position);

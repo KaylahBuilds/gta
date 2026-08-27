@@ -48,10 +48,9 @@ namespace OnTheBlade.Runtime
                                              RelationshipGroup crew)
         {
             var model = ModelFor(data);
-            if (!model.IsInCdImage || !model.IsValid) return null;
 
-            model.Request(0);
-            if (!model.IsLoaded) { model.MarkAsNoLongerNeeded(); return null; }
+            // Same one-frame request that made the women invisible.
+            if (!SafeGround.RequestPed(model)) return null;
 
             Ped ped = SafeGround.CreatePed(model, Core.SafeGround.Fix(position), heading);
             model.MarkAsNoLongerNeeded();
