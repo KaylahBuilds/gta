@@ -82,6 +82,9 @@ namespace OnTheBlade.UI
             {
                 if (_boundWorkerId >= 0) BindWorker(_boundWorkerId);
             };
+
+            // Last, after every menu is in the pool.
+            MenuLane.Apply(_pool);
         }
 
         public void Toggle() => _main.Visible = !_main.Visible;

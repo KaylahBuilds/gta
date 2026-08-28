@@ -24,6 +24,24 @@ namespace OnTheBlade.Core
         // F-keys: F3 Simple Trainer, F4 SHVDN console, F7 PSRP, F8 Menyoo.
         // F12 is left alone because Steam uses it for screenshots.
         [DataMember] public string MenuKeyName = "F5";
+
+        /// <summary>
+        /// How far the menus sit from where LemonUI would put them.
+        ///
+        /// GTA's notification ticker owns the top-left and LemonUI's menus
+        /// default to the same corner, so with several mods running the
+        /// notifications print straight through whatever menu is open. This
+        /// moves the menus sideways out of that lane.
+        ///
+        /// Resolution-dependent, so it is a key rather than a constant. 0 and 0
+        /// puts them back exactly where they were.
+        /// </summary>
+        [DataMember] public float MenuOffsetX = 520f;
+
+        /// <summary>Vertical nudge. Zero by default: down runs into the
+        /// minimap, and sideways is the only lane empty at every ratio.</summary>
+        [DataMember] public float MenuOffsetY;
+
         [DataMember] public string PhoneKeyName = "F1";
 
         /// <summary>
