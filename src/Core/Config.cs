@@ -36,6 +36,19 @@ namespace OnTheBlade.Core
         /// Resolution-dependent, so it is a key rather than a constant. 0 and 0
         /// puts them back exactly where they were.
         /// </summary>
+        /// <summary>
+        /// Milliseconds between notifications.
+        ///
+        /// Calls queue rather than post, because the hourly and daily resolves
+        /// settle everything in one frame and the game draws four or five lines
+        /// through each other. Spacing them is the difference between a feed and
+        /// a smear.
+        ///
+        /// 0 restores the old behaviour: everything posts the instant it is
+        /// called, overlap included.
+        /// </summary>
+        [DataMember] public int NotifySpacingMs = 1100;
+
         [DataMember] public float MenuOffsetX = 520f;
 
         /// <summary>Vertical nudge. Zero by default: down runs into the

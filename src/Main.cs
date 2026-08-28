@@ -109,6 +109,7 @@ namespace OnTheBlade
             if (!Game.Player.CanControlCharacter)
                 return;
 
+            Core.Notify.Pump();
             _pool.Process();
 
             // Order matters: stream peds first so an active incident can see the
