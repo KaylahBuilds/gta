@@ -12,6 +12,14 @@
 @media(max-width:900px){.backdoored-hero{grid-template-columns:1fr;padding-top:130px}.backdoored-hero-panel{min-height:520px}.backdoored-feature-grid{grid-template-columns:1fr 1fr}.backdoored-connection{grid-template-columns:1fr}.flow-node.backdoored{top:-55%}}
 @media(max-width:620px){.backdoored-feature-grid{grid-template-columns:1fr}.backdoored-hero-panel{min-height:470px;padding:18px}.breach-readout{gap:6px}.flow-node.backdoored{position:static;grid-row:7;width:72%}.connection-list>div{grid-template-columns:1fr;gap:10px}}
 
+/* Keep the Backdoored story in the dark security-console palette. */
+.backdoored-connection{position:relative;overflow:hidden;background:radial-gradient(circle at 12% 20%,rgba(82,217,198,.12),transparent 30%),linear-gradient(135deg,#07100f,#050808 62%);color:#f1f3ef}
+.backdoored-connection:before{content:"PROPERTY NETWORK / LIVE";position:absolute;right:clamp(20px,6vw,96px);top:30px;color:rgba(82,217,198,.38);font:600 8px var(--mono);letter-spacing:.18em}
+.backdoored-connection h2 em{color:#52d9c6}
+.connection-list{border-bottom:1px solid rgba(82,217,198,.2)}
+.connection-list>div{border-top-color:rgba(82,217,198,.2)}
+.connection-list p{color:#91a39f}
+
 .brand {
   font-family: var(--serif);
   font-style: italic;
