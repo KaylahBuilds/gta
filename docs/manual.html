@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Manual — On The Blade</title>
-<meta name="description" content="The full manual: every system, every config key, and troubleshooting.">
+<meta name="description" content="One World setup plus the complete On The Blade systems, configuration, and troubleshooting manual.">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Manual — On The Blade">
 <meta property="og:description" content="The full manual: every system, every config key, and troubleshooting.">
@@ -40,15 +40,17 @@
       <a href="manual.html" style="color:#ff3d8b;">MANUAL</a>
       <a href="trapstar.html" style="color:#8fd08a;">TRAP STAR</a>
       <a href="swipelife.html" style="color:#63b3ff;">SWIPE LIFE</a>
+      <a href="backdoored.html" style="color:#52d9c6;">BACKDOORED</a>
+      <a href="https://discord.gg/swAKF6aTuz" style="color:#a6a09a;">DISCORD</a>
       <a href="https://www.patreon.com/gtaontheblade" style="padding:9px 14px; background:#ff3d8b; color:#12080d; font-weight:600;">GET IT</a>
     </div>
   </div>
 
   <div style="padding:clamp(40px,7vw,84px) clamp(16px,4vw,56px) clamp(28px,4vw,44px); border-bottom:1px solid rgba(255,255,255,.1);">
     <div style="max-width:1140px; margin:0 auto; display:flex; flex-direction:column; gap:16px;">
-      <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.2em; color:#ff3d8b;">MANUAL · v0.3.0</div>
-      <h1 style="margin:0; font-size:clamp(34px,7vw,64px); font-weight:800; letter-spacing:-.03em; line-height:1;">Everything the mod does</h1>
-      <p style="margin:0; font-size:18px; line-height:1.55; color:#a6a09a; max-width:660px; text-wrap:pretty;">Systems, install, every config key, and what to check when it doesn't load. One build covers Legacy and Enhanced.</p>
+      <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.2em; color:#ff3d8b;">ONE WORLD MANUAL · CURRENT DOCS</div>
+      <h1 style="margin:0; font-size:clamp(34px,7vw,64px); font-weight:800; letter-spacing:-.03em; line-height:1;">Run the whole ecosystem</h1>
+      <p style="margin:0; font-size:18px; line-height:1.55; color:#a6a09a; max-width:700px; text-wrap:pretty;">One World setup first, then the complete On The Blade systems reference, controls, configuration, and troubleshooting. Legacy and Enhanced are supported.</p>
       <div style="display:flex; flex-wrap:wrap; gap:10px 24px; margin-top:4px; font-family:'IBM Plex Mono', monospace; font-size:12px; color:#8d8781; letter-spacing:.06em;">
         <div>LEGACY + ENHANCED</div>
         <div>SHVDN ENHANCED 1.1.0.6+</div>
@@ -60,15 +62,28 @@
   <div style="max-width:1140px; margin:0 auto; padding:0 clamp(16px,4vw,56px); display:grid; grid-template-columns:minmax(0,1fr); gap:clamp(28px,4vw,56px);">
     <div style="display:flex; flex-wrap:wrap; gap:8px; padding:clamp(20px,3vw,32px) 0 0; font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.08em;">
       <a href="#what" style="padding:8px 12px; border:1px solid rgba(255,255,255,.16); color:#c9c3bc;">WHAT IT IS</a>
+      <a href="#one-world" style="padding:8px 12px; border:1px solid rgba(82,217,198,.4); color:#86e8da;">ONE WORLD</a>
       <a href="#systems" style="padding:8px 12px; border:1px solid rgba(255,255,255,.16); color:#c9c3bc;">SYSTEMS</a>
       <a href="#install" style="padding:8px 12px; border:1px solid rgba(255,255,255,.16); color:#c9c3bc;">INSTALL</a>
       <a href="#controls" style="padding:8px 12px; border:1px solid rgba(255,255,255,.16); color:#c9c3bc;">CONTROLS</a>
       <a href="#config" style="padding:8px 12px; border:1px solid rgba(255,255,255,.16); color:#c9c3bc;">CONFIG</a>
       <a href="#trouble" style="padding:8px 12px; border:1px solid rgba(255,255,255,.16); color:#c9c3bc;">TROUBLESHOOTING</a>
-      <a href="#build" style="padding:8px 12px; border:1px solid rgba(255,255,255,.16); color:#c9c3bc;">BUILD</a>
     </div>
 
     <div style="display:flex; flex-direction:column; gap:clamp(44px,6vw,76px); padding-bottom:clamp(56px,8vw,104px);">
+
+      <div id="one-world" style="display:flex; flex-direction:column; gap:18px; scroll-margin-top:80px;">
+        <h2 style="margin:0; font-size:clamp(26px,4.2vw,38px); font-weight:800; letter-spacing:-.02em;">One World quick start</h2>
+        <p style="margin:0; font-size:17px; line-height:1.6; color:#c9c3bc; max-width:760px; text-wrap:pretty;">TrapStar, Swipe Life, and On The Blade are the currently playable pillars. Backdoored is the next pillar and remains a coming-soon preview until a release is posted.</p>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:1px; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.12);">
+          <div style="padding:18px; background:#0d0b13;"><div style="font-family:'IBM Plex Mono', monospace; color:#8fd08a; font-size:11px; letter-spacing:.12em;">TRAPSTAR</div><p style="margin:10px 0 0; color:#a6a09a; line-height:1.5;">Product, corners, runners, supply, and narco pressure.</p></div>
+          <div style="padding:18px; background:#0d0b13;"><div style="font-family:'IBM Plex Mono', monospace; color:#63b3ff; font-size:11px; letter-spacing:.12em;">SWIPE LIFE</div><p style="margin:10px 0 0; color:#a6a09a; line-height:1.5;">Rigs, stolen data, counters, mules, and fraud pressure.</p></div>
+          <div style="padding:18px; background:#0d0b13;"><div style="font-family:'IBM Plex Mono', monospace; color:#ff3d8b; font-size:11px; letter-spacing:.12em;">ON THE BLADE</div><p style="margin:10px 0 0; color:#a6a09a; line-height:1.5;">Roster, territory, properties, clients, and vice pressure.</p></div>
+          <div style="padding:18px; background:#0d0b13;"><div style="font-family:'IBM Plex Mono', monospace; color:#52d9c6; font-size:11px; letter-spacing:.12em;">BACKDOORED · SOON</div><p style="margin:10px 0 0; color:#a6a09a; line-height:1.5;">Home invasion, security intelligence, theft, and property risk.</p></div>
+        </div>
+        <div style="padding:20px; border:1px solid rgba(82,217,198,.38); background:rgba(82,217,198,.07); color:#b9c9c6; font-size:16px; line-height:1.6; text-wrap:pretty;"><strong style="color:#e7fffb;">Recommended install order:</strong> install the required game hooks once, add one mod, launch Story Mode and confirm it works, then add the next mod. Never copy a second shared dependency into <span style="font-family:'IBM Plex Mono', monospace; color:#8fd08a;">scripts/</span>. Back up each mod's data folder before replacing a build.</div>
+        <p style="margin:0; font-size:16px; line-height:1.6; color:#a6a09a; max-width:760px; text-wrap:pretty;">Paid One World members can use every individual mod room plus the private members room in <a href="https://discord.gg/swAKF6aTuz">Discord</a>. Use the matching support channel for bugs so logs and reproduction steps stay with the correct mod.</p>
+      </div>
 
       <div id="what" style="display:flex; flex-direction:column; gap:16px; scroll-margin-top:80px;">
         <h2 style="margin:0; font-size:clamp(26px,4.2vw,38px); font-weight:800; letter-spacing:-.02em;">What it is</h2>
@@ -321,41 +336,19 @@
         </div>
       </div>
 
-      <div id="build" style="display:flex; flex-direction:column; gap:16px; scroll-margin-top:80px;">
-        <h2 style="margin:0; font-size:clamp(26px,4.2vw,38px); font-weight:800; letter-spacing:-.02em;">Build from source</h2>
-        <p style="margin:0; font-size:17px; line-height:1.6; color:#a6a09a; max-width:720px; text-wrap:pretty;">Windows and the .NET SDK. Visual Studio is not required. The project pulls <span style="font-family:'IBM Plex Mono', monospace; color:#8fd08a;">Microsoft.NETFramework.ReferenceAssemblies</span>, so the SDK alone can target net48. Put three reference DLLs in <span style="font-family:'IBM Plex Mono', monospace;">lib/</span> first — the build fails with a pointer to lib/README.md if any is missing.</p>
-        <div style="overflow-x:auto; border:1px solid rgba(255,255,255,.12);">
-          <table style="width:100%; min-width:560px; border-collapse:collapse; font-size:15px;">
-            <tr style="background:#0d0b13;">
-              <th style="text-align:left; padding:12px 16px; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.12em; color:#6f6a65; font-weight:500;">FILE</th>
-              <th style="text-align:left; padding:12px 16px; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.12em; color:#6f6a65; font-weight:500;">SOURCE</th>
-              <th style="text-align:left; padding:12px 16px; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.12em; color:#6f6a65; font-weight:500;">VERIFIED WITH</th>
-            </tr>
-            <tr><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); font-family:'IBM Plex Mono', monospace; color:#8fd08a;">ScriptHookVDotNet3.dll</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); color:#a6a09a;">SHVDNE release zip</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); font-family:'IBM Plex Mono', monospace; color:#c9c3bc;">v1.1.0.6</td></tr>
-            <tr><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); font-family:'IBM Plex Mono', monospace; color:#8fd08a;">LemonUI.SHVDN3.dll</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); color:#a6a09a;">LemonUI.zip → SHVDN3/</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); font-family:'IBM Plex Mono', monospace; color:#c9c3bc;">v2.2</td></tr>
-            <tr><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); font-family:'IBM Plex Mono', monospace; color:#8fd08a;">iFruitAddon2.dll</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); color:#a6a09a;">iFruitAddon2 release or NuGet</td><td style="padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); font-family:'IBM Plex Mono', monospace; color:#c9c3bc;">3.1.1</td></tr>
-          </table>
-        </div>
-        <div style="overflow-x:auto; padding:16px 18px; background:#08070c; border:1px solid rgba(255,255,255,.14); font-family:'IBM Plex Mono', monospace; font-size:14px; color:#c9c3bc; white-space:pre;">dotnet build OnTheBlade.csproj -c Release</div>
-        <p style="margin:0; font-size:16px; line-height:1.6; color:#a6a09a; max-width:720px; text-wrap:pretty;">Builds clean with 0 errors and 0 warnings on .NET SDK 8.0.423. <span style="font-family:'IBM Plex Mono', monospace;">bin/Release</span> should contain exactly OnTheBlade.dll, LemonUI.SHVDN3.dll and iFruitAddon2.dll — ScriptHookVDotNet3.dll is reference-only and must not be copied.</p>
-        <div style="padding:18px 20px; border:1px solid rgba(255,255,255,.14); background:#0d0b13;">
-          <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.16em; color:#6f6a65; margin-bottom:8px;">WHY ONE BUILD COVERS BOTH EDITIONS</div>
-          <div style="font-size:15px; line-height:1.55; color:#a6a09a; text-wrap:pretty;">SHVDNE supports Legacy and Enhanced from the same binaries, and a script written for Legacy runs as-is on Enhanced. The documented exception is scripts using their own memory patterns. This mod uses none — everything goes through the SHVDN API and game natives, so there are no edition-specific code paths to maintain.</div>
-        </div>
-      </div>
-
     </div>
   </div>
 
   <div style="padding:clamp(32px,5vw,56px) clamp(16px,4vw,56px); border-top:1px solid rgba(255,255,255,.1); background:#08070c;">
     <div style="max-width:1140px; margin:0 auto; display:flex; flex-wrap:wrap; gap:20px; align-items:center; justify-content:space-between;">
-      <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#6f6a65; letter-spacing:.08em;">v0.3.0 — A SINGLE-PLAYER GTA V MOD BY THEGTAMOD</div>
+      <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:#6f6a65; letter-spacing:.08em;">ON THE BLADE REFERENCE · ONE WORLD ECOSYSTEM</div>
       <div style="display:flex; flex-wrap:wrap; gap:22px; font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.08em;">
         <a href="index.html" style="color:#a6a09a;">HOME</a>
         <a href="features.html" style="color:#a6a09a;">FEATURES</a>
       <a href="install.html" style="color:#a6a09a;">INSTALL</a>
         <a href="changelog.html" style="color:#a6a09a;">CHANGELOG</a>
         <a href="faq.html" style="color:#a6a09a;">FAQ</a>
+        <a href="https://discord.gg/swAKF6aTuz" style="color:#5865f2;">DISCORD</a>
         <a href="https://www.patreon.com/gtaontheblade" style="color:#ff3d8b;">PATREON</a>
       </div>
     </div>

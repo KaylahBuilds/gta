@@ -157,3 +157,131 @@
   .flow-node.blade { position: static; width: 100%; min-height: 140px; }
   .city-outcomes { margin-top: 30px; }
 }
+
+/* Responsive collision guardrails shared by every page. */
+.site-header,
+.site-nav,
+.hero-content,
+.section-heading > *,
+.city-intro > *,
+.mod-copy,
+.conversion-section > * {
+  min-width: 0;
+}
+
+.hero h1,
+.section-heading h2,
+.city-intro h2,
+.proof-copy h2,
+.conversion-section h2,
+.backdoored-hero h1 {
+  overflow-wrap: break-word;
+}
+
+@media (max-width: 1120px) {
+  .site-header { flex-wrap: wrap; }
+  .nav-toggle { display: block; margin-left: auto; }
+  .site-nav {
+    display: none;
+    flex-basis: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    margin: 0;
+    padding: 10px 0;
+  }
+  .site-nav.open { display: flex; }
+  .site-nav a { padding: 13px 0; }
+  .nav-cta { margin-top: 8px; text-align: center; }
+}
+
+@media (max-width: 620px) {
+  .hero h1 {
+    font-size: clamp(46px, 16vw, 68px);
+    line-height: .88;
+    letter-spacing: -.045em;
+  }
+  .hero h1 em {
+    display: block;
+    line-height: .92;
+    transform: skew(-2deg) rotate(-.5deg);
+  }
+  .section-heading h2,
+  .city-intro h2,
+  .proof-copy h2,
+  .conversion-section h2 {
+    line-height: .98;
+  }
+}
+
+/* Keep all four One City pillars in document flow so labels never collide. */
+.city-flow {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: clamp(12px, 2vw, 28px);
+  align-items: center;
+}
+
+.city-flow .flow-line {
+  width: 100%;
+}
+
+.city-flow .flow-node {
+  min-width: 0;
+  padding: clamp(14px, 2vw, 24px);
+}
+
+.city-flow .flow-node span,
+.city-flow .flow-node small {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.city-flow .flow-node.blade,
+.city-flow .flow-node.backdoored {
+  position: static;
+  top: auto;
+  left: auto;
+  width: 100%;
+  margin-top: clamp(22px, 3vw, 40px);
+}
+
+.city-flow .flow-node.blade {
+  grid-column: 2 / 3;
+  grid-row: 2;
+}
+
+.city-flow .flow-node.backdoored {
+  grid-column: 4 / 5;
+  grid-row: 2;
+}
+
+.city-outcomes {
+  margin-top: clamp(54px, 7vw, 90px);
+}
+
+@media (max-width: 900px) {
+  .city-flow {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .city-flow .flow-node,
+  .city-flow .flow-core,
+  .city-flow .flow-node.blade,
+  .city-flow .flow-node.backdoored {
+    grid-column: 1;
+    grid-row: auto;
+    width: min(100%, 360px);
+    margin: 0 auto;
+  }
+
+  .city-flow .flow-line {
+    width: 1px;
+    height: 28px;
+    margin: 0 auto;
+  }
+
+  .city-outcomes {
+    margin-top: 36px;
+  }
+}
