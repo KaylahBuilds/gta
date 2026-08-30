@@ -1,0 +1,31 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;0,800;0,900;1,600;1,700;1,800&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+:root {
+  --site-display: "Barlow Condensed", Impact, sans-serif;
+  --site-body: "Space Grotesk", Arial, sans-serif;
+  --site-mono: "JetBrains Mono", Consolas, monospace;
+}
+
+html,
+body {
+  font-family: var(--site-body) !important;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.brand,
+[style*="Instrument Serif"] {
+  font-family: var(--site-display) !important;
+}
+
+[style*="IBM Plex Mono"] {
+  font-family: var(--site-mono) !important;
+}
+
+[style*="Archivo"] {
+  font-family: var(--site-body) !important;
+}

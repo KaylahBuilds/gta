@@ -3,7 +3,8 @@
 Static site for ontheblade.com. No build step: open `index.html` or serve the folder.
 
 ## Pages
-- `index.html` — landing
+- `index.html` — conversion-focused One City landing page, featuring TrapStar and Swipe Life
+- `site.css`, `site.js` — landing-page styles and responsive navigation
 - `features.html` — systems deep dive (interactive strategy switcher, corner map)
 - `install.html` — install guide
 - `manual.html` — full manual, all config keys
@@ -17,6 +18,5 @@ Static site for ontheblade.com. No build step: open `index.html` or serve the fo
 ## Deploying to GitHub Pages
 Push this folder's contents to the repo root (or `/docs`), then Settings → Pages → deploy from branch.
 
-## To do
-- Set the YouTube video id on the landing page's video block (currently a "footage coming" card)
-- Reconcile version: manual says v0.2.0, changelog/landing say v0.1.0
+## Positioning
+The homepage sells the full three-mod ecosystem first, then routes visitors into the detailed product and install pages. Version claims live on the individual mod and changelog pages so the primary acquisition page does not go stale between releases.
