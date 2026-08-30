@@ -19,6 +19,12 @@
 .connection-list{border-bottom:1px solid rgba(82,217,198,.2)}
 .connection-list>div{border-top-color:rgba(82,217,198,.2)}
 .connection-list p{color:#91a39f}
+.backdoored-conversion{position:relative;background:radial-gradient(circle at 88% 20%,rgba(82,217,198,.14),transparent 28%),linear-gradient(135deg,#0b1715,#07100f 62%);border-top:1px solid rgba(82,217,198,.24);color:#f1f3ef}
+.backdoored-conversion:before{content:"DEVELOPMENT STATUS / WATCHLIST";position:absolute;right:clamp(20px,6vw,96px);top:30px;color:rgba(82,217,198,.5);font:600 8px var(--mono);letter-spacing:.18em}
+.backdoored-conversion h2{color:#fff}
+.backdoored-conversion h2 em{color:#52d9c6}
+.backdoored-conversion>div>p:last-child{color:#aebdb9}
+.backdoored-conversion .conversion-actions>a:not(.button){color:#d8e5e2;border-bottom-color:rgba(82,217,198,.45)}
 
 .brand {
   font-family: var(--serif);
