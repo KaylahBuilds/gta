@@ -1,5 +1,21 @@
 const toggle = document.querySelector('.nav-toggle');
 const nav = document.querySelector('.site-nav');
+const discordUrl = 'https://discord.gg/swAKF6aTuz';
+
+const addDiscordLink = (container, beforeElement = null) => {
+  if (!container || container.querySelector('[data-discord-link]')) return;
+  const link = document.createElement('a');
+  link.href = discordUrl;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  link.dataset.discordLink = '';
+  link.textContent = 'Discord';
+  link.setAttribute('aria-label', 'Join the On The Blade Discord community');
+  container.insertBefore(link, beforeElement);
+};
+
+addDiscordLink(nav, nav?.querySelector('.nav-cta'));
+addDiscordLink(document.querySelector('.site-footer nav'));
 
 if (toggle && nav) {
   toggle.addEventListener('click', () => {
